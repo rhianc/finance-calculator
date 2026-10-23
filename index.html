@@ -91,54 +91,34 @@
     padding-top: 0.9rem;
     border-top: 1px solid var(--border);
   }
-  .results-summary {
+  .results-row {
     display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-  .summary-item {
-    flex: 1;
-    text-align: center;
-  }
-  .summary-item .label {
-    font-size: 0.78rem;
-    color: var(--muted);
-  }
-  .summary-item .value {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--primary);
-  }
-  .pie-row {
-    display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 0.75rem;
   }
-  .pie-container {
-    width: 100%;
-    max-width: 220px;
-    height: 180px;
-    position: relative;
-  }
-  .pie-legend {
-    width: 100%;
-    font-size: 0.85rem;
-  }
-  .pie-legend div {
+  .results-summary {
+    flex: 1;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 0.3rem 0;
-    padding: 0.15rem 0;
+    flex-direction: column;
+    gap: 0.6rem;
   }
-  .pie-legend .swatch {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
-    margin-right: 8px;
+  .summary-item {
+    text-align: left;
+  }
+  .summary-item .label {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .summary-item .value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .pie-container {
+    flex: 1;
+    max-width: 180px;
+    height: 160px;
+    position: relative;
   }
   details {
     margin-top: 0.9rem;
@@ -289,21 +269,20 @@
     </details>
 
     <div id="results" class="results">
-      <div class="results-summary">
-        <div class="summary-item">
-          <div class="label">Loan Amount</div>
-          <div class="value" id="res-loan"></div>
+      <div class="results-row">
+        <div class="results-summary">
+          <div class="summary-item">
+            <div class="label">Loan Amount</div>
+            <div class="value" id="res-loan"></div>
+          </div>
+          <div class="summary-item">
+            <div class="label">Total Monthly</div>
+            <div class="value" id="res-total"></div>
+          </div>
         </div>
-        <div class="summary-item">
-          <div class="label">Total Monthly</div>
-          <div class="value" id="res-total"></div>
-        </div>
-      </div>
-      <div class="pie-row">
         <div class="pie-container">
           <canvas id="pieChart"></canvas>
         </div>
-        <div class="pie-legend" id="pie-legend"></div>
       </div>
     </div>
 
@@ -643,7 +622,7 @@ function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
   });
 
   // Labels are drawn radially on the chart via datalabels plugin
-  document.getElementById('pie-legend').innerHTML = '';
+  
 }
 
 function calculate() {
