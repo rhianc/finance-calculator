@@ -154,30 +154,54 @@
     margin-top: 0.5rem;
   }
   .refresh-btn {
-    display: block;
-    width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.6rem;
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.35rem 0.6rem;
     background: #f1f5f9;
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 0.9rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
     cursor: pointer;
+    z-index: 10;
   }
+  .container { position: relative; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Home Loan & Cost Calculator</h1>
   <p class="subtitle">Monthly payment + typical owner costs</p>
-  <button class="refresh-btn" onclick="location.reload()">Refresh</button>
-
   <div class="card">
-    <label>Home Price</label>
-    <div class="input-group">
-      <input type="text" id="home-price" inputmode="decimal" value="1,000,000">
-      <span class="unit">$</span>
+    <button class="refresh-btn" onclick="location.reload()">↻</button>
+    <div class="row">
+      <div>
+        <label>Home Price</label>
+        <div class="input-group">
+          <input type="text" id="home-price" inputmode="decimal" value="1,000,000">
+          <span class="unit">$</span>
+        </div>
+      </div>
+      <div>
+        <label>State</label>
+        <select id="state">
+      <option value="0.71" selected>California (0.71%)</option>
+      <option value="2.23">New Jersey (2.23%)</option>
+      <option value="1.92">Illinois (1.92%)</option>
+      <option value="1.78">Connecticut (1.78%)</option>
+      <option value="1.68">Texas (1.68%)</option>
+      <option value="1.46">New York (1.46%)</option>
+      <option value="0.91">Florida (0.91%)</option>
+      <option value="0.84">Washington (0.84%)</option>
+      <option value="0.72">Montana (0.72%)</option>
+      <option value="0.70">New Mexico (0.70%)</option>
+      <option value="0.62">Arizona (0.62%)</option>
+      <option value="0.55">Colorado (0.55%)</option>
+      <option value="0.27">Hawaii (0.27%)</option>
+      <option value="1.02">U.S. Median (~1.02%)</option>
+    </select>
+      </div>
     </div>
 
     <div class="row">
@@ -214,24 +238,6 @@
       </div>
     </div>
 
-    <label>State (property tax)</label>
-    <select id="state">
-      <option value="0.71" selected>California (0.71%)</option>
-      <option value="2.23">New Jersey (2.23%)</option>
-      <option value="1.92">Illinois (1.92%)</option>
-      <option value="1.78">Connecticut (1.78%)</option>
-      <option value="1.68">Texas (1.68%)</option>
-      <option value="1.46">New York (1.46%)</option>
-      <option value="0.91">Florida (0.91%)</option>
-      <option value="0.84">Washington (0.84%)</option>
-      <option value="0.72">Montana (0.72%)</option>
-      <option value="0.70">New Mexico (0.70%)</option>
-      <option value="0.62">Arizona (0.62%)</option>
-      <option value="0.55">Colorado (0.55%)</option>
-      <option value="0.27">Hawaii (0.27%)</option>
-      <option value="1.02">U.S. Median (~1.02%)</option>
-    </select>
-
     <details>
       <summary>Other typical costs (optional)</summary>
       <div style="padding-top:0.5rem;">
@@ -258,9 +264,7 @@
       </div>
     </details>
 
-    <button class="calc" onclick="calculate()">Calculate</button>
-
-    <div id="results" class="results hidden">
+    <div id="results" class="results">
       <div class="result-row">Loan Amount: <strong id="res-loan"></strong></div>
       <div class="result-row">Principal & Interest: <strong id="res-pi"></strong></div>
       <div class="result-row">Property Tax: <strong id="res-tax"></strong></div>
@@ -639,17 +643,14 @@ function initChart() {
 }
 
 initChart();
-updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
+calculate();
 
-['home-app','stock-return','rent','tax-rate','inflation'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    if (document.getElementById('results').classList.contains('hidden')) {
-      updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
-    } else {
-      calculate();
-    }
-  });
+const autoUpdateIds = ['home-price','down-pct','loan-rate','loan-years','state','insurance','maintenance','hoa','home-app','stock-return','rent','tax-rate','inflation'];
+autoUpdateIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', calculate);
 });
+document.getElementById('state').addEventListener('change', calculate);
 </script>
 </body>
 </html>
