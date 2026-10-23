@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Home Loan Calculator</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -135,12 +137,25 @@
     height: 280px;
     margin-top: 0.5rem;
   }
+  .refresh-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.6rem;
+    background: #f1f5f9;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Home Loan & Cost Calculator</h1>
   <p class="subtitle">Monthly payment + typical owner costs · California default</p>
+  <button class="refresh-btn" onclick="location.reload()">Refresh</button>
 
   <div class="card">
     <label>Home Price ($)</label>
