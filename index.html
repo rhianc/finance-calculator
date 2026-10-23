@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loan Payment Calculator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -89,20 +93,17 @@
     padding: 1rem;
     background: #f8fafc;
     border-radius: 8px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--muted);
     text-align: center;
     line-height: 1.6;
+    overflow-x: auto;
   }
   .equation + .equation {
     margin-top: 0.75rem;
   }
-  .equation code {
-    display: block;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.9rem;
-    color: var(--text);
-    margin: 0.4rem 0;
+  .equation .katex {
+    font-size: 1.1em;
   }
   .note {
     font-size: 0.8rem;
@@ -136,23 +137,21 @@
     </div>
 
     <div class="equation">
-      <strong>Monthly compounding (default)</strong>
-      <code>M = P × [ r(1+r)<sup>n</sup> ] / [ (1+r)<sup>n</sup> − 1 ]</code>
+      <strong>Monthly compounding (default)</strong><br>
+      $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
       Where:<br>
-      <code>P</code> = loan amount<br>
-      <code>r</code> = monthly rate (annual ÷ 12)<br>
-      <code>n</code> = number of months (years × 12)
+      $P$ = loan amount<br>
+      $r$ = monthly rate (annual ÷ 12)<br>
+      $n$ = number of months (years × 12)
     </div>
 
     <div class="equation">
-      <strong>Continuous compounding</strong>
-      <code>M = P × (e<sup>rt</sup> − 1) / (e<sup>r</sup> − 1) ÷ r</code>
-      Or more commonly written as:<br>
-      <code>M = P × r e<sup>rt</sup> / (e<sup>rt</sup> − 1)</code>
+      <strong>Continuous compounding</strong><br>
+      $$M = P \times \frac{r e^{rt}}{e^{rt} - 1}$$
       Where:<br>
-      <code>r</code> = continuous annual rate<br>
-      <code>t</code> = time in years<br>
-      <code>n</code> = number of monthly payments (t × 12)
+      $r$ = continuous annual rate<br>
+      $t$ = time in years<br>
+      $n$ = number of monthly payments ($t \times 12$)
     </div>
   </div>
 
