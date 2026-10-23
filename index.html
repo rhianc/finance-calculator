@@ -151,14 +151,20 @@
     padding: 0.3rem 0;
   }
   .equation {
-    margin-top: 1rem;
-    padding: 0.9rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.9rem;
     background: #f8fafc;
     border-radius: 8px;
     font-size: 0.85rem;
     color: var(--muted);
     text-align: center;
     overflow-x: auto;
+  }
+  .equation details {
+    margin-top: 0;
+  }
+  .equation details summary {
+    padding: 0.2rem 0;
   }
   .note {
     font-size: 0.75rem;
@@ -530,6 +536,7 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom' },
+        datalabels: { display: false },
         tooltip: {
           callbacks: {
             label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
@@ -578,7 +585,7 @@ function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
   const colors = [];
   const colorMap = {
     'P&I': '#2563eb',
-    'Property Tax': '#7c3aed',
+    'Tax': '#7c3aed',
     'Insurance': '#dc2626',
     'PMI': '#f59e0b',
     'Maintenance': '#10b981',
@@ -586,7 +593,7 @@ function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
   };
   const items = [
     ['P&I', pi],
-    ['Property Tax', tax],
+    ['Tax', tax],
     ['Insurance', ins],
     ['PMI', pmi],
     ['Maintenance', maint],
@@ -719,6 +726,7 @@ function initChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom' },
+        datalabels: { display: false },
         tooltip: {
           callbacks: {
             label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + ' / $1,000'
