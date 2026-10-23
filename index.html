@@ -545,26 +545,26 @@ function updateCrossoverChart() {
     z: z,
     x: yearsAxis,
     y: pricesK,
-    zmin: -1000000,
-    zmax: 1000000,
     colorscale: [
-      [0, '#7f1d1d'],
-      [0.25, '#dc2626'],
-      [0.4, '#fca5a5'],
+      [0, '#450a0a'],
+      [0.15, '#7f1d1d'],
+      [0.3, '#dc2626'],
+      [0.42, '#fca5a5'],
       [0.5, '#ffffff'],
-      [0.6, '#86efac'],
-      [0.75, '#22c55e'],
-      [1, '#16a34a']
+      [0.58, '#86efac'],
+      [0.7, '#22c55e'],
+      [0.85, '#15803d'],
+      [1, '#052e16']
     ],
     contours: contours,
     line: { width: 1, color: 'rgba(0,0,0,0.25)' },
     colorbar: {
       title: { text: 'Delta ($)', side: 'top', font: { size: 11 } },
-      tickformat: '~s',
-      thickness: 10,
-      len: 0.75,
-      y: 0.5,
-      yanchor: 'middle'
+      tickvals: [-1000000, -500000, 0, 500000, 1000000],
+      ticktext: ['−1M', '−500k', '0', '500k', '1M'],
+      thickness: 8,
+      len: 0.7,
+      xpad: 4
     },
     hovertemplate: 'Year: %{x:.1f}<br>Price: $%{y}k<br>Delta: $%{z:,.0f}<extra></extra>'
   }, {
@@ -578,15 +578,15 @@ function updateCrossoverChart() {
   }];
 
   const layout = {
-    margin: { t: 25, r: 55, b: 35, l: 45 },
+    margin: { t: 30, r: 28, b: 40, l: 55 },
     xaxis: {
-      title: { text: 'Years', font: { size: 11 } },
+      title: { text: 'Years', font: { size: 11 }, standoff: 8 },
       tick0: 1,
       dtick: 2,
       range: [0, 30]
     },
     yaxis: {
-      title: 'Home price ($k)',
+      title: { text: 'Home price ($k)', font: { size: 11 }, standoff: 8 },
       autorange: true
     },
     paper_bgcolor: 'rgba(0,0,0,0)',
