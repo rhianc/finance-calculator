@@ -318,12 +318,23 @@
         </div>
       </div>
     </div>
-    <label>Monthly Rent</label>
-    <div class="input-group">
-      <input type="text" id="rent" inputmode="decimal" value="3,000">
-      <span class="unit">$</span>
+    <div class="row" style="margin-bottom:0.5rem;">
+      <div>
+        <label>Monthly Rent</label>
+        <div class="input-group">
+          <input type="text" id="rent" inputmode="decimal" value="3,000">
+          <span class="unit">$</span>
+        </div>
+      </div>
+      <div>
+        <label>Marginal Tax Rate</label>
+        <div class="input-group">
+          <input type="number" id="tax-rate" value="32" min="0" max="50" step="1">
+          <span class="unit">%</span>
+        </div>
+      </div>
     </div>
-    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity vs investing down payment + (monthly P&I - rent) in stocks</p>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity + tax savings (interest + property tax deduction) vs rent + stocks</p>
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
@@ -378,11 +389,13 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
   const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
   const rent = parseMoney(document.getElementById('rent').value);
+  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
+  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
   const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
   const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
   const n = years * 12;
   const r = annualRate / 12;
-  const monthlyInvest = monthlyPI - rent; // amount available to invest after paying rent
+  const monthlyInvest = monthlyPI - rent;
 
   const labels = [];
   const houseData = [];
@@ -390,32 +403,37 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
 
   let homeValue = price;
   let remaining = loan;
-  let stockBalance = down; // down payment invested in stocks
+  let stockBalance = down;
+  let taxSavingsInvested = 0;
 
   for (let m = 0; m <= n; m++) {
     if (m % 12 === 0) {
       labels.push(m / 12);
       const equity = Math.max(0, homeValue - remaining);
-      houseData.push(Math.round(equity));
+      houseData.push(Math.round(equity + taxSavingsInvested));
       stockData.push(Math.round(stockBalance));
     }
     if (m < n) {
-      // Home
       homeValue *= (1 + monthlyHomeApp);
+      let interestThisMonth = 0;
       if (remaining > 0 && r > 0) {
-        const interest = remaining * r;
-        const principal = Math.min(monthlyPI - interest, remaining);
+        interestThisMonth = remaining * r;
+        const principal = Math.min(monthlyPI - interestThisMonth, remaining);
         remaining = Math.max(0, remaining - principal);
       } else if (remaining > 0) {
         remaining = Math.max(0, remaining - monthlyPI);
       }
-      // Stocks: grow previous + add (P&I - rent)
+      const propTaxMonth = (homeValue * propTaxRate) / 12;
+      const deductible = interestThisMonth + propTaxMonth;
+      const savings = deductible * margTax;
+      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
+
       stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
     }
   }
 
   if (spChart) spChart.destroy();
-  const homeLabel = 'House equity (' + (homeApp * 100).toFixed(1) + '% app.)';
+  const homeLabel = 'House + tax savings (' + (homeApp * 100).toFixed(1) + '% app.)';
   const stockLabel = 'Rent + Stocks (' + (spReturn * 100).toFixed(1) + '%)';
   spChart = new Chart(document.getElementById('spChart'), {
     type: 'line',
@@ -528,14 +546,14 @@ function scaleFactor(annualPct, years) {
 
 function initChart() {
   const rates = [];
-  for (let i = 0; i <= 100; i++) rates.push(i * 0.1); // 0% to 10%
+  for (let i = 0; i <= 100; i++) rates.push(i * 0.1);
 
   const terms = [15, 20, 30];
   const colors = ['#2563eb', '#7c3aed', '#dc2626'];
 
   const datasets = terms.map((yrs, idx) => ({
     label: yrs + ' years',
-    data: rates.map(rate => scaleFactor(rate, yrs) * 1000), // scale to per $1000 for readability
+    data: rates.map(rate => scaleFactor(rate, yrs) * 1000),
     borderColor: colors[idx],
     backgroundColor: colors[idx] + '20',
     borderWidth: 2,
@@ -575,11 +593,9 @@ function initChart() {
 }
 
 initChart();
-// Initial net worth chart with defaults
 updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
 
-// Update chart when knobs change
-['home-app','stock-return','rent'].forEach(id => {
+['home-app','stock-return','rent','tax-rate'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
     if (document.getElementById('results').classList.contains('hidden')) {
       updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
