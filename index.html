@@ -158,32 +158,32 @@
   <button class="refresh-btn" onclick="location.reload()">Refresh</button>
 
   <div class="card">
-    <label>Home Price ($)</label>
-    <input type="text" id="home-price" inputmode="decimal" value="1,000,000">
+    <label>Home Price</label>
+    <input type="text" id="home-price" inputmode="decimal" value="1,000,000" placeholder="$">
 
     <div class="row">
       <div>
-        <label>Down Payment (%)</label>
-        <input type="number" id="down-pct" value="20" min="0" max="100" step="1">
+        <label>Down Payment</label>
+        <input type="number" id="down-pct" value="20" min="0" max="100" step="1" placeholder="%">
       </div>
       <div>
-        <label>Down Payment ($)</label>
-        <input type="text" id="down-amt" inputmode="decimal" value="200,000" readonly style="background:#f1f5f9;">
+        <label>Down Payment</label>
+        <input type="text" id="down-amt" inputmode="decimal" value="200,000" readonly style="background:#f1f5f9;" placeholder="$">
       </div>
     </div>
 
     <div class="row">
       <div>
-        <label>Interest Rate (%)</label>
-        <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
+        <label>Interest Rate</label>
+        <input type="number" id="loan-rate" value="6.5" min="0" step="0.1" placeholder="%">
       </div>
       <div>
-        <label>Term (Years)</label>
-        <input type="number" id="loan-years" value="30" min="1" step="1">
+        <label>Term</label>
+        <input type="number" id="loan-years" value="30" min="1" step="1" placeholder="years">
       </div>
     </div>
 
-    <label>State (for property tax)</label>
+    <label>State (property tax)</label>
     <select id="state">
       <option value="0.71" selected>California (0.71%)</option>
       <option value="2.23">New Jersey (2.23%)</option>
@@ -204,15 +204,15 @@
     <details>
       <summary>Other typical costs (optional)</summary>
       <div style="padding-top:0.5rem;">
-        <label>Homeowners Insurance ($/year)</label>
-        <input type="text" id="insurance" inputmode="decimal" value="5,000">
+        <label>Homeowners Insurance</label>
+        <input type="text" id="insurance" inputmode="decimal" value="5,000" placeholder="$/year">
         <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">About 4k-6k typical for a 1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
 
-        <label>Maintenance / Repairs ($/year)</label>
-        <input type="text" id="maintenance" inputmode="decimal" value="4,500">
+        <label>Maintenance / Repairs</label>
+        <input type="text" id="maintenance" inputmode="decimal" value="4,500" placeholder="$/year">
 
-        <label>HOA Fees ($/month)</label>
-        <input type="text" id="hoa" inputmode="decimal" value="0">
+        <label>HOA Fees</label>
+        <input type="text" id="hoa" inputmode="decimal" value="0" placeholder="$/month">
 
         <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical 0.5-1% of loan/year).</p>
       </div>
@@ -264,16 +264,16 @@
     <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Rent + Stocks</h2>
     <div class="row" style="margin-bottom:0.5rem;">
       <div>
-        <label>Home Appreciation (%/yr)</label>
-        <input type="number" id="home-app" value="3" min="0" step="0.1">
+        <label>Home Appreciation</label>
+        <input type="number" id="home-app" value="3" min="0" step="0.1" placeholder="%/yr">
       </div>
       <div>
-        <label>Stock Return (%/yr)</label>
-        <input type="number" id="stock-return" value="10" min="0" step="0.1">
+        <label>Stock Return</label>
+        <input type="number" id="stock-return" value="10" min="0" step="0.1" placeholder="%/yr">
       </div>
     </div>
-    <label>Monthly Rent ($)</label>
-    <input type="text" id="rent" inputmode="decimal" value="3,000">
+    <label>Monthly Rent</label>
+    <input type="text" id="rent" inputmode="decimal" value="3,000" placeholder="$">
     <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity vs investing down payment + (monthly P&I - rent) in stocks</p>
     <div class="plot-container">
       <canvas id="spChart"></canvas>
