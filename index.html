@@ -185,8 +185,8 @@
       <div>
         <label>Home Price</label>
         <div class="input-group">
-          <input type="text" id="home-price" inputmode="decimal" value="1,000,000">
-          <span class="unit">$</span>
+          <input type="text" id="home-price" inputmode="decimal" value="1,000">
+          <span class="unit">$k</span>
         </div>
       </div>
       <div>
@@ -221,8 +221,8 @@
       <div>
         <label>Down Payment</label>
         <div class="input-group">
-          <input type="text" id="down-amt" inputmode="decimal" value="200,000">
-          <span class="unit">$</span>
+          <input type="text" id="down-amt" inputmode="decimal" value="200">
+          <span class="unit">$k</span>
         </div>
       </div>
     </div>
@@ -383,7 +383,7 @@ function formatWithCommas(value) {
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
   const [intPart, decPart] = cleaned.split('.');
-  const formattedInt = intPart.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
 }
 function parseMoney(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
@@ -408,14 +408,14 @@ function setupMoneyInput(id) {
 ['home-price','down-amt','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
 
 function updateDownFromPct() {
-  const price = parseMoney(document.getElementById('home-price').value);
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
   const pct = parseFloat(document.getElementById('down-pct').value) || 0;
   const down = price * pct / 100;
-  document.getElementById('down-amt').value = formatWithCommas(down.toFixed(0));
+  document.getElementById('down-amt').value = formatWithCommas((down / 1000).toFixed(0));
 }
 function updatePctFromAmt() {
-  const price = parseMoney(document.getElementById('home-price').value);
-  const down = parseMoney(document.getElementById('down-amt').value);
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
+  const down = parseMoney(document.getElementById('down-amt').value) * 1000;
   const pct = price > 0 ? (down / price) * 100 : 0;
   document.getElementById('down-pct').value = Math.round(pct * 10) / 10;
 }
@@ -628,7 +628,7 @@ function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
 }
 
 function calculate() {
-  const price = parseMoney(document.getElementById('home-price').value);
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
   const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
   const down = price * downPct / 100;
   const loan = Math.max(0, price - down);
