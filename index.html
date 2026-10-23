@@ -417,9 +417,9 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   for (let m = 0; m <= n; m++) {
     if (m % 12 === 0) {
       labels.push(m / 12);
-      const equity = Math.max(0, homeValue - remaining);
-      houseData.push(Math.round(equity + taxSavingsInvested));
-      stockData.push(Math.round(stockBalance));
+      const equity = Math.max(1, homeValue - remaining);
+      houseData.push(Math.max(1, Math.round(equity + taxSavingsInvested)));
+      stockData.push(Math.max(1, Math.round(stockBalance)));
     }
     if (m < n) {
       homeValue *= (1 + monthlyHomeApp);
@@ -484,10 +484,11 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           title: { display: true, text: 'Years' }
         },
         y: {
-          title: { display: true, text: 'Net worth' },
-          beginAtZero: true,
+          type: 'logarithmic',
+          title: { display: true, text: 'Net worth (log)' },
+          min: 1000,
           ticks: {
-            callback: v => '$' + (v / 1000).toFixed(0) + 'k'
+            callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k')
           }
         }
       }
