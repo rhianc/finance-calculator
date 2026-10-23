@@ -374,19 +374,11 @@
     </div>
     <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Contour of house-vs-stocks net-worth delta (today's $). Zero contour = crossover (above it owning is ahead). Evaluated monthly.</p>
     <details style="margin-top:0.5rem;">
-      <summary>Early sale & other taxes</summary>
+      <summary>Taxes & assumptions</summary>
       <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
+        <p><strong>Tax benefit (modeled):</strong> Homeowners can itemize deductions for mortgage interest and property taxes (subject to limits). The estimated tax savings = (monthly interest + monthly property tax) × marginal tax rate. Those savings are assumed to be invested at the stock return rate and added to the house net worth line. Default 32% is a rough combined federal + state marginal rate for higher earners. Real benefits depend on whether you itemize, the SALT cap ($10k federal), loan limits, and your full tax situation.</p>
         <p><strong>Selling early:</strong> The $250k / $500k primary-residence capital-gains exclusion generally requires you to have owned and lived in the home for at least 2 of the 5 years before the sale. Selling sooner can forfeit or reduce the exclusion. Gains on property held ≤1 year are short-term (taxed as ordinary income); longer holds get long-term rates. Selling also incurs closing costs, realtor commissions (~5–6%), and any transfer taxes.</p>
         <p><strong>Other ownership taxes:</strong> Ongoing property taxes (modeled), possible capital-gains tax on appreciation when you sell (after the exclusion), and in some places transfer or recording taxes at purchase or sale. This model does not include capital-gains tax, depreciation recapture (more relevant for rentals), or state-specific transfer taxes. Not tax advice — actual results depend on your full situation, filing status, and current law.</p>
-      </div>
-    </details>
-
-    <details style="margin-top:0.75rem;">
-      <summary>Tax benefit explainer</summary>
-      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
-        <p>Homeowners can itemize deductions for mortgage interest and property taxes (subject to limits). The estimated tax savings = (monthly interest + monthly property tax) × marginal tax rate.</p>
-        <p>Those savings are assumed to be invested at the stock return rate and added to the house net worth line. This is a simplified model — real benefits depend on whether you itemize, the SALT cap ($10k federal), loan limits, and your full tax situation.</p>
-        <p>Default 32% is a rough combined federal + state marginal rate for higher earners. Adjust the knob to match your situation.</p>
       </div>
     </details>
   </div>
