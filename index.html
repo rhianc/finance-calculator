@@ -539,15 +539,17 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           ticks: {
             callback: function(value) {
               const exp = Math.log10(value);
-              const isMajor = Math.abs(exp - Math.round(exp)) < 0.01;
-              const isMinor = Math.abs(value / Math.pow(10, Math.floor(exp)) - Math.round(value / Math.pow(10, Math.floor(exp)))) < 0.01;
-              if (isMajor || isMinor) {
-                if (value >= 1000000) return '$' + (value/1000000).toFixed(value >= 10000000 ? 0 : 1) + 'M';
-                if (value >= 1000) return '$' + (value/1000).toFixed(value >= 10000 ? 0 : 1) + 'k';
+              if (Math.abs(exp - Math.round(exp)) < 0.01) {
+                if (value >= 1000000) return '$' + (value/1000000).toFixed(0) + 'M';
+                if (value >= 1000) return '$' + (value/1000).toFixed(0) + 'k';
                 return '$' + value.toFixed(0);
               }
               return '';
             }
+          },
+          grid: {
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [1, 2]
           },
           grid: {
             color: 'rgba(0,0,0,0.06)',
