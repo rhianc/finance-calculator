@@ -261,8 +261,8 @@
   </div>
 
   <div class="card">
-    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Stocks</h2>
-    <div class="row" style="margin-bottom:0.75rem;">
+    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Rent + Stocks</h2>
+    <div class="row" style="margin-bottom:0.5rem;">
       <div>
         <label>Home Appreciation (%/yr)</label>
         <input type="number" id="home-app" value="3" min="0" step="0.1">
@@ -272,7 +272,9 @@
         <input type="number" id="stock-return" value="10" min="0" step="0.1">
       </div>
     </div>
-    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">House equity (home value minus remaining balance) vs investing down payment + monthly P&I in stocks</p>
+    <label>Monthly Rent ($)</label>
+    <input type="text" id="rent" inputmode="decimal" value="3,000">
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity vs investing down payment + (monthly P&I - rent) in stocks</p>
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
@@ -309,7 +311,7 @@ function setupMoneyInput(id) {
     this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
   });
 }
-['home-price','insurance','maintenance','hoa'].forEach(setupMoneyInput);
+['home-price','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
 
 function updateDown() {
   const price = parseMoney(document.getElementById('home-price').value);
@@ -326,10 +328,12 @@ let spChart = null;
 function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
   const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
+  const rent = parseMoney(document.getElementById('rent').value);
   const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
   const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
   const n = years * 12;
   const r = annualRate / 12;
+  const monthlyInvest = monthlyPI - rent; // amount available to invest after paying rent
 
   const labels = [];
   const houseData = [];
@@ -356,14 +360,14 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       } else if (remaining > 0) {
         remaining = Math.max(0, remaining - monthlyPI);
       }
-      // Stocks: grow previous + add monthly payment
-      stockBalance = stockBalance * (1 + monthlySp) + monthlyPI;
+      // Stocks: grow previous + add (P&I - rent)
+      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
     }
   }
 
   if (spChart) spChart.destroy();
   const homeLabel = 'House equity (' + (homeApp * 100).toFixed(1) + '% app.)';
-  const stockLabel = 'Stocks (' + (spReturn * 100).toFixed(1) + '%)';
+  const stockLabel = 'Rent + Stocks (' + (spReturn * 100).toFixed(1) + '%)';
   spChart = new Chart(document.getElementById('spChart'), {
     type: 'line',
     data: {
@@ -526,19 +530,14 @@ initChart();
 updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
 
 // Update chart when knobs change
-document.getElementById('home-app').addEventListener('input', () => {
-  if (document.getElementById('results').classList.contains('hidden')) {
-    updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
-  } else {
-    calculate();
-  }
-});
-document.getElementById('stock-return').addEventListener('input', () => {
-  if (document.getElementById('results').classList.contains('hidden')) {
-    updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
-  } else {
-    calculate();
-  }
+['home-app','stock-return','rent'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (document.getElementById('results').classList.contains('hidden')) {
+      updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
+    } else {
+      calculate();
+    }
+  });
 });
 </script>
 </body>
