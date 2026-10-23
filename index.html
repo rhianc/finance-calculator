@@ -532,6 +532,14 @@ function updateCrossoverChart() {
         pointRadius: 0,
         tension: 0.1,
         fill: false
+      }, {
+        label: 'Zero',
+        data: limitedPrices.map(() => 0),
+        borderColor: 'rgba(0,0,0,0.3)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        pointRadius: 0,
+        fill: false
       }]
     },
     options: {
@@ -549,7 +557,8 @@ function updateCrossoverChart() {
       scales: {
         x: {
           title: { display: true, text: 'Home price ($k)' },
-          ticks: { maxTicksLimit: 8 }
+          ticks: { maxTicksLimit: 8 },
+          max: limitedPrices.length ? limitedPrices[limitedPrices.length - 1] : undefined
         },
         y: {
           title: { display: true, text: '30yr NW difference' },
