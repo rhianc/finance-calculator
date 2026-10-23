@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loan Payment Calculator</title>
+<title>Home Loan Calculator</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
@@ -26,44 +26,49 @@
     line-height: 1.5;
   }
   .container {
-    max-width: 480px;
+    max-width: 520px;
     margin: 0 auto;
     padding: 1rem;
   }
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     text-align: center;
-    margin: 1rem 0 0.5rem;
+    margin: 1rem 0 0.4rem;
   }
   .subtitle {
     text-align: center;
     color: var(--muted);
-    font-size: 0.9rem;
-    margin-bottom: 1.25rem;
+    font-size: 0.88rem;
+    margin-bottom: 1.1rem;
   }
   .card {
     background: var(--card);
     border-radius: 12px;
-    padding: 1.25rem;
+    padding: 1.15rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   label {
     display: block;
-    margin: 0.75rem 0 0.25rem;
-    font-size: 0.9rem;
+    margin: 0.65rem 0 0.2rem;
+    font-size: 0.88rem;
     font-weight: 500;
   }
-  input {
+  input, select {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.7rem;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
   }
+  .row {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .row > div { flex: 1; }
   button.calc {
     width: 100%;
-    margin-top: 1.25rem;
-    padding: 0.9rem;
+    margin-top: 1.1rem;
+    padding: 0.85rem;
     background: var(--primary);
     color: white;
     border: none;
@@ -73,141 +78,176 @@
     cursor: pointer;
   }
   .results {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
     border-top: 1px solid var(--border);
   }
   .result-row {
     display: flex;
     justify-content: space-between;
-    margin: 0.6rem 0;
-    font-size: 1rem;
+    margin: 0.45rem 0;
+    font-size: 0.95rem;
   }
-  .result-row strong {
-    font-size: 1.1rem;
-    color: var(--primary);
+  .result-row.total {
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-top: 0.7rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
   }
+  .result-row strong { color: var(--primary); }
   .hidden { display: none; }
-  .equation {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    color: var(--muted);
-    text-align: center;
-    line-height: 1.6;
-    overflow-x: auto;
-  }
-  .equation .katex {
-    font-size: 1.1em;
+  .pmi-note {
+    font-size: 0.78rem;
+    color: #b45309;
+    margin-top: 0.3rem;
   }
   details {
-    margin-top: 0.75rem;
-    text-align: left;
+    margin-top: 0.9rem;
     font-size: 0.85rem;
-    color: var(--text);
   }
   details summary {
     cursor: pointer;
     font-weight: 500;
     color: var(--primary);
-    padding: 0.4rem 0;
+    padding: 0.3rem 0;
   }
-  details .inner {
-    padding: 0.5rem 0 0.25rem;
-    line-height: 1.55;
+  .equation {
+    margin-top: 1rem;
+    padding: 0.9rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    overflow-x: auto;
   }
   .note {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--muted);
-    margin-top: 1rem;
+    margin-top: 0.9rem;
     text-align: center;
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Monthly Payment Calculator</h1>
-  <p class="subtitle">Car or home loan · monthly compounding</p>
+  <h1>Home Loan & Cost Calculator</h1>
+  <p class="subtitle">Monthly payment + typical owner costs · California default</p>
 
   <div class="card">
-    <label>Loan Amount ($)</label>
-    <input type="text" id="loan-amount" inputmode="decimal" value="25,000">
-    
-    <label>Annual Interest Rate (%)</label>
-    <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
-    
-    <label>Term (Years)</label>
-    <input type="number" id="loan-years" value="5" min="1" step="1">
-    
-    <button class="calc" onclick="calcLoan()">Calculate</button>
-    
-    <div id="loan-results" class="results hidden">
-      <div class="result-row">Monthly Payment: <strong id="loan-monthly"></strong></div>
-      <div class="result-row">Total Paid: <strong id="loan-total"></strong></div>
-      <div class="result-row">Total Interest: <strong id="loan-interest"></strong></div>
+    <label>Home Price ($)</label>
+    <input type="text" id="home-price" inputmode="decimal" value="750,000">
+
+    <div class="row">
+      <div>
+        <label>Down Payment (%)</label>
+        <input type="number" id="down-pct" value="20" min="0" max="100" step="1">
+      </div>
+      <div>
+        <label>Down Payment ($)</label>
+        <input type="text" id="down-amt" inputmode="decimal" value="150,000" readonly style="background:#f1f5f9;">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Interest Rate (%)</label>
+        <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
+      </div>
+      <div>
+        <label>Term (Years)</label>
+        <input type="number" id="loan-years" value="30" min="1" step="1">
+      </div>
+    </div>
+
+    <label>State (for property tax)</label>
+    <select id="state">
+      <option value="0.71" selected>California (0.71%)</option>
+      <option value="2.23">New Jersey (2.23%)</option>
+      <option value="1.92">Illinois (1.92%)</option>
+      <option value="1.78">Connecticut (1.78%)</option>
+      <option value="1.68">Texas (1.68%)</option>
+      <option value="1.46">New York (1.46%)</option>
+      <option value="0.91">Florida (0.91%)</option>
+      <option value="0.84">Washington (0.84%)</option>
+      <option value="0.62">Arizona (0.62%)</option>
+      <option value="0.55">Colorado (0.55%)</option>
+      <option value="0.27">Hawaii (0.27%)</option>
+      <option value="1.02">U.S. Median (~1.02%)</option>
+    </select>
+
+    <details>
+      <summary>Other typical costs (optional)</summary>
+      <div style="padding-top:0.5rem;">
+        <label>Homeowners Insurance ($/year)</label>
+        <input type="text" id="insurance" inputmode="decimal" value="2,200">
+
+        <label>Maintenance / Repairs ($/year)</label>
+        <input type="text" id="maintenance" inputmode="decimal" value="4,500">
+
+        <label>HOA Fees ($/month)</label>
+        <input type="text" id="hoa" inputmode="decimal" value="0">
+
+        <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical ~0.5–1% of loan/year).</p>
+      </div>
+    </details>
+
+    <button class="calc" onclick="calculate()">Calculate</button>
+
+    <div id="results" class="results hidden">
+      <div class="result-row">Loan Amount: <strong id="res-loan"></strong></div>
+      <div class="result-row">Principal & Interest: <strong id="res-pi"></strong></div>
+      <div class="result-row">Property Tax: <strong id="res-tax"></strong></div>
+      <div class="result-row">Insurance: <strong id="res-ins"></strong></div>
+      <div class="result-row" id="pmi-row">PMI: <strong id="res-pmi"></strong></div>
+      <div class="result-row">Maintenance: <strong id="res-maint"></strong></div>
+      <div class="result-row">HOA: <strong id="res-hoa"></strong></div>
+      <div class="result-row total">Total Monthly: <strong id="res-total"></strong></div>
     </div>
 
     <div class="equation">
-      <strong>Monthly compounding (default)</strong><br>
+      <strong>Monthly principal & interest</strong><br>
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
-      Where:<br>
-      $P$ = loan amount<br>
-      $r$ = <strong>monthly</strong> interest rate (annual rate ÷ 12)<br>
-      $n$ = number of months (years × 12)
-
       <details>
-        <summary>Quick derivation & continuous compounding</summary>
-        <div class="inner">
-          <strong>Derivation of the monthly formula</strong><br>
-          Start with the balance after one month. After the payment $M$ is applied:<br>
-          $$B_1 = P(1+r) - M$$
-          After two months:<br>
-          $$B_2 = B_1(1+r) - M = P(1+r)^2 - M(1+r) - M$$
-          After $n$ months the remaining balance is:<br>
-          $$B_n = P(1+r)^n - M\frac{(1+r)^n - 1}{r}$$
-          At the end of the loan, $B_n = 0$. Solving for $M$ gives:<br>
-          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}$$
-
-          <br><strong>Continuous compounding & the definition of $e$</strong><br>
-          The number $e$ is defined as the limit of compound interest as the number of compounding periods goes to infinity:<br>
-          $$e = \lim_{m \to \infty} \left(1 + \frac{1}{m}\right)^m$$
-          More generally, continuous growth at annual rate $R$ is:<br>
-          $$\lim_{m \to \infty} \left(1 + \frac{R}{m}\right)^{mt} = e^{Rt}$$
-          The continuous-compounding monthly payment that amortizes a loan is:<br>
-          $$M = P \times \frac{R e^{Rt}}{e^{Rt} - 1}$$
-          (Here $R$ is the continuous annual rate and $t$ is the term in years.) Most car and home loans use the discrete monthly version instead.
+        <summary>Derivation & continuous compounding</summary>
+        <div style="text-align:left;padding-top:0.4rem;">
+          Balance after one month: $B_1 = P(1+r) - M$<br>
+          After $n$ months: $B_n = P(1+r)^n - M\frac{(1+r)^n-1}{r}$<br>
+          Set $B_n=0$ and solve for $M$.<br><br>
+          Continuous limit uses $e = \lim_{m\to\infty}(1+1/m)^m$:<br>
+          $$M = P \times \frac{R e^{Rt}}{e^{Rt}-1}$$
         </div>
       </details>
     </div>
   </div>
 
-  <p class="note">Simple calculator for planning. Not financial advice. Most consumer loans use monthly compounding.</p>
+  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Actual costs vary by county, insurance, and home. Not financial advice.</p>
 </div>
 
 <script>
+const TAX_RATES = {}; // filled from select
+
 function formatWithCommas(value) {
   let cleaned = value.replace(/[^0-9.]/g, '');
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
-  
   const [intPart, decPart] = cleaned.split('.');
   const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
 }
-
-function parseMoney(value) {
-  return parseFloat(value.replace(/,/g, '')) || 0;
-}
-
+function parseMoney(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
 function formatMoney(n) {
+  return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+function formatMoney2(n) {
   return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function setupMoneyInput(id) {
-  const input = document.getElementById(id);
-  input.addEventListener('input', function() {
+  const el = document.getElementById(id);
+  if (!el || el.readOnly) return;
+  el.addEventListener('input', function() {
     const cursor = this.selectionStart;
     const oldLen = this.value.length;
     this.value = formatWithCommas(this.value);
@@ -215,29 +255,64 @@ function setupMoneyInput(id) {
     this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
   });
 }
+['home-price','insurance','maintenance','hoa'].forEach(setupMoneyInput);
 
-setupMoneyInput('loan-amount');
+function updateDown() {
+  const price = parseMoney(document.getElementById('home-price').value);
+  const pct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const down = price * pct / 100;
+  document.getElementById('down-amt').value = formatWithCommas(down.toFixed(0));
+}
+document.getElementById('home-price').addEventListener('input', updateDown);
+document.getElementById('down-pct').addEventListener('input', updateDown);
+updateDown();
 
-function calcLoan() {
-  const P = parseMoney(document.getElementById('loan-amount').value);
+function calculate() {
+  const price = parseMoney(document.getElementById('home-price').value);
+  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const down = price * downPct / 100;
+  const loan = Math.max(0, price - down);
   const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
-  const years = parseFloat(document.getElementById('loan-years').value) || 0;
+  const years = parseFloat(document.getElementById('loan-years').value) || 30;
   const n = years * 12;
   const r = annualRate / 12;
-  
-  let monthly = 0;
-  if (r === 0) {
-    monthly = P / n;
-  } else {
-    monthly = P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+  let pi = 0;
+  if (loan > 0 && n > 0) {
+    if (r === 0) pi = loan / n;
+    else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
   }
-  const total = monthly * n;
-  const interest = total - P;
-  
-  document.getElementById('loan-monthly').textContent = formatMoney(monthly);
-  document.getElementById('loan-total').textContent = formatMoney(total);
-  document.getElementById('loan-interest').textContent = formatMoney(interest);
-  document.getElementById('loan-results').classList.remove('hidden');
+
+  const taxRate = parseFloat(document.getElementById('state').value) / 100;
+  const taxMonthly = (price * taxRate) / 12;
+
+  const insYear = parseMoney(document.getElementById('insurance').value);
+  const insMonthly = insYear / 12;
+
+  const maintYear = parseMoney(document.getElementById('maintenance').value);
+  const maintMonthly = maintYear / 12;
+
+  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
+
+  // PMI: typical ~0.5-1% of loan annually if LTV > 80%. Use 0.6% as simple default.
+  let pmiMonthly = 0;
+  const ltv = price > 0 ? loan / price : 0;
+  if (ltv > 0.8 && loan > 0) {
+    pmiMonthly = (loan * 0.006) / 12;
+  }
+  document.getElementById('pmi-row').style.display = pmiMonthly > 0 ? 'flex' : 'none';
+
+  const total = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
+
+  document.getElementById('res-loan').textContent = formatMoney(loan);
+  document.getElementById('res-pi').textContent = formatMoney2(pi);
+  document.getElementById('res-tax').textContent = formatMoney2(taxMonthly);
+  document.getElementById('res-ins').textContent = formatMoney2(insMonthly);
+  document.getElementById('res-pmi').textContent = formatMoney2(pmiMonthly);
+  document.getElementById('res-maint').textContent = formatMoney2(maintMonthly);
+  document.getElementById('res-hoa').textContent = formatMoney2(hoaMonthly);
+  document.getElementById('res-total').textContent = formatMoney2(total);
+  document.getElementById('results').classList.remove('hidden');
 }
 </script>
 </body>
