@@ -1,1 +1,894 @@
-$(cat /workspace/artifacts/index.html)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Home Loan Calculator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --text: #1e2937;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  h1 {
+    font-size: 1.45rem;
+    text-align: center;
+    margin: 1rem 0 0.4rem;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin-bottom: 1.1rem;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.15rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+  }
+  label {
+    display: block;
+    margin: 0.65rem 0 0.2rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  input, select {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  .input-group {
+    position: relative;
+  }
+  .input-group input {
+    padding-right: 3.2rem;
+  }
+  .input-group .unit {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .row {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .row > div { flex: 1; }
+  .results {
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+  }
+  .results-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .results-summary {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .summary-item {
+    text-align: left;
+  }
+  .summary-item .label {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .summary-item .value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .pie-container {
+    flex: 1;
+    height: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  details {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--primary);
+    padding: 0.3rem 0;
+  }
+  .equation {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    overflow-x: auto;
+  }
+  .equation details {
+    margin-top: 0;
+  }
+  .equation details summary {
+    padding: 0.2rem 0;
+  }
+  .note {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.9rem;
+    text-align: center;
+  }
+  .plot-container {
+    position: relative;
+    height: 280px;
+    margin-top: 0.5rem;
+  }
+  .refresh-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    background: #f1f5f9;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .container { position: relative; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Home Loan & Cost Calculator</h1>
+  <p class="subtitle">Monthly payment + typical owner costs</p>
+  <div class="card">
+    <button class="refresh-btn" onclick="location.reload()">↻</button>
+    <div class="row">
+      <div>
+        <label>Home Price</label>
+        <div class="input-group">
+          <input type="text" id="home-price" inputmode="decimal" value="1,000">
+          <span class="unit">$k</span>
+        </div>
+      </div>
+      <div>
+        <label>State</label>
+        <select id="state">
+      <option value="0.71" selected>California (0.71%)</option>
+      <option value="2.23">New Jersey (2.23%)</option>
+      <option value="1.92">Illinois (1.92%)</option>
+      <option value="1.78">Connecticut (1.78%)</option>
+      <option value="1.68">Texas (1.68%)</option>
+      <option value="1.46">New York (1.46%)</option>
+      <option value="0.91">Florida (0.91%)</option>
+      <option value="0.84">Washington (0.84%)</option>
+      <option value="0.72">Montana (0.72%)</option>
+      <option value="0.70">New Mexico (0.70%)</option>
+      <option value="0.62">Arizona (0.62%)</option>
+      <option value="0.55">Colorado (0.55%)</option>
+      <option value="0.27">Hawaii (0.27%)</option>
+      <option value="1.02">U.S. Median (~1.02%)</option>
+    </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Down Payment</label>
+        <div class="input-group">
+          <input type="number" id="down-pct" value="20" min="0" max="100" step="1">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div>
+        <label>Down Payment</label>
+        <div class="input-group">
+          <input type="text" id="down-amt" inputmode="decimal" value="200">
+          <span class="unit">$k</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Interest Rate</label>
+        <div class="input-group">
+          <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div>
+        <label>Term</label>
+        <div class="input-group">
+          <input type="number" id="loan-years" value="30" min="1" step="1">
+          <span class="unit">yrs</span>
+        </div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Other typical costs (optional)</summary>
+      <div style="padding-top:0.5rem;">
+        <label>Homeowners Insurance</label>
+        <div class="input-group">
+          <input type="text" id="insurance" inputmode="decimal" value="5,000">
+          <span class="unit">$/yr</span>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">About 4k-6k typical for a 1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
+
+        <label>Maintenance / Repairs</label>
+        <div class="input-group">
+          <input type="text" id="maintenance" inputmode="decimal" value="4,500">
+          <span class="unit">$/yr</span>
+        </div>
+
+        <label>HOA Fees</label>
+        <div class="input-group">
+          <input type="text" id="hoa" inputmode="decimal" value="0">
+          <span class="unit">$/mo</span>
+        </div>
+
+        <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical 0.5-1% of loan/year).</p>
+      </div>
+    </details>
+
+    <div id="results" class="results">
+      <div class="results-row">
+        <div class="results-summary">
+          <div class="summary-item">
+            <div class="label">Loan Amount</div>
+            <div class="value" id="res-loan"></div>
+          </div>
+          <div class="summary-item">
+            <div class="label">Total Monthly</div>
+            <div class="value" id="res-total"></div>
+          </div>
+        </div>
+        <div class="pie-container">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <details style="margin-top:0.5rem;">
+      <summary>Derivation</summary>
+      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);text-align:left;">
+        <strong>Monthly principal & interest</strong><br>
+        $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
+        Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
+        <br><br>
+          Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
+          $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
+          The sum is geometric:
+          $$\sum_{k=0}^{n-1} (1+r)^k = \frac{(1+r)^n - 1}{r}$$
+          so
+          $$B_n = P(1+r)^n - M \frac{(1+r)^n - 1}{r}.$$
+          Set $B_n = 0$ and solve for $M$:
+          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}.$$
+
+          Continuous limit ($m \to \infty$ periods):
+          $$e = \lim_{m\to\infty}\left(1+\frac{1}{m}\right)^m, \quad M = P \times \frac{R e^{Rt}}{e^{Rt}-1}.$$
+
+          <p style="margin-top:1rem;font-weight:500;text-align:center;">Principal Scale Factor (M/P)</p>
+          <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.5rem;">Monthly payment as a fraction of loan amount vs annual rate</p>
+          <div class="plot-container">
+            <canvas id="scaleChart"></canvas>
+          </div>
+        </div>
+      </details>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Rent + Stocks</h2>
+    <div class="row" style="margin-bottom:0.5rem;">
+      <div>
+        <label>Home Appreciation</label>
+        <div class="input-group">
+          <input type="number" id="home-app" value="3" min="0" step="0.1">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div>
+        <label>Stock Return</label>
+        <div class="input-group">
+          <input type="number" id="stock-return" value="10" min="0" step="0.1">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:0.5rem;">
+      <div>
+        <label>Monthly Rent</label>
+        <div class="input-group">
+          <input type="text" id="rent" inputmode="decimal" value="3,000">
+          <span class="unit">$</span>
+        </div>
+      </div>
+      <div>
+        <label>Marginal Tax Rate</label>
+        <div class="input-group">
+          <input type="number" id="tax-rate" value="32" min="0" max="50" step="1">
+          <span class="unit">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:0.5rem;">
+      <div>
+        <label>Inflation</label>
+        <div class="input-group">
+          <input type="number" id="inflation" value="2.5" min="0" step="0.1">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div></div>
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity + tax savings vs rent + stocks (in today's dollars)</p>
+    <div class="plot-container">
+      <canvas id="spChart"></canvas>
+    </div>
+    <div class="plot-container" style="height:220px;margin-top:1rem;">
+      <canvas id="crossoverChart"></canvas>
+    </div>
+    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Home price where owning and renting break even, by year. Above the line = better to rent.</p>
+    <details style="margin-top:0.75rem;">
+      <summary>Tax benefit explainer</summary>
+      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
+        <p>Homeowners can itemize deductions for mortgage interest and property taxes (subject to limits). The estimated tax savings = (monthly interest + monthly property tax) × marginal tax rate.</p>
+        <p>Those savings are assumed to be invested at the stock return rate and added to the house net worth line. This is a simplified model — real benefits depend on whether you itemize, the SALT cap ($10k federal), loan limits, and your full tax situation.</p>
+        <p>Default 32% is a rough combined federal + state marginal rate for higher earners. Adjust the knob to match your situation.</p>
+      </div>
+    </details>
+  </div>
+
+  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a 1M home in California is often 4k-6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
+</div>
+
+<script>
+function formatWithCommas(value) {
+  let cleaned = value.replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+  const [intPart, decPart] = cleaned.split('.');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
+}
+function parseMoney(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
+function formatMoney(n) {
+  return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+function formatMoney2(n) {
+  return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function setupMoneyInput(id) {
+  const el = document.getElementById(id);
+  if (!el || el.readOnly) return;
+  el.addEventListener('input', function() {
+    const cursor = this.selectionStart;
+    const oldLen = this.value.length;
+    this.value = formatWithCommas(this.value);
+    const newLen = this.value.length;
+    this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+  });
+}
+['home-price','down-amt','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
+
+function updateDownFromPct() {
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
+  const pct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const down = price * pct / 100;
+  document.getElementById('down-amt').value = formatWithCommas((down / 1000).toFixed(0));
+}
+function updatePctFromAmt() {
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
+  const down = parseMoney(document.getElementById('down-amt').value) * 1000;
+  const pct = price > 0 ? (down / price) * 100 : 0;
+  document.getElementById('down-pct').value = Math.round(pct * 10) / 10;
+}
+document.getElementById('home-price').addEventListener('input', updateDownFromPct);
+document.getElementById('down-pct').addEventListener('input', updateDownFromPct);
+document.getElementById('down-amt').addEventListener('input', updatePctFromAmt);
+updateDownFromPct();
+
+let crossoverChart = null;
+
+function updateCrossoverChart() {
+  const basePrice = parseMoney(document.getElementById('home-price').value) * 1000;
+  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
+  const years = 30;
+  const n = years * 12;
+  const r = annualRate / 12;
+  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
+  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
+  const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
+  const rent = parseMoney(document.getElementById('rent').value);
+  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
+  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
+  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
+  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
+  const insYear = parseMoney(document.getElementById('insurance').value);
+  const maintYear = parseMoney(document.getElementById('maintenance').value);
+  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
+
+  // Sweep prices and find crossover price for each year
+  const yearMarks = Array.from({length: 30}, (_, i) => i + 1);
+  const priceMults = [];
+  for (let m = 0.2; m <= 4.01; m += 0.05) priceMults.push(m);
+
+  const crossoverByYear = {};
+  yearMarks.forEach(y => crossoverByYear[y] = null);
+
+  for (const mult of priceMults) {
+    const price = Math.round(basePrice * mult);
+    const down = price * downPct / 100;
+    const loan = Math.max(0, price - down);
+    let pi = 0;
+    if (loan > 0 && n > 0) {
+      if (r === 0) pi = loan / n;
+      else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+    }
+    const taxMonthly = (price * propTaxRate) / 12;
+    const insMonthly = insYear / 12;
+    const maintMonthly = maintYear / 12;
+    let pmiMonthly = 0;
+    if (price > 0 && loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
+    const totalMonthly = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
+    const monthlyInvest = totalMonthly - rent;
+
+    let homeValue = price;
+    let remaining = loan;
+    let stockBalance = down;
+    let taxSavingsInvested = 0;
+
+    for (let m = 0; m < n; m++) {
+      homeValue *= (1 + monthlyHomeApp);
+      let interestThisMonth = 0;
+      if (remaining > 0 && r > 0) {
+        interestThisMonth = remaining * r;
+        const principal = Math.min(pi - interestThisMonth, remaining);
+        remaining = Math.max(0, remaining - principal);
+      } else if (remaining > 0) {
+        remaining = Math.max(0, remaining - pi);
+      }
+      const propTaxMonth = (price * propTaxRate) / 12;
+      const saltCapMonth = 10000 / 12;
+      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
+      const deductible = interestThisMonth + deductiblePropTax;
+      const savings = deductible * margTax;
+      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
+      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
+
+      if ((m + 1) % 12 === 0) {
+        const yr = (m + 1) / 12;
+        if (yearMarks.includes(yr) && crossoverByYear[yr] === null) {
+          const discount = Math.pow(1 + inflation, yr);
+          const equity = homeValue - remaining;
+          const houseNW = (equity + taxSavingsInvested) / discount;
+          const stockNW = stockBalance / discount;
+          if (houseNW - stockNW < 0) {
+            crossoverByYear[yr] = Math.round(price / 1000);
+          }
+        }
+      }
+    }
+  }
+
+  const yearsOut = [];
+  const crossoverPrices = [];
+  yearMarks.forEach(y => {
+    if (crossoverByYear[y] !== null) {
+      yearsOut.push(y);
+      crossoverPrices.push(crossoverByYear[y]);
+    }
+  });
+
+  if (crossoverChart) crossoverChart.destroy();
+  crossoverChart = new Chart(document.getElementById('crossoverChart'), {
+    type: 'line',
+    data: {
+      labels: yearsOut,
+      datasets: [{
+        label: 'Crossover price',
+        data: crossoverPrices,
+        borderColor: '#2563eb',
+        backgroundColor: '#2563eb20',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => 'Crossover: $' + ctx.parsed.y.toLocaleString() + 'k'
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Years' },
+          ticks: { stepSize: 1 }
+        },
+        y: {
+          title: { display: true, text: 'Crossover home price ($k)' },
+          grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+let spChart = null;
+
+function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, totalMonthly) {
+  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
+  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
+  const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
+  const rent = parseMoney(document.getElementById('rent').value);
+  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
+  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
+  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
+  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
+  const n = years * 12;
+  const r = annualRate / 12;
+  const monthlyInvest = totalMonthly - rent;
+
+  const labels = [];
+  const houseData = [];
+  const stockData = [];
+
+  let homeValue = price;
+  let remaining = loan;
+  let stockBalance = down;
+  let taxSavingsInvested = 0;
+
+  for (let m = 0; m <= n; m++) {
+    if (m % 12 === 0) {
+      labels.push(m / 12);
+      const yearsOut = m / 12;
+      const discount = Math.pow(1 + inflation, yearsOut);
+      const equity = homeValue - remaining;
+      const houseVal = Math.round((equity + taxSavingsInvested) / discount);
+      const stockVal = Math.round(stockBalance / discount);
+      houseData.push(houseVal > 0 ? houseVal : null);
+      stockData.push(stockVal > 0 ? stockVal : null);
+    }
+    if (m < n) {
+      homeValue *= (1 + monthlyHomeApp);
+      let interestThisMonth = 0;
+      if (remaining > 0 && r > 0) {
+        interestThisMonth = remaining * r;
+        const principal = Math.min(monthlyPI - interestThisMonth, remaining);
+        remaining = Math.max(0, remaining - principal);
+      } else if (remaining > 0) {
+        remaining = Math.max(0, remaining - monthlyPI);
+      }
+      // Property tax deduction based on original price (matches actual tax paid)
+      // Apply simplified $10k annual SALT cap on property tax portion
+      const propTaxMonth = (price * propTaxRate) / 12;
+      const saltCapMonth = 10000 / 12;
+      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
+      const deductible = interestThisMonth + deductiblePropTax;
+      const savings = deductible * margTax;
+      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
+
+      // Down payment compounds; monthly difference (ownership cost - rent) is added or withdrawn
+      // Allow negative so the comparison shows the full cost of the rent path
+      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
+    }
+  }
+
+  const positiveVals = [...houseData, ...stockData].filter(v => v != null && v > 0);
+  const dataMin = positiveVals.length ? Math.min(...positiveVals) : 1;
+  const dataMax = positiveVals.length ? Math.max(...positiveVals) : 1;
+  const logMin = Math.pow(10, Math.floor(Math.log10(Math.max(1, dataMin))));
+  const logMax = Math.pow(10, Math.ceil(Math.log10(Math.max(1, dataMax * 1.1))));
+
+  if (spChart) spChart.destroy();
+  const homeLabel = 'House + tax savings (' + (homeApp * 100).toFixed(1) + '% app.)';
+  const stockLabel = 'Rent + Stocks (' + (spReturn * 100).toFixed(1) + '%)';
+  spChart = new Chart(document.getElementById('spChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: homeLabel,
+          data: houseData,
+          borderColor: '#2563eb',
+          backgroundColor: '#2563eb20',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.1
+        },
+        {
+          label: stockLabel,
+          data: stockData,
+          borderColor: '#16a34a',
+          backgroundColor: '#16a34a20',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        datalabels: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Years' },
+          ticks: { maxTicksLimit: 10 },
+          grid: {
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [2, 3]
+          }
+        },
+        y: {
+          type: 'logarithmic',
+          min: logMin,
+          max: logMax,
+          title: { display: true, text: 'Net worth (today\'s $, log)' },
+          ticks: {
+            callback: function(value) {
+              const exp = Math.log10(value);
+              if (Math.abs(exp - Math.round(exp)) < 0.01) {
+                if (value >= 1000000) return '$' + (value/1000000).toFixed(0) + 'M';
+                if (value >= 1000) return '$' + (value/1000).toFixed(0) + 'k';
+                return '$' + value.toFixed(0);
+              }
+              return '';
+            },
+            maxTicksLimit: 20
+          },
+          grid: {
+            color: 'rgba(0,0,0,0.1)',
+            borderDash: [1, 2],
+            drawTicks: true
+          },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+let pieChart = null;
+function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
+  const labels = [];
+  const data = [];
+  const colors = [];
+  const colorMap = {
+    'P&I': '#2563eb',
+    'Tax': '#7c3aed',
+    'Insurance': '#dc2626',
+    'PMI': '#f59e0b',
+    'Maintenance': '#10b981',
+    'HOA': '#6b7280'
+  };
+  const items = [
+    ['P&I', pi],
+    ['Tax', tax],
+    ['Insurance', ins],
+    ['PMI', pmi],
+    ['Maintenance', maint],
+    ['HOA', hoa]
+  ];
+  items.forEach(([label, val]) => {
+    if (val > 0.5) {
+      labels.push(label);
+      data.push(Math.round(val));
+      colors.push(colorMap[label]);
+    }
+  });
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      layout: { padding: 30 },
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          offset: 8,
+          color: '#1e2937',
+          font: { size: 11, weight: '500' },
+          formatter: (value, ctx) => ctx.chart.data.labels[ctx.dataIndex],
+          clamp: true
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+
+  // Labels are drawn radially on the chart via datalabels plugin
+  
+}
+
+function calculate() {
+  const price = parseMoney(document.getElementById('home-price').value) * 1000;
+  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const down = price * downPct / 100;
+  const loan = Math.max(0, price - down);
+  const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
+  const years = parseFloat(document.getElementById('loan-years').value) || 30;
+  const n = years * 12;
+  const r = annualRate / 12;
+
+  let pi = 0;
+  if (loan > 0 && n > 0) {
+    if (r === 0) pi = loan / n;
+    else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+  }
+
+  const taxRate = parseFloat(document.getElementById('state').value) / 100;
+  const taxMonthly = (price * taxRate) / 12;
+
+  const insYear = parseMoney(document.getElementById('insurance').value);
+  const insMonthly = insYear / 12;
+
+  const maintYear = parseMoney(document.getElementById('maintenance').value);
+  const maintMonthly = maintYear / 12;
+
+  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
+
+  let pmiMonthly = 0;
+  const ltv = price > 0 ? loan / price : 0;
+  if (ltv > 0.8 && loan > 0) {
+    pmiMonthly = (loan * 0.006) / 12;
+  }
+
+  const total = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
+
+  document.getElementById('res-loan').textContent = formatMoney(loan);
+  document.getElementById('res-total').textContent = formatMoney2(total);
+
+  updatePieChart(pi, taxMonthly, insMonthly, pmiMonthly, maintMonthly, hoaMonthly);
+  updateNetWorthChart(price, down, loan, annualRate, years, pi, total);
+  updateCrossoverChart();
+}
+
+function scaleFactor(annualPct, years) {
+  const annual = annualPct / 100;
+  const r = annual / 12;
+  const n = years * 12;
+  if (r === 0) return 1 / n;
+  return (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
+
+function initChart() {
+  const rates = [];
+  for (let i = 0; i <= 100; i++) rates.push(i * 0.1);
+
+  const terms = [15, 20, 30];
+  const colors = ['#2563eb', '#7c3aed', '#dc2626'];
+
+  const datasets = terms.map((yrs, idx) => ({
+    label: yrs + ' years',
+    data: rates.map(rate => scaleFactor(rate, yrs) * 1000),
+    borderColor: colors[idx],
+    backgroundColor: colors[idx] + '20',
+    borderWidth: 2,
+    pointRadius: 0,
+    tension: 0.1
+  }));
+
+  new Chart(document.getElementById('scaleChart'), {
+    type: 'line',
+    data: {
+      labels: rates.map(r => r.toFixed(1) + '%'),
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        datalabels: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + ' / $1,000'
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Annual interest rate' },
+          ticks: { maxTicksLimit: 8 }
+        },
+        y: {
+          title: { display: true, text: 'Monthly payment per $1,000 principal' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+Chart.register(ChartDataLabels);
+initChart();
+calculate();
+
+const autoUpdateIds = ['home-price','down-pct','loan-rate','loan-years','state','insurance','maintenance','hoa','home-app','stock-return','rent','tax-rate','inflation'];
+autoUpdateIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', calculate);
+});
+document.getElementById('state').addEventListener('change', calculate);
+</script>
+</body>
+</html>
+
