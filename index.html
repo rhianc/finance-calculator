@@ -462,10 +462,9 @@ function updateCrossoverChart() {
   const maintYear = parseMoney(document.getElementById('maintenance').value);
   const hoaMonthly = parseMoney(document.getElementById('hoa').value);
 
-  // Price grid (in $k) and monthly time grid
-  const priceMults = [];
-  for (let m = 0.4; m <= 2.5; m += 0.08) priceMults.push(m);
-  const pricesK = priceMults.map(m => Math.round(basePrice * m / 1000));
+  // Price grid (in $k) up to 1M and monthly time grid
+  const pricesK = [];
+  for (let p = 200; p <= 1000; p += 25) pricesK.push(p);
   const months = [];
   for (let m = 1; m <= n; m++) months.push(m); // 1 to 360
   const yearsAxis = months.map(m => m / 12);
