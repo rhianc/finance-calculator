@@ -154,7 +154,7 @@
 <body>
 <div class="container">
   <h1>Home Loan & Cost Calculator</h1>
-  <p class="subtitle">Monthly payment + typical owner costs · California default</p>
+  <p class="subtitle">Monthly payment + typical owner costs - California default</p>
   <button class="refresh-btn" onclick="location.reload()">Refresh</button>
 
   <div class="card">
@@ -204,7 +204,7 @@
       <div style="padding-top:0.5rem;">
         <label>Homeowners Insurance ($/year)</label>
         <input type="text" id="insurance" inputmode="decimal" value="5,000">
-        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">~$4k–6k typical for a $1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
+        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">About $4k-6k typical for a $1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
 
         <label>Maintenance / Repairs ($/year)</label>
         <input type="text" id="maintenance" inputmode="decimal" value="4,500">
@@ -212,7 +212,7 @@
         <label>HOA Fees ($/month)</label>
         <input type="text" id="hoa" inputmode="decimal" value="0">
 
-        <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical ~0.5–1% of loan/year).</p>
+        <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical 0.5-1% of loan/year).</p>
       </div>
     </details>
 
@@ -232,7 +232,7 @@
     <div class="equation">
       <strong>Monthly principal & interest</strong><br>
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
-      Where $P$ = loan amount, $r$ = monthly rate (annual ÷ 12), $n$ = months.
+      Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
       <details>
         <summary>Derivation (geometric sum)</summary>
         <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
@@ -260,7 +260,7 @@
     </div>
   </div>
 
-  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a $1M home in California is often $4k–6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
+  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a $1M home in California is often $4k-6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
 </div>
 
 <script>
