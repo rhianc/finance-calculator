@@ -531,16 +531,16 @@ function updateCrossoverChart() {
     }
   }
 
+  const colors = ['#f59e0b','#ef4444','#8b5cf6','#06b6d4','#10b981','#2563eb'];
   if (crossoverChart) crossoverChart.destroy();
   crossoverChart = new Chart(document.getElementById('crossoverChart'), {
     type: 'line',
     data: {
-      labels: limitedPrices,
       datasets: [
         ...yearMarks.map((y, idx) => ({
           label: y + ' yr',
-          data: limitedDiffsByYear[y],
-          borderColor: ['#94a3b8','#64748b','#475569','#334155','#1e2937','#2563eb'][idx],
+          data: limitedPrices.map((p, i) => ({ x: p, y: limitedDiffsByYear[y][i] })),
+          borderColor: colors[idx],
           borderWidth: y === 30 ? 2.5 : 1.5,
           pointRadius: 0,
           tension: 0.1,
@@ -548,8 +548,8 @@ function updateCrossoverChart() {
         })),
         {
           label: 'Zero',
-          data: limitedPrices.map(() => 0),
-          borderColor: 'rgba(0,0,0,0.25)',
+          data: limitedPrices.map(p => ({ x: p, y: 0 })),
+          borderColor: 'rgba(0,0,0,0.3)',
           borderWidth: 1,
           borderDash: [4, 4],
           pointRadius: 0,
@@ -561,22 +561,29 @@ function updateCrossoverChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'chartArea',
+          align: 'start',
+          labels: { boxWidth: 12, font: { size: 10 }, filter: item => item.text !== 'Zero' }
+        },
         datalabels: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => 'Difference: $' + ctx.parsed.y.toLocaleString()
+            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
           }
         }
       },
       scales: {
         x: {
+          type: 'linear',
           title: { display: true, text: 'Home price ($k)' },
           ticks: { maxTicksLimit: 8 },
-          max: limitedPrices.length ? limitedPrices[limitedPrices.length - 1] : undefined
+          min: limitedPrices.length ? limitedPrices[0] : 0,
+          max: limitedPrices.length ? limitedPrices[limitedPrices.length - 1] : 1000
         },
         y: {
-          title: { display: true, text: '30yr NW difference' },
+          title: { display: true, text: 'NW difference (own − rent)' },
           grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] }
         }
       }
