@@ -426,7 +426,7 @@ updateDownFromPct();
 
 let spChart = null;
 
-function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
+function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, totalMonthly) {
   const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
   const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
   const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
@@ -437,7 +437,7 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
   const n = years * 12;
   const r = annualRate / 12;
-  const monthlyInvest = monthlyPI - rent;
+  const monthlyInvest = totalMonthly - rent;
 
   const labels = [];
   const houseData = [];
@@ -669,7 +669,7 @@ function calculate() {
   document.getElementById('res-total').textContent = formatMoney2(total);
 
   updatePieChart(pi, taxMonthly, insMonthly, pmiMonthly, maintMonthly, hoaMonthly);
-  updateNetWorthChart(price, down, loan, annualRate, years, pi);
+  updateNetWorthChart(price, down, loan, annualRate, years, pi, total);
 }
 
 function scaleFactor(annualPct, years) {
