@@ -236,7 +236,7 @@
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
       Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
       <details>
-        <summary>Derivation (geometric sum)</summary>
+        <summary>Derivation & scale factor plot</summary>
         <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
           Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
           $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
@@ -249,16 +249,14 @@
 
           Continuous limit ($m \to \infty$ periods):
           $$e = \lim_{m\to\infty}\left(1+\frac{1}{m}\right)^m, \quad M = P \times \frac{R e^{Rt}}{e^{Rt}-1}.$$
+
+          <p style="margin-top:1rem;font-weight:500;text-align:center;">Principal Scale Factor (M/P)</p>
+          <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.5rem;">Monthly payment as a fraction of loan amount vs annual rate</p>
+          <div class="plot-container">
+            <canvas id="scaleChart"></canvas>
+          </div>
         </div>
       </details>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Principal Scale Factor (M/P)</h2>
-    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">Monthly payment as a fraction of loan amount vs annual rate</p>
-    <div class="plot-container">
-      <canvas id="scaleChart"></canvas>
     </div>
   </div>
 
