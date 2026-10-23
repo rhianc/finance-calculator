@@ -367,7 +367,7 @@
     <div class="plot-container" style="height:220px;margin-top:1rem;">
       <canvas id="crossoverChart"></canvas>
     </div>
-    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">30-year net worth difference (own − rent). Positive = better to own. Zero crossing = indifference price.</p>
+    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Home price where owning and renting break even, by year. Above the line = better to rent.</p>
     <details style="margin-top:0.75rem;">
       <summary>Tax benefit explainer</summary>
       <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
@@ -449,13 +449,15 @@ function updateCrossoverChart() {
   const maintYear = parseMoney(document.getElementById('maintenance').value);
   const hoaMonthly = parseMoney(document.getElementById('hoa').value);
 
-  // Sweep house prices from 0.3x to 3x the current price
+  // Sweep prices and find crossover price for each year
   const yearMarks = [5, 10, 15, 20, 25, 30];
-  const prices = [];
-  const diffsByYear = {};
-  yearMarks.forEach(y => diffsByYear[y] = []);
+  const priceMults = [];
+  for (let m = 0.2; m <= 4.01; m += 0.05) priceMults.push(m);
 
-  for (let mult = 0.3; mult <= 3.01; mult += 0.05) {
+  const crossoverByYear = {};
+  yearMarks.forEach(y => crossoverByYear[y] = null);
+
+  for (const mult of priceMults) {
     const price = Math.round(basePrice * mult);
     const down = price * downPct / 100;
     const loan = Math.max(0, price - down);
@@ -468,7 +470,7 @@ function updateCrossoverChart() {
     const insMonthly = insYear / 12;
     const maintMonthly = maintYear / 12;
     let pmiMonthly = 0;
-    if (loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
+    if (price > 0 && loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
     const totalMonthly = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
     const monthlyInvest = totalMonthly - rent;
 
@@ -476,7 +478,6 @@ function updateCrossoverChart() {
     let remaining = loan;
     let stockBalance = down;
     let taxSavingsInvested = 0;
-    const yearDiffs = {};
 
     for (let m = 0; m < n; m++) {
       homeValue *= (1 + monthlyHomeApp);
@@ -498,93 +499,66 @@ function updateCrossoverChart() {
 
       if ((m + 1) % 12 === 0) {
         const yr = (m + 1) / 12;
-        if (yearMarks.includes(yr)) {
+        if (yearMarks.includes(yr) && crossoverByYear[yr] === null) {
           const discount = Math.pow(1 + inflation, yr);
           const equity = homeValue - remaining;
           const houseNW = (equity + taxSavingsInvested) / discount;
           const stockNW = stockBalance / discount;
-          yearDiffs[yr] = Math.round(houseNW - stockNW);
+          if (houseNW - stockNW < 0) {
+            crossoverByYear[yr] = Math.round(price / 1000);
+          }
         }
       }
     }
-    prices.push(Math.round(price / 1000));
-    yearMarks.forEach(y => diffsByYear[y].push(yearDiffs[y] || 0));
   }
 
-  // Find crossover price from the 30-year line and limit to 2x that
-  const diffs30 = diffsByYear[30];
-  let crossoverPrice = prices[prices.length - 1];
-  for (let i = 1; i < diffs30.length; i++) {
-    if ((diffs30[i-1] >= 0 && diffs30[i] < 0) || (diffs30[i-1] < 0 && diffs30[i] >= 0)) {
-      crossoverPrice = prices[i];
-      break;
+  const yearsOut = [];
+  const crossoverPrices = [];
+  yearMarks.forEach(y => {
+    if (crossoverByYear[y] !== null) {
+      yearsOut.push(y);
+      crossoverPrices.push(crossoverByYear[y]);
     }
-  }
-  const maxPrice = crossoverPrice * 2;
-  const limitedPrices = [];
-  const limitedDiffsByYear = {};
-  yearMarks.forEach(y => limitedDiffsByYear[y] = []);
-  for (let i = 0; i < prices.length; i++) {
-    if (prices[i] <= maxPrice) {
-      limitedPrices.push(prices[i]);
-      yearMarks.forEach(y => limitedDiffsByYear[y].push(diffsByYear[y][i]));
-    }
-  }
+  });
 
-  const colors = ['#f59e0b','#ef4444','#8b5cf6','#06b6d4','#10b981','#2563eb'];
   if (crossoverChart) crossoverChart.destroy();
   crossoverChart = new Chart(document.getElementById('crossoverChart'), {
     type: 'line',
     data: {
-      datasets: [
-        ...yearMarks.map((y, idx) => ({
-          label: y + ' yr',
-          data: limitedPrices.map((p, i) => ({ x: p, y: limitedDiffsByYear[y][i] })),
-          borderColor: colors[idx],
-          borderWidth: y === 30 ? 2.5 : 1.5,
-          pointRadius: 0,
-          tension: 0.1,
-          fill: false
-        })),
-        {
-          label: 'Zero',
-          data: limitedPrices.map(p => ({ x: p, y: 0 })),
-          borderColor: 'rgba(0,0,0,0.3)',
-          borderWidth: 1,
-          borderDash: [4, 4],
-          pointRadius: 0,
-          fill: false
-        }
-      ]
+      labels: yearsOut,
+      datasets: [{
+        label: 'Crossover price',
+        data: crossoverPrices,
+        borderColor: '#2563eb',
+        backgroundColor: '#2563eb20',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#2563eb',
+        tension: 0.1,
+        fill: false
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: true,
-          position: 'chartArea',
-          align: 'start',
-          labels: { boxWidth: 12, font: { size: 10 }, filter: item => item.text !== 'Zero' }
-        },
+        legend: { display: false },
         datalabels: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
+            label: ctx => 'Crossover: $' + ctx.parsed.y.toLocaleString() + 'k'
           }
         }
       },
       scales: {
         x: {
-          type: 'linear',
-          title: { display: true, text: 'Home price ($k)' },
-          ticks: { maxTicksLimit: 8 },
-          min: limitedPrices.length ? limitedPrices[0] : 0,
-          max: limitedPrices.length ? limitedPrices[limitedPrices.length - 1] : 1000
+          title: { display: true, text: 'Years' },
+          ticks: { stepSize: 5 }
         },
         y: {
-          title: { display: true, text: 'NW difference (own − rent)' },
-          grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] }
+          title: { display: true, text: 'Crossover home price ($k)' },
+          grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] },
+          beginAtZero: false
         }
       }
     }
