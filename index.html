@@ -488,15 +488,8 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       scales: {
         x: {
           title: { display: true, text: 'Years' },
-          ticks: {
-            callback: function(value, index) {
-              return index % 10 === 0 ? this.getLabelForValue(value) : '';
-            },
-            maxTicksLimit: 50
-          },
+          ticks: { maxTicksLimit: 10 },
           grid: {
-            display: true,
-            drawOnChartArea: true,
             color: 'rgba(0,0,0,0.08)',
             borderDash: [2, 3]
           }
@@ -507,11 +500,19 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           max: logMax,
           title: { display: true, text: 'Net worth (log)' },
           ticks: {
-            callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k')
+            callback: function(value) {
+              const exp = Math.log10(value);
+              if (Math.abs(exp - Math.round(exp)) < 0.01) {
+                if (value >= 1000000) return '$' + (value/1000000).toFixed(0) + 'M';
+                if (value >= 1000) return '$' + (value/1000).toFixed(0) + 'k';
+                return '$' + value.toFixed(0);
+              }
+              return '';
+            }
           },
           grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [2, 3]
+            color: 'rgba(0,0,0,0.06)',
+            borderDash: [1, 2]
           }
         }
       }
