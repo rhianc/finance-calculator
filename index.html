@@ -302,12 +302,13 @@
     </div>
 
     <div class="equation">
-      <strong>Monthly principal & interest</strong><br>
-      $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
-      Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
       <details>
         <summary>Derivation</summary>
         <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
+          <strong>Monthly principal & interest</strong><br>
+          $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
+          Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
+          <br><br>
           Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
           $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
           The sum is geometric:
