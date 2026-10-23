@@ -369,10 +369,10 @@
         <canvas id="spChart"></canvas>
       </div>
     </details>
-    <div class="plot-container" style="height:340px;margin-top:1rem;">
+    <div class="plot-container" style="height:380px;margin-top:1rem;margin-bottom:0.75rem;">
       <div id="crossoverChart"></div>
     </div>
-    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Contour of house-vs-stocks net-worth delta (today's $). Zero contour = crossover (above it owning is ahead). Evaluated monthly.</p>
+    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.75rem 0 0.75rem;">Contour of house-vs-stocks net-worth delta (today's $). Zero contour = crossover (above it owning is ahead). Evaluated monthly.</p>
     <details style="margin-top:0.5rem;">
       <summary>Taxes & assumptions</summary>
       <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
@@ -576,7 +576,7 @@ function updateCrossoverChart() {
   }];
 
   const layout = {
-    margin: { t: 30, r: 40, b: 40, l: 50 },
+    margin: { t: 40, r: 40, b: 45, l: 50 },
     xaxis: {
       title: 'Years',
       tick0: 1,
