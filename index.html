@@ -559,9 +559,10 @@ function updateCrossoverChart() {
     contours: contours,
     line: { width: 1, color: 'rgba(0,0,0,0.25)' },
     colorbar: {
-      title: 'Delta ($)',
-      titleside: 'right',
-      tickformat: '~s'
+      title: { text: 'Delta ($)', side: 'top' },
+      tickformat: '~s',
+      thickness: 12,
+      len: 0.9
     },
     hovertemplate: 'Year: %{x:.1f}<br>Price: $%{y}k<br>Delta: $%{z:,.0f}<extra></extra>'
   }, {
@@ -575,7 +576,7 @@ function updateCrossoverChart() {
   }];
 
   const layout = {
-    margin: { t: 10, r: 60, b: 40, l: 50 },
+    margin: { t: 30, r: 40, b: 40, l: 50 },
     xaxis: {
       title: 'Years',
       tick0: 1,
