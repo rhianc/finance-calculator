@@ -515,9 +515,9 @@ function updateCrossoverChart() {
   }
 
   const contours = {
-    start: -500000,
-    end: 200000,
-    size: 50000,
+    start: -1000000,
+    end: 1000000,
+    size: 100000,
     coloring: 'heatmap',
     showlines: true,
     labelfont: { size: 10, color: 'white' }
@@ -545,14 +545,15 @@ function updateCrossoverChart() {
     z: z,
     x: yearsAxis,
     y: pricesK,
-    zmin: -500000,
-    zmax: 200000,
+    zmin: -1000000,
+    zmax: 1000000,
     colorscale: [
       [0, '#7f1d1d'],
-      [0.3, '#dc2626'],
-      [0.55, '#fca5a5'],
-      [0.714, '#ffffff'],
-      [0.85, '#86efac'],
+      [0.25, '#dc2626'],
+      [0.4, '#fca5a5'],
+      [0.5, '#ffffff'],
+      [0.6, '#86efac'],
+      [0.75, '#22c55e'],
       [1, '#16a34a']
     ],
     contours: contours,
