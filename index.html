@@ -99,11 +99,24 @@
     line-height: 1.6;
     overflow-x: auto;
   }
-  .equation + .equation {
-    margin-top: 0.75rem;
-  }
   .equation .katex {
     font-size: 1.1em;
+  }
+  details {
+    margin-top: 0.75rem;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--primary);
+    padding: 0.4rem 0;
+  }
+  details .inner {
+    padding: 0.5rem 0 0.25rem;
+    line-height: 1.55;
   }
   .note {
     font-size: 0.8rem;
@@ -141,17 +154,32 @@
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
       Where:<br>
       $P$ = loan amount<br>
-      $r$ = monthly rate (annual ÷ 12)<br>
+      $r$ = <strong>monthly</strong> interest rate (annual rate ÷ 12)<br>
       $n$ = number of months (years × 12)
-    </div>
 
-    <div class="equation">
-      <strong>Continuous compounding</strong><br>
-      $$M = P \times \frac{r e^{rt}}{e^{rt} - 1}$$
-      Where:<br>
-      $r$ = continuous annual rate<br>
-      $t$ = time in years<br>
-      $n$ = number of monthly payments ($t \times 12$)
+      <details>
+        <summary>Quick derivation & continuous compounding</summary>
+        <div class="inner">
+          <strong>Derivation of the monthly formula</strong><br>
+          Start with the balance after one month. After the payment $M$ is applied:<br>
+          $$B_1 = P(1+r) - M$$
+          After two months:<br>
+          $$B_2 = B_1(1+r) - M = P(1+r)^2 - M(1+r) - M$$
+          After $n$ months the remaining balance is:<br>
+          $$B_n = P(1+r)^n - M\frac{(1+r)^n - 1}{r}$$
+          At the end of the loan, $B_n = 0$. Solving for $M$ gives:<br>
+          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}$$
+
+          <br><strong>Continuous compounding & the definition of $e$</strong><br>
+          The number $e$ is defined as the limit of compound interest as the number of compounding periods goes to infinity:<br>
+          $$e = \lim_{m \to \infty} \left(1 + \frac{1}{m}\right)^m$$
+          More generally, continuous growth at annual rate $R$ is:<br>
+          $$\lim_{m \to \infty} \left(1 + \frac{R}{m}\right)^{mt} = e^{Rt}$$
+          The continuous-compounding monthly payment that amortizes a loan is:<br>
+          $$M = P \times \frac{R e^{Rt}}{e^{Rt} - 1}$$
+          (Here $R$ is the continuous annual rate and $t$ is the term in years.) Most car and home loans use the discrete monthly version instead.
+        </div>
+      </details>
     </div>
   </div>
 
