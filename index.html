@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Finance Calculator</title>
+<title>Loan Payment Calculator</title>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -29,26 +29,13 @@
   h1 {
     font-size: 1.5rem;
     text-align: center;
-    margin: 1rem 0;
+    margin: 1rem 0 0.5rem;
   }
-  .tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .tab {
-    flex: 1;
-    padding: 0.75rem;
-    border: 1px solid var(--border);
-    background: var(--card);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-  .tab.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
   }
   .card {
     background: var(--card);
@@ -62,7 +49,7 @@
     font-size: 0.9rem;
     font-weight: 500;
   }
-  input, select {
+  input {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border);
@@ -97,6 +84,23 @@
     color: var(--primary);
   }
   .hidden { display: none; }
+  .equation {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+  .equation code {
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin: 0.4rem 0;
+  }
   .note {
     font-size: 0.8rem;
     color: var(--muted);
@@ -107,42 +111,10 @@
 </head>
 <body>
 <div class="container">
-  <h1>Finance Calculator</h1>
-  
-  <div class="tabs">
-    <button class="tab active" id="tab-compound" onclick="switchTab('compound')">Compound Interest</button>
-    <button class="tab" id="tab-loan" onclick="switchTab('loan')">Loan Payment</button>
-  </div>
+  <h1>Monthly Payment Calculator</h1>
+  <p class="subtitle">Car or home loan</p>
 
-  <!-- Compound Interest -->
-  <div id="panel-compound" class="card">
-    <label>Principal ($)</label>
-    <input type="text" id="ci-principal" inputmode="decimal" value="10,000">
-    
-    <label>Annual Interest Rate (%)</label>
-    <input type="number" id="ci-rate" value="5" min="0" step="0.1">
-    
-    <label>Years</label>
-    <input type="number" id="ci-years" value="10" min="1" step="1">
-    
-    <label>Compounds per Year</label>
-    <select id="ci-freq">
-      <option value="1">Annually</option>
-      <option value="4" selected>Quarterly</option>
-      <option value="12">Monthly</option>
-      <option value="365">Daily</option>
-    </select>
-    
-    <button class="calc" onclick="calcCompound()">Calculate</button>
-    
-    <div id="ci-results" class="results hidden">
-      <div class="result-row">Future Value: <strong id="ci-future"></strong></div>
-      <div class="result-row">Total Interest: <strong id="ci-interest"></strong></div>
-    </div>
-  </div>
-
-  <!-- Loan Payment -->
-  <div id="panel-loan" class="card hidden">
+  <div class="card">
     <label>Loan Amount ($)</label>
     <input type="text" id="loan-amount" inputmode="decimal" value="25,000">
     
@@ -159,23 +131,23 @@
       <div class="result-row">Total Paid: <strong id="loan-total"></strong></div>
       <div class="result-row">Total Interest: <strong id="loan-interest"></strong></div>
     </div>
+
+    <div class="equation">
+      <strong>Monthly payment formula</strong>
+      <code>M = P × [ r(1+r)<sup>n</sup> ] / [ (1+r)<sup>n</sup> − 1 ]</code>
+      Where:<br>
+      <code>P</code> = loan amount<br>
+      <code>r</code> = monthly interest rate (annual rate ÷ 12)<br>
+      <code>n</code> = number of months (years × 12)
+    </div>
   </div>
 
   <p class="note">Simple calculator for planning. Not financial advice.</p>
 </div>
 
 <script>
-function switchTab(tab) {
-  document.getElementById('tab-compound').classList.toggle('active', tab === 'compound');
-  document.getElementById('tab-loan').classList.toggle('active', tab === 'loan');
-  document.getElementById('panel-compound').classList.toggle('hidden', tab !== 'compound');
-  document.getElementById('panel-loan').classList.toggle('hidden', tab !== 'loan');
-}
-
 function formatWithCommas(value) {
-  // Remove non-digits except decimal
   let cleaned = value.replace(/[^0-9.]/g, '');
-  // Limit to one decimal point
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
   
@@ -203,22 +175,7 @@ function setupMoneyInput(id) {
   });
 }
 
-setupMoneyInput('ci-principal');
 setupMoneyInput('loan-amount');
-
-function calcCompound() {
-  const P = parseMoney(document.getElementById('ci-principal').value);
-  const r = (parseFloat(document.getElementById('ci-rate').value) || 0) / 100;
-  const t = parseFloat(document.getElementById('ci-years').value) || 0;
-  const n = parseFloat(document.getElementById('ci-freq').value) || 1;
-  
-  const future = P * Math.pow(1 + r/n, n*t);
-  const interest = future - P;
-  
-  document.getElementById('ci-future').textContent = formatMoney(future);
-  document.getElementById('ci-interest').textContent = formatMoney(interest);
-  document.getElementById('ci-results').classList.remove('hidden');
-}
 
 function calcLoan() {
   const P = parseMoney(document.getElementById('loan-amount').value);
@@ -231,7 +188,7 @@ function calcLoan() {
   if (r === 0) {
     monthly = P / n;
   } else {
-    monthly = P * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+    monthly = P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
   }
   const total = monthly * n;
   const interest = total - P;
