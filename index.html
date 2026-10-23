@@ -11,6 +11,8 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
   onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
   :root {
@@ -364,10 +366,18 @@
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
-    <div class="plot-container" style="height:220px;margin-top:1rem;">
-      <canvas id="crossoverChart"></canvas>
+    <div class="plot-container" style="height:340px;margin-top:1rem;">
+      <div id="crossoverChart"></div>
     </div>
-    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Home price where owning and renting break even, by year. Above the line = better to rent.</p>
+    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">Contour of house-vs-stocks net-worth delta (today's $). Zero contour = crossover (above it owning is ahead). Evaluated monthly.</p>
+    <details style="margin-top:0.5rem;">
+      <summary>Early sale & other taxes</summary>
+      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
+        <p><strong>Selling early:</strong> The $250k / $500k primary-residence capital-gains exclusion generally requires you to have owned and lived in the home for at least 2 of the 5 years before the sale. Selling sooner can forfeit or reduce the exclusion. Gains on property held ≤1 year are short-term (taxed as ordinary income); longer holds get long-term rates. Selling also incurs closing costs, realtor commissions (~5–6%), and any transfer taxes.</p>
+        <p><strong>Other ownership taxes:</strong> Ongoing property taxes (modeled), possible capital-gains tax on appreciation when you sell (after the exclusion), and in some places transfer or recording taxes at purchase or sale. This model does not include capital-gains tax, depreciation recapture (more relevant for rentals), or state-specific transfer taxes. Not tax advice — actual results depend on your full situation, filing status, and current law.</p>
+      </div>
+    </details>
+
     <details style="margin-top:0.75rem;">
       <summary>Tax benefit explainer</summary>
       <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
@@ -449,45 +459,48 @@ function updateCrossoverChart() {
   const maintYear = parseMoney(document.getElementById('maintenance').value);
   const hoaMonthly = parseMoney(document.getElementById('hoa').value);
 
-  // Sweep prices and find crossover price for each year
-  const yearMarks = Array.from({length: 30}, (_, i) => i + 1);
+  // Price grid (in $k) and monthly time grid
   const priceMults = [];
-  for (let m = 0.2; m <= 4.01; m += 0.05) priceMults.push(m);
+  for (let m = 0.4; m <= 2.5; m += 0.08) priceMults.push(m);
+  const pricesK = priceMults.map(m => Math.round(basePrice * m / 1000));
+  const months = [];
+  for (let m = 1; m <= n; m++) months.push(m); // 1 to 360
+  const yearsAxis = months.map(m => m / 12);
 
-  const crossoverByYear = {};
-  yearMarks.forEach(y => crossoverByYear[y] = null);
-
-  for (const mult of priceMults) {
-    const price = Math.round(basePrice * mult);
+  // z[priceIdx][monthIdx] = houseNW - stockNW (today's $)
+  const z = [];
+  for (let pi = 0; pi < pricesK.length; pi++) {
+    const price = pricesK[pi] * 1000;
     const down = price * downPct / 100;
     const loan = Math.max(0, price - down);
-    let pi = 0;
+    let pi_pay = 0;
     if (loan > 0 && n > 0) {
-      if (r === 0) pi = loan / n;
-      else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+      if (r === 0) pi_pay = loan / n;
+      else pi_pay = loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     }
     const taxMonthly = (price * propTaxRate) / 12;
     const insMonthly = insYear / 12;
     const maintMonthly = maintYear / 12;
     let pmiMonthly = 0;
     if (price > 0 && loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
-    const totalMonthly = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
+    const totalMonthly = pi_pay + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
     const monthlyInvest = totalMonthly - rent;
 
     let homeValue = price;
     let remaining = loan;
     let stockBalance = down;
     let taxSavingsInvested = 0;
+    const row = [];
 
     for (let m = 0; m < n; m++) {
       homeValue *= (1 + monthlyHomeApp);
       let interestThisMonth = 0;
       if (remaining > 0 && r > 0) {
         interestThisMonth = remaining * r;
-        const principal = Math.min(pi - interestThisMonth, remaining);
+        const principal = Math.min(pi_pay - interestThisMonth, remaining);
         remaining = Math.max(0, remaining - principal);
       } else if (remaining > 0) {
-        remaining = Math.max(0, remaining - pi);
+        remaining = Math.max(0, remaining - pi_pay);
       }
       const propTaxMonth = (price * propTaxRate) / 12;
       const saltCapMonth = 10000 / 12;
@@ -497,71 +510,90 @@ function updateCrossoverChart() {
       taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
       stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
 
-      if ((m + 1) % 12 === 0) {
-        const yr = (m + 1) / 12;
-        if (yearMarks.includes(yr) && crossoverByYear[yr] === null) {
-          const discount = Math.pow(1 + inflation, yr);
-          const equity = homeValue - remaining;
-          const houseNW = (equity + taxSavingsInvested) / discount;
-          const stockNW = stockBalance / discount;
-          if (houseNW - stockNW < 0) {
-            crossoverByYear[yr] = Math.round(price / 1000);
-          }
-        }
+      const yr = (m + 1) / 12;
+      const discount = Math.pow(1 + inflation, yr);
+      const equity = homeValue - remaining;
+      const houseNW = (equity + taxSavingsInvested) / discount;
+      const stockNW = stockBalance / discount;
+      row.push(Math.round(houseNW - stockNW));
+    }
+    z.push(row);
+  }
+
+  const contours = {
+    start: -200000,
+    end: 200000,
+    size: 50000,
+    coloring: 'heatmap',
+    showlines: true,
+    labelfont: { size: 10, color: 'white' }
+  };
+
+  // Extract approximate zero-crossing price for each month for a bold line
+  const zeroYears = [];
+  const zeroPrices = [];
+  for (let mi = 0; mi < yearsAxis.length; mi++) {
+    for (let pi = 0; pi < pricesK.length - 1; pi++) {
+      const z0 = z[pi][mi];
+      const z1 = z[pi + 1][mi];
+      if ((z0 <= 0 && z1 >= 0) || (z0 >= 0 && z1 <= 0)) {
+        const frac = z0 === z1 ? 0 : -z0 / (z1 - z0);
+        const p = pricesK[pi] + frac * (pricesK[pi + 1] - pricesK[pi]);
+        zeroYears.push(yearsAxis[mi]);
+        zeroPrices.push(p);
+        break;
       }
     }
   }
 
-  const yearsOut = [];
-  const crossoverPrices = [];
-  yearMarks.forEach(y => {
-    if (crossoverByYear[y] !== null) {
-      yearsOut.push(y);
-      crossoverPrices.push(crossoverByYear[y]);
-    }
-  });
-
-  if (crossoverChart) crossoverChart.destroy();
-  crossoverChart = new Chart(document.getElementById('crossoverChart'), {
-    type: 'line',
-    data: {
-      labels: yearsOut,
-      datasets: [{
-        label: 'Crossover price',
-        data: crossoverPrices,
-        borderColor: '#2563eb',
-        backgroundColor: '#2563eb20',
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.1,
-        fill: false
-      }]
+  const data = [{
+    type: 'contour',
+    z: z,
+    x: yearsAxis,
+    y: pricesK,
+    colorscale: [
+      [0, '#fee2e2'],
+      [0.4, '#fca5a5'],
+      [0.5, '#ffffff'],
+      [0.6, '#bbf7d0'],
+      [1, '#16a34a']
+    ],
+    contours: contours,
+    line: { width: 1, color: 'rgba(0,0,0,0.25)' },
+    colorbar: {
+      title: 'Delta ($)',
+      titleside: 'right',
+      tickformat: '~s'
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        datalabels: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => 'Crossover: $' + ctx.parsed.y.toLocaleString() + 'k'
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Years' },
-          ticks: { stepSize: 1 }
-        },
-        y: {
-          title: { display: true, text: 'Crossover home price ($k)' },
-          grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] },
-          beginAtZero: false
-        }
-      }
-    }
-  });
+    hovertemplate: 'Year: %{x:.1f}<br>Price: $%{y}k<br>Delta: $%{z:,.0f}<extra></extra>'
+  }, {
+    type: 'scatter',
+    mode: 'lines',
+    x: zeroYears,
+    y: zeroPrices,
+    line: { color: '#111827', width: 3 },
+    name: 'Crossover (delta = 0)',
+    hovertemplate: 'Year: %{x:.1f}<br>Crossover: $%{y:.0f}k<extra></extra>'
+  }];
+
+  const layout = {
+    margin: { t: 10, r: 60, b: 40, l: 50 },
+    xaxis: {
+      title: 'Years',
+      tick0: 1,
+      dtick: 2,
+      range: [0, 30]
+    },
+    yaxis: {
+      title: 'Home price ($k)',
+      autorange: true
+    },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 11 }
+  };
+
+  Plotly.react('crossoverChart', data, layout, { responsive: true, displayModeBar: false });
 }
 
 let spChart = null;
