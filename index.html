@@ -8,6 +8,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
   onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -46,6 +47,7 @@
     border-radius: 12px;
     padding: 1.15rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
   }
   label {
     display: block;
@@ -127,6 +129,11 @@
     color: var(--muted);
     margin-top: 0.9rem;
     text-align: center;
+  }
+  .plot-container {
+    position: relative;
+    height: 280px;
+    margin-top: 0.5rem;
   }
 </style>
 </head>
@@ -230,6 +237,14 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Principal Scale Factor (M/P)</h2>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">Monthly payment as a fraction of loan amount vs annual rate</p>
+    <div class="plot-container">
+      <canvas id="scaleChart"></canvas>
+    </div>
+  </div>
+
   <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a $1M home in California is often $4k–6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
 </div>
 
@@ -319,6 +334,64 @@ function calculate() {
   document.getElementById('res-total').textContent = formatMoney2(total);
   document.getElementById('results').classList.remove('hidden');
 }
+
+function scaleFactor(annualPct, years) {
+  const annual = annualPct / 100;
+  const r = annual / 12;
+  const n = years * 12;
+  if (r === 0) return 1 / n;
+  return (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
+
+function initChart() {
+  const rates = [];
+  for (let i = 0; i <= 100; i++) rates.push(i * 0.1); // 0% to 10%
+
+  const terms = [15, 20, 30];
+  const colors = ['#2563eb', '#7c3aed', '#dc2626'];
+
+  const datasets = terms.map((yrs, idx) => ({
+    label: yrs + ' years',
+    data: rates.map(rate => scaleFactor(rate, yrs) * 1000), // scale to per $1000 for readability
+    borderColor: colors[idx],
+    backgroundColor: colors[idx] + '20',
+    borderWidth: 2,
+    pointRadius: 0,
+    tension: 0.1
+  }));
+
+  new Chart(document.getElementById('scaleChart'), {
+    type: 'line',
+    data: {
+      labels: rates.map(r => r.toFixed(1) + '%'),
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + ' / $1,000'
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Annual interest rate' },
+          ticks: { maxTicksLimit: 8 }
+        },
+        y: {
+          title: { display: true, text: 'Monthly payment per $1,000 principal' },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+initChart();
 </script>
 </body>
 </html>
