@@ -181,7 +181,8 @@
       <summary>Other typical costs (optional)</summary>
       <div style="padding-top:0.5rem;">
         <label>Homeowners Insurance ($/year)</label>
-        <input type="text" id="insurance" inputmode="decimal" value="2,200">
+        <input type="text" id="insurance" inputmode="decimal" value="5,000">
+        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">~$4k–6k typical for a $1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
 
         <label>Maintenance / Repairs ($/year)</label>
         <input type="text" id="maintenance" inputmode="decimal" value="4,500">
@@ -209,25 +210,36 @@
     <div class="equation">
       <strong>Monthly principal & interest</strong><br>
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
+      Where $P$ = loan amount, $r$ = monthly rate (annual ÷ 12), $n$ = months.
       <details>
-        <summary>Derivation & continuous compounding</summary>
-        <div style="text-align:left;padding-top:0.4rem;">
-          Balance after one month: $B_1 = P(1+r) - M$<br>
-          After $n$ months: $B_n = P(1+r)^n - M\frac{(1+r)^n-1}{r}$<br>
-          Set $B_n=0$ and solve for $M$.<br><br>
-          Continuous limit uses $e = \lim_{m\to\infty}(1+1/m)^m$:<br>
-          $$M = P \times \frac{R e^{Rt}}{e^{Rt}-1}$$
+        <summary>Step-by-step derivation</summary>
+        <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
+          Start with principal $P$. After one month the balance is:<br>
+          $$B_1 = P(1+r) - M$$
+          After two months:<br>
+          $$B_2 = B_1(1+r) - M = P(1+r)^2 - M(1+r) - M$$
+          After $n$ months the remaining balance is the geometric series:<br>
+          $$B_n = P(1+r)^n - M \frac{(1+r)^n - 1}{r}$$
+          At payoff, $B_n = 0$. Solve for the payment $M$:<br>
+          $$0 = P(1+r)^n - M \frac{(1+r)^n - 1}{r}$$
+          $$M \frac{(1+r)^n - 1}{r} = P(1+r)^n$$
+          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}$$
+
+          <br><strong>Continuous compounding (limit as periods → ∞)</strong><br>
+          The constant $e$ is defined by<br>
+          $$e = \lim_{m \to \infty} \left(1 + \frac{1}{m}\right)^m$$
+          so continuous growth at annual rate $R$ over time $t$ is $e^{Rt}$. The continuous monthly payment that amortizes the loan is<br>
+          $$M = P \times \frac{R e^{Rt}}{e^{Rt} - 1}$$
+          (Most consumer home and car loans use the discrete monthly formula above.)
         </div>
       </details>
     </div>
   </div>
 
-  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Actual costs vary by county, insurance, and home. Not financial advice.</p>
+  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a $1M home in California is often $4k–6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
 </div>
 
 <script>
-const TAX_RATES = {}; // filled from select
-
 function formatWithCommas(value) {
   let cleaned = value.replace(/[^0-9.]/g, '');
   const parts = cleaned.split('.');
@@ -294,7 +306,6 @@ function calculate() {
 
   const hoaMonthly = parseMoney(document.getElementById('hoa').value);
 
-  // PMI: typical ~0.5-1% of loan annually if LTV > 80%. Use 0.6% as simple default.
   let pmiMonthly = 0;
   const ltv = price > 0 ? loan / price : 0;
   if (ltv > 0.8 && loan > 0) {
