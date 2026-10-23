@@ -264,7 +264,17 @@
 
   <div class="card">
     <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Stocks</h2>
-    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">House equity (home value at 3% appreciation minus remaining balance) vs investing down payment + monthly P&I at 10% S&P average</p>
+    <div class="row" style="margin-bottom:0.75rem;">
+      <div>
+        <label>Home Appreciation (%/yr)</label>
+        <input type="number" id="home-app" value="3" min="0" step="0.1">
+      </div>
+      <div>
+        <label>Stock Return (%/yr)</label>
+        <input type="number" id="stock-return" value="10" min="0" step="0.1">
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">House equity (home value minus remaining balance) vs investing down payment + monthly P&I in stocks</p>
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
@@ -316,8 +326,8 @@ updateDown();
 let spChart = null;
 
 function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
-  const homeApp = 0.03; // modest home appreciation
-  const spReturn = 0.10; // long-term nominal S&P
+  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
+  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
   const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
   const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
   const n = years * 12;
@@ -354,13 +364,15 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   }
 
   if (spChart) spChart.destroy();
+  const homeLabel = 'House equity (' + (homeApp * 100).toFixed(1) + '% app.)';
+  const stockLabel = 'Stocks (' + (spReturn * 100).toFixed(1) + '%)';
   spChart = new Chart(document.getElementById('spChart'), {
     type: 'line',
     data: {
       labels,
       datasets: [
         {
-          label: 'House equity (3% app.)',
+          label: homeLabel,
           data: houseData,
           borderColor: '#2563eb',
           backgroundColor: '#2563eb20',
@@ -369,7 +381,7 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           tension: 0.1
         },
         {
-          label: 'Stocks (10% S&P)',
+          label: stockLabel,
           data: stockData,
           borderColor: '#16a34a',
           backgroundColor: '#16a34a20',
@@ -514,6 +526,22 @@ function initChart() {
 initChart();
 // Initial net worth chart with defaults
 updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
+
+// Update chart when knobs change
+document.getElementById('home-app').addEventListener('input', () => {
+  if (document.getElementById('results').classList.contains('hidden')) {
+    updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
+  } else {
+    calculate();
+  }
+});
+document.getElementById('stock-return').addEventListener('input', () => {
+  if (document.getElementById('results').classList.contains('hidden')) {
+    updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
+  } else {
+    calculate();
+  }
+});
 </script>
 </body>
 </html>
