@@ -338,6 +338,14 @@
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
+    <details style="margin-top:0.75rem;">
+      <summary>Tax benefit explainer</summary>
+      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
+        <p>Homeowners can itemize deductions for mortgage interest and property taxes (subject to limits). The estimated tax savings = (monthly interest + monthly property tax) × marginal tax rate.</p>
+        <p>Those savings are assumed to be invested at the stock return rate and added to the house net worth line. This is a simplified model — real benefits depend on whether you itemize, the SALT cap ($10k federal), loan limits, and your full tax situation.</p>
+        <p>Default 32% is a rough combined federal + state marginal rate for higher earners. Adjust the knob to match your situation.</p>
+      </div>
+    </details>
   </div>
 
   <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a 1M home in California is often 4k-6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
@@ -349,7 +357,7 @@ function formatWithCommas(value) {
   const parts = cleaned.split('.');
   if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
   const [intPart, decPart] = cleaned.split('.');
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const formattedInt = intPart.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
   return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
 }
 function parseMoney(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
