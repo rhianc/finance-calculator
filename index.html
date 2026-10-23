@@ -496,7 +496,9 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           },
           grid: {
             display: true,
-            drawOnChartArea: true
+            drawOnChartArea: true,
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [2, 3]
           }
         },
         y: {
@@ -506,6 +508,10 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
           title: { display: true, text: 'Net worth (log)' },
           ticks: {
             callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k')
+          },
+          grid: {
+            color: 'rgba(0,0,0,0.08)',
+            borderDash: [2, 3]
           }
         }
       }
