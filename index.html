@@ -94,6 +94,9 @@
     text-align: center;
     line-height: 1.6;
   }
+  .equation + .equation {
+    margin-top: 0.75rem;
+  }
   .equation code {
     display: block;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -112,7 +115,7 @@
 <body>
 <div class="container">
   <h1>Monthly Payment Calculator</h1>
-  <p class="subtitle">Car or home loan</p>
+  <p class="subtitle">Car or home loan · monthly compounding</p>
 
   <div class="card">
     <label>Loan Amount ($)</label>
@@ -133,16 +136,27 @@
     </div>
 
     <div class="equation">
-      <strong>Monthly payment formula</strong>
+      <strong>Monthly compounding (default)</strong>
       <code>M = P × [ r(1+r)<sup>n</sup> ] / [ (1+r)<sup>n</sup> − 1 ]</code>
       Where:<br>
       <code>P</code> = loan amount<br>
-      <code>r</code> = monthly interest rate (annual rate ÷ 12)<br>
+      <code>r</code> = monthly rate (annual ÷ 12)<br>
       <code>n</code> = number of months (years × 12)
+    </div>
+
+    <div class="equation">
+      <strong>Continuous compounding</strong>
+      <code>M = P × (e<sup>rt</sup> − 1) / (e<sup>r</sup> − 1) ÷ r</code>
+      Or more commonly written as:<br>
+      <code>M = P × r e<sup>rt</sup> / (e<sup>rt</sup> − 1)</code>
+      Where:<br>
+      <code>r</code> = continuous annual rate<br>
+      <code>t</code> = time in years<br>
+      <code>n</code> = number of monthly payments (t × 12)
     </div>
   </div>
 
-  <p class="note">Simple calculator for planning. Not financial advice.</p>
+  <p class="note">Simple calculator for planning. Not financial advice. Most consumer loans use monthly compounding.</p>
 </div>
 
 <script>
