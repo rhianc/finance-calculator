@@ -263,8 +263,8 @@
   </div>
 
   <div class="card">
-    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Same Monthly Payment in S&P 500</h2>
-    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">Projected value of investing the principal & interest payment at ~10% average annual return (long-term nominal S&P)</p>
+    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Stocks</h2>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">House equity (home value at 3% appreciation minus remaining balance) vs investing down payment + monthly P&I at 10% S&P average</p>
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
@@ -315,21 +315,41 @@ updateDown();
 
 let spChart = null;
 
-function updateSpChart(monthlyPayment, years) {
-  const spReturn = 0.10; // long-term nominal S&P average
-  const monthlyRate = Math.pow(1 + spReturn, 1/12) - 1;
+function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
+  const homeApp = 0.03; // modest home appreciation
+  const spReturn = 0.10; // long-term nominal S&P
+  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
+  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
   const n = years * 12;
+  const r = annualRate / 12;
+
   const labels = [];
-  const data = [];
-  let balance = 0;
+  const houseData = [];
+  const stockData = [];
+
+  let homeValue = price;
+  let remaining = loan;
+  let stockBalance = down; // down payment invested in stocks
 
   for (let m = 0; m <= n; m++) {
     if (m % 12 === 0) {
       labels.push(m / 12);
-      data.push(Math.round(balance));
+      const equity = Math.max(0, homeValue - remaining);
+      houseData.push(Math.round(equity));
+      stockData.push(Math.round(stockBalance));
     }
     if (m < n) {
-      balance = balance * (1 + monthlyRate) + monthlyPayment;
+      // Home
+      homeValue *= (1 + monthlyHomeApp);
+      if (remaining > 0 && r > 0) {
+        const interest = remaining * r;
+        const principal = Math.min(monthlyPI - interest, remaining);
+        remaining = Math.max(0, remaining - principal);
+      } else if (remaining > 0) {
+        remaining = Math.max(0, remaining - monthlyPI);
+      }
+      // Stocks: grow previous + add monthly payment
+      stockBalance = stockBalance * (1 + monthlySp) + monthlyPI;
     }
   }
 
@@ -338,25 +358,35 @@ function updateSpChart(monthlyPayment, years) {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: 'Invested at 10%',
-        data,
-        borderColor: '#16a34a',
-        backgroundColor: '#16a34a20',
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.1,
-        fill: true
-      }]
+      datasets: [
+        {
+          label: 'House equity (3% app.)',
+          data: houseData,
+          borderColor: '#2563eb',
+          backgroundColor: '#2563eb20',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.1
+        },
+        {
+          label: 'Stocks (10% S&P)',
+          data: stockData,
+          borderColor: '#16a34a',
+          backgroundColor: '#16a34a20',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.1
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: { position: 'bottom' },
         tooltip: {
           callbacks: {
-            label: ctx => '$' + ctx.parsed.y.toLocaleString()
+            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
           }
         }
       },
@@ -365,7 +395,7 @@ function updateSpChart(monthlyPayment, years) {
           title: { display: true, text: 'Years' }
         },
         y: {
-          title: { display: true, text: 'Projected value' },
+          title: { display: true, text: 'Net worth' },
           beginAtZero: true,
           ticks: {
             callback: v => '$' + (v / 1000).toFixed(0) + 'k'
@@ -422,7 +452,7 @@ function calculate() {
   document.getElementById('res-total').textContent = formatMoney2(total);
   document.getElementById('results').classList.remove('hidden');
 
-  updateSpChart(pi, years);
+  updateNetWorthChart(price, down, loan, annualRate, years, pi);
 }
 
 function scaleFactor(annualPct, years) {
@@ -482,8 +512,8 @@ function initChart() {
 }
 
 initChart();
-// Initial S&P chart with defaults
-updateSpChart(5050, 30); // approximate default P&I for $800k loan at 6.5%/30yr
+// Initial net worth chart with defaults
+updateNetWorthChart(1000000, 200000, 800000, 0.065, 30, 5050);
 </script>
 </body>
 </html>
