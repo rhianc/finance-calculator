@@ -85,42 +85,55 @@
     gap: 0.6rem;
   }
   .row > div { flex: 1; }
-  button.calc {
-    width: 100%;
-    margin-top: 1.1rem;
-    padding: 0.85rem;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
   .results {
     margin-top: 1.25rem;
     padding-top: 0.9rem;
     border-top: 1px solid var(--border);
   }
-  .result-row {
+  .results-summary {
     display: flex;
     justify-content: space-between;
-    margin: 0.45rem 0;
-    font-size: 0.95rem;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
   }
-  .result-row.total {
-    font-weight: 600;
-    font-size: 1.05rem;
-    margin-top: 0.7rem;
-    padding-top: 0.5rem;
-    border-top: 1px dashed var(--border);
+  .summary-item {
+    flex: 1;
+    text-align: center;
   }
-  .result-row strong { color: var(--primary); }
-  .hidden { display: none; }
-  .pmi-note {
+  .summary-item .label {
     font-size: 0.78rem;
-    color: #b45309;
-    margin-top: 0.3rem;
+    color: var(--muted);
+  }
+  .summary-item .value {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .pie-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .pie-container {
+    flex: 1;
+    height: 180px;
+    position: relative;
+  }
+  .pie-legend {
+    flex: 1;
+    font-size: 0.82rem;
+  }
+  .pie-legend div {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.25rem 0;
+  }
+  .pie-legend .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 6px;
   }
   details {
     margin-top: 0.9rem;
@@ -265,14 +278,22 @@
     </details>
 
     <div id="results" class="results">
-      <div class="result-row">Loan Amount: <strong id="res-loan"></strong></div>
-      <div class="result-row">Principal & Interest: <strong id="res-pi"></strong></div>
-      <div class="result-row">Property Tax: <strong id="res-tax"></strong></div>
-      <div class="result-row">Insurance: <strong id="res-ins"></strong></div>
-      <div class="result-row" id="pmi-row">PMI: <strong id="res-pmi"></strong></div>
-      <div class="result-row">Maintenance: <strong id="res-maint"></strong></div>
-      <div class="result-row">HOA: <strong id="res-hoa"></strong></div>
-      <div class="result-row total">Total Monthly: <strong id="res-total"></strong></div>
+      <div class="results-summary">
+        <div class="summary-item">
+          <div class="label">Loan Amount</div>
+          <div class="value" id="res-loan"></div>
+        </div>
+        <div class="summary-item">
+          <div class="label">Total Monthly</div>
+          <div class="value" id="res-total"></div>
+        </div>
+      </div>
+      <div class="pie-row">
+        <div class="pie-container">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="pie-legend" id="pie-legend"></div>
+      </div>
     </div>
 
     <div class="equation">
@@ -537,6 +558,73 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
   });
 }
 
+let pieChart = null;
+function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
+  const labels = [];
+  const data = [];
+  const colors = [];
+  const colorMap = {
+    'P&I': '#2563eb',
+    'Property Tax': '#7c3aed',
+    'Insurance': '#dc2626',
+    'PMI': '#f59e0b',
+    'Maintenance': '#10b981',
+    'HOA': '#6b7280'
+  };
+  const items = [
+    ['P&I', pi],
+    ['Property Tax', tax],
+    ['Insurance', ins],
+    ['PMI', pmi],
+    ['Maintenance', maint],
+    ['HOA', hoa]
+  ];
+  items.forEach(([label, val]) => {
+    if (val > 0.5) {
+      labels.push(label);
+      data.push(Math.round(val));
+      colors.push(colorMap[label]);
+    }
+  });
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+
+  const legend = document.getElementById('pie-legend');
+  legend.innerHTML = items
+    .filter(([_, val]) => val > 0.5)
+    .map(([label, val]) => `
+      <div>
+        <span><span class="swatch" style="background:${colorMap[label]}"></span>${label}</span>
+        <strong>${formatMoney2(val)}</strong>
+      </div>
+    `).join('');
+}
+
 function calculate() {
   const price = parseMoney(document.getElementById('home-price').value);
   const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
@@ -569,20 +657,13 @@ function calculate() {
   if (ltv > 0.8 && loan > 0) {
     pmiMonthly = (loan * 0.006) / 12;
   }
-  document.getElementById('pmi-row').style.display = pmiMonthly > 0 ? 'flex' : 'none';
 
   const total = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
 
   document.getElementById('res-loan').textContent = formatMoney(loan);
-  document.getElementById('res-pi').textContent = formatMoney2(pi);
-  document.getElementById('res-tax').textContent = formatMoney2(taxMonthly);
-  document.getElementById('res-ins').textContent = formatMoney2(insMonthly);
-  document.getElementById('res-pmi').textContent = formatMoney2(pmiMonthly);
-  document.getElementById('res-maint').textContent = formatMoney2(maintMonthly);
-  document.getElementById('res-hoa').textContent = formatMoney2(hoaMonthly);
   document.getElementById('res-total').textContent = formatMoney2(total);
-  document.getElementById('results').classList.remove('hidden');
 
+  updatePieChart(pi, taxMonthly, insMonthly, pmiMonthly, maintMonthly, hoaMonthly);
   updateNetWorthChart(price, down, loan, annualRate, years, pi);
 }
 
