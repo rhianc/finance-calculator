@@ -262,6 +262,14 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Same Monthly Payment in S&P 500</h2>
+    <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.75rem;">Projected value of investing the principal & interest payment at ~10% average annual return (long-term nominal S&P)</p>
+    <div class="plot-container">
+      <canvas id="spChart"></canvas>
+    </div>
+  </div>
+
   <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a 1M home in California is often 4k-6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
 </div>
 
@@ -304,6 +312,69 @@ function updateDown() {
 document.getElementById('home-price').addEventListener('input', updateDown);
 document.getElementById('down-pct').addEventListener('input', updateDown);
 updateDown();
+
+let spChart = null;
+
+function updateSpChart(monthlyPayment, years) {
+  const spReturn = 0.10; // long-term nominal S&P average
+  const monthlyRate = Math.pow(1 + spReturn, 1/12) - 1;
+  const n = years * 12;
+  const labels = [];
+  const data = [];
+  let balance = 0;
+
+  for (let m = 0; m <= n; m++) {
+    if (m % 12 === 0) {
+      labels.push(m / 12);
+      data.push(Math.round(balance));
+    }
+    if (m < n) {
+      balance = balance * (1 + monthlyRate) + monthlyPayment;
+    }
+  }
+
+  if (spChart) spChart.destroy();
+  spChart = new Chart(document.getElementById('spChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Invested at 10%',
+        data,
+        borderColor: '#16a34a',
+        backgroundColor: '#16a34a20',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '$' + ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Years' }
+        },
+        y: {
+          title: { display: true, text: 'Projected value' },
+          beginAtZero: true,
+          ticks: {
+            callback: v => '$' + (v / 1000).toFixed(0) + 'k'
+          }
+        }
+      }
+    }
+  });
+}
 
 function calculate() {
   const price = parseMoney(document.getElementById('home-price').value);
@@ -350,6 +421,8 @@ function calculate() {
   document.getElementById('res-hoa').textContent = formatMoney2(hoaMonthly);
   document.getElementById('res-total').textContent = formatMoney2(total);
   document.getElementById('results').classList.remove('hidden');
+
+  updateSpChart(pi, years);
 }
 
 function scaleFactor(annualPct, years) {
@@ -409,6 +482,8 @@ function initChart() {
 }
 
 initChart();
+// Initial S&P chart with defaults
+updateSpChart(5050, 30); // approximate default P&I for $800k loan at 6.5%/30yr
 </script>
 </body>
 </html>
