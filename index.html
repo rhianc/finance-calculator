@@ -487,7 +487,17 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       },
       scales: {
         x: {
-          title: { display: true, text: 'Years' }
+          title: { display: true, text: 'Years' },
+          ticks: {
+            callback: function(value, index) {
+              return index % 10 === 0 ? this.getLabelForValue(value) : '';
+            },
+            maxTicksLimit: 50
+          },
+          grid: {
+            display: true,
+            drawOnChartArea: true
+          }
         },
         y: {
           type: 'logarithmic',
