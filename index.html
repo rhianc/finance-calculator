@@ -545,16 +545,15 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
                 return '$' + value.toFixed(0);
               }
               return '';
-            }
+            },
+            maxTicksLimit: 20
           },
           grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [1, 2]
+            color: 'rgba(0,0,0,0.1)',
+            borderDash: [1, 2],
+            drawTicks: true
           },
-          grid: {
-            color: 'rgba(0,0,0,0.06)',
-            borderDash: [1, 2]
-          }
+          border: { display: false }
         }
       }
     }
