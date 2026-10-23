@@ -62,7 +62,7 @@
     font-size: 0.9rem;
     font-weight: 500;
   }
-  input {
+  input, select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border);
@@ -117,7 +117,7 @@
   <!-- Compound Interest -->
   <div id="panel-compound" class="card">
     <label>Principal ($)</label>
-    <input type="number" id="ci-principal" value="10000" min="0" step="100">
+    <input type="text" id="ci-principal" inputmode="decimal" value="10,000">
     
     <label>Annual Interest Rate (%)</label>
     <input type="number" id="ci-rate" value="5" min="0" step="0.1">
@@ -126,7 +126,7 @@
     <input type="number" id="ci-years" value="10" min="1" step="1">
     
     <label>Compounds per Year</label>
-    <select id="ci-freq" style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;font-size:1rem;">
+    <select id="ci-freq">
       <option value="1">Annually</option>
       <option value="4" selected>Quarterly</option>
       <option value="12">Monthly</option>
@@ -144,7 +144,7 @@
   <!-- Loan Payment -->
   <div id="panel-loan" class="card hidden">
     <label>Loan Amount ($)</label>
-    <input type="number" id="loan-amount" value="25000" min="0" step="100">
+    <input type="text" id="loan-amount" inputmode="decimal" value="25,000">
     
     <label>Annual Interest Rate (%)</label>
     <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
@@ -172,12 +172,42 @@ function switchTab(tab) {
   document.getElementById('panel-loan').classList.toggle('hidden', tab !== 'loan');
 }
 
+function formatWithCommas(value) {
+  // Remove non-digits except decimal
+  let cleaned = value.replace(/[^0-9.]/g, '');
+  // Limit to one decimal point
+  const parts = cleaned.split('.');
+  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+  
+  const [intPart, decPart] = cleaned.split('.');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
+}
+
+function parseMoney(value) {
+  return parseFloat(value.replace(/,/g, '')) || 0;
+}
+
 function formatMoney(n) {
   return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function setupMoneyInput(id) {
+  const input = document.getElementById(id);
+  input.addEventListener('input', function() {
+    const cursor = this.selectionStart;
+    const oldLen = this.value.length;
+    this.value = formatWithCommas(this.value);
+    const newLen = this.value.length;
+    this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+  });
+}
+
+setupMoneyInput('ci-principal');
+setupMoneyInput('loan-amount');
+
 function calcCompound() {
-  const P = parseFloat(document.getElementById('ci-principal').value) || 0;
+  const P = parseMoney(document.getElementById('ci-principal').value);
   const r = (parseFloat(document.getElementById('ci-rate').value) || 0) / 100;
   const t = parseFloat(document.getElementById('ci-years').value) || 0;
   const n = parseFloat(document.getElementById('ci-freq').value) || 1;
@@ -191,7 +221,7 @@ function calcCompound() {
 }
 
 function calcLoan() {
-  const P = parseFloat(document.getElementById('loan-amount').value) || 0;
+  const P = parseMoney(document.getElementById('loan-amount').value);
   const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
   const years = parseFloat(document.getElementById('loan-years').value) || 0;
   const n = years * 12;
