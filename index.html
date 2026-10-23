@@ -454,8 +454,10 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, to
       const yearsOut = m / 12;
       const discount = Math.pow(1 + inflation, yearsOut);
       const equity = homeValue - remaining;
-      houseData.push(Math.round((equity + taxSavingsInvested) / discount));
-      stockData.push(Math.round(stockBalance / discount));
+      const houseVal = Math.round((equity + taxSavingsInvested) / discount);
+      const stockVal = Math.round(stockBalance / discount);
+      houseData.push(houseVal > 0 ? houseVal : null);
+      stockData.push(stockVal > 0 ? stockVal : null);
     }
     if (m < n) {
       homeValue *= (1 + monthlyHomeApp);
@@ -482,12 +484,11 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, to
     }
   }
 
-  const allVals = [...houseData, ...stockData];
-  const dataMin = Math.min(...allVals);
-  const dataMax = Math.max(...allVals);
-  const hasNonPositive = allVals.some(v => v <= 0);
-  const logMin = hasNonPositive ? null : Math.pow(10, Math.floor(Math.log10(Math.max(1, dataMin))));
-  const logMax = hasNonPositive ? null : Math.pow(10, Math.ceil(Math.log10(Math.max(1, dataMax * 1.1))));
+  const positiveVals = [...houseData, ...stockData].filter(v => v != null && v > 0);
+  const dataMin = positiveVals.length ? Math.min(...positiveVals) : 1;
+  const dataMax = positiveVals.length ? Math.max(...positiveVals) : 1;
+  const logMin = Math.pow(10, Math.floor(Math.log10(Math.max(1, dataMin))));
+  const logMax = Math.pow(10, Math.ceil(Math.log10(Math.max(1, dataMax * 1.1))));
 
   if (spChart) spChart.destroy();
   const homeLabel = 'House + tax savings (' + (homeApp * 100).toFixed(1) + '% app.)';
@@ -539,10 +540,10 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, to
           }
         },
         y: {
-          type: hasNonPositive ? 'linear' : 'logarithmic',
-          min: hasNonPositive ? undefined : logMin,
-          max: hasNonPositive ? undefined : logMax,
-          title: { display: true, text: hasNonPositive ? 'Net worth (today\'s $)' : 'Net worth (today\'s $, log)' },
+          type: 'logarithmic',
+          min: logMin,
+          max: logMax,
+          title: { display: true, text: 'Net worth (today\'s $, log)' },
           ticks: {
             callback: function(value) {
               const exp = Math.log10(value);
