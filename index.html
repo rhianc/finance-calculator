@@ -364,6 +364,10 @@
     <div class="plot-container">
       <canvas id="spChart"></canvas>
     </div>
+    <div class="plot-container" style="height:220px;margin-top:1rem;">
+      <canvas id="crossoverChart"></canvas>
+    </div>
+    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.3rem 0 0.5rem;">30-year net worth difference (own − rent). Positive = better to own. Zero crossing = indifference price.</p>
     <details style="margin-top:0.75rem;">
       <summary>Tax benefit explainer</summary>
       <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
@@ -423,6 +427,120 @@ document.getElementById('home-price').addEventListener('input', updateDownFromPc
 document.getElementById('down-pct').addEventListener('input', updateDownFromPct);
 document.getElementById('down-amt').addEventListener('input', updatePctFromAmt);
 updateDownFromPct();
+
+let spChart = null;
+let crossoverChart = null;
+
+function updateCrossoverChart() {
+  const basePrice = parseMoney(document.getElementById('home-price').value) * 1000;
+  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
+  const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
+  const years = 30;
+  const n = years * 12;
+  const r = annualRate / 12;
+  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
+  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
+  const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
+  const rent = parseMoney(document.getElementById('rent').value);
+  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
+  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
+  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
+  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
+  const insYear = parseMoney(document.getElementById('insurance').value);
+  const maintYear = parseMoney(document.getElementById('maintenance').value);
+  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
+
+  // Sweep house prices from 0.3x to 3x the current price
+  const prices = [];
+  const diffs = [];
+  for (let mult = 0.3; mult <= 3.01; mult += 0.05) {
+    const price = Math.round(basePrice * mult);
+    const down = price * downPct / 100;
+    const loan = Math.max(0, price - down);
+    let pi = 0;
+    if (loan > 0 && n > 0) {
+      if (r === 0) pi = loan / n;
+      else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
+    }
+    const taxMonthly = (price * propTaxRate) / 12;
+    const insMonthly = insYear / 12;
+    const maintMonthly = maintYear / 12;
+    let pmiMonthly = 0;
+    if (loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
+    const totalMonthly = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
+    const monthlyInvest = totalMonthly - rent;
+
+    // Simulate 30 years
+    let homeValue = price;
+    let remaining = loan;
+    let stockBalance = down;
+    let taxSavingsInvested = 0;
+    for (let m = 0; m < n; m++) {
+      homeValue *= (1 + monthlyHomeApp);
+      let interestThisMonth = 0;
+      if (remaining > 0 && r > 0) {
+        interestThisMonth = remaining * r;
+        const principal = Math.min(pi - interestThisMonth, remaining);
+        remaining = Math.max(0, remaining - principal);
+      } else if (remaining > 0) {
+        remaining = Math.max(0, remaining - pi);
+      }
+      const propTaxMonth = (price * propTaxRate) / 12;
+      const saltCapMonth = 10000 / 12;
+      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
+      const deductible = interestThisMonth + deductiblePropTax;
+      const savings = deductible * margTax;
+      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
+      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
+    }
+    const discount = Math.pow(1 + inflation, years);
+    const equity = homeValue - remaining;
+    const houseNW = (equity + taxSavingsInvested) / discount;
+    const stockNW = stockBalance / discount;
+    prices.push(Math.round(price / 1000));
+    diffs.push(Math.round(houseNW - stockNW));
+  }
+
+  if (crossoverChart) crossoverChart.destroy();
+  crossoverChart = new Chart(document.getElementById('crossoverChart'), {
+    type: 'line',
+    data: {
+      labels: prices,
+      datasets: [{
+        label: 'Own − Rent (30yr)',
+        data: diffs,
+        borderColor: '#2563eb',
+        backgroundColor: '#2563eb20',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => 'Difference: $' + ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Home price ($k)' },
+          ticks: { maxTicksLimit: 8 }
+        },
+        y: {
+          title: { display: true, text: '30yr NW difference' },
+          grid: { color: 'rgba(0,0,0,0.06)', borderDash: [1, 2] }
+        }
+      }
+    }
+  });
+}
 
 let spChart = null;
 
@@ -678,6 +796,7 @@ function calculate() {
 
   updatePieChart(pi, taxMonthly, insMonthly, pmiMonthly, maintMonthly, hoaMonthly);
   updateNetWorthChart(price, down, loan, annualRate, years, pi, total);
+  updateCrossoverChart();
 }
 
 function scaleFactor(annualPct, years) {
