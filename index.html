@@ -455,7 +455,7 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       const discount = Math.pow(1 + inflation, yearsOut);
       const equity = Math.max(1, homeValue - remaining);
       houseData.push(Math.max(1, Math.round((equity + taxSavingsInvested) / discount)));
-      stockData.push(Math.max(1, Math.round(stockBalance / discount)));
+      stockData.push(Math.max(1, Math.round(Math.max(0, stockBalance) / discount)));
     }
     if (m < n) {
       homeValue *= (1 + monthlyHomeApp);
@@ -472,7 +472,7 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
       const savings = deductible * margTax;
       taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
 
-      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
+      stockBalance = Math.max(0, stockBalance * (1 + monthlySp) + monthlyInvest);
     }
   }
 
