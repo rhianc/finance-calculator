@@ -467,11 +467,16 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, to
       } else if (remaining > 0) {
         remaining = Math.max(0, remaining - monthlyPI);
       }
-      const propTaxMonth = (homeValue * propTaxRate) / 12;
-      const deductible = interestThisMonth + propTaxMonth;
+      // Property tax deduction based on original price (matches actual tax paid)
+      // Apply simplified $10k annual SALT cap on property tax portion
+      const propTaxMonth = (price * propTaxRate) / 12;
+      const saltCapMonth = 10000 / 12;
+      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
+      const deductible = interestThisMonth + deductiblePropTax;
       const savings = deductible * margTax;
       taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
 
+      // Down payment compounds; monthly difference (ownership cost - rent) is added or withdrawn
       stockBalance = Math.max(0, stockBalance * (1 + monthlySp) + monthlyInvest);
     }
   }
