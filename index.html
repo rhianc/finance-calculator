@@ -212,25 +212,19 @@
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
       Where $P$ = loan amount, $r$ = monthly rate (annual ÷ 12), $n$ = months.
       <details>
-        <summary>Step-by-step derivation</summary>
+        <summary>Derivation (geometric sum)</summary>
         <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
-          Start with principal $P$. After one month the balance is:<br>
-          $$B_1 = P(1+r) - M$$
-          After two months:<br>
-          $$B_2 = B_1(1+r) - M = P(1+r)^2 - M(1+r) - M$$
-          After $n$ months the remaining balance is the geometric series:<br>
-          $$B_n = P(1+r)^n - M \frac{(1+r)^n - 1}{r}$$
-          At payoff, $B_n = 0$. Solve for the payment $M$:<br>
-          $$0 = P(1+r)^n - M \frac{(1+r)^n - 1}{r}$$
-          $$M \frac{(1+r)^n - 1}{r} = P(1+r)^n$$
-          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}$$
+          Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
+          $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
+          The sum is geometric:
+          $$\sum_{k=0}^{n-1} (1+r)^k = \frac{(1+r)^n - 1}{r}$$
+          so
+          $$B_n = P(1+r)^n - M \frac{(1+r)^n - 1}{r}.$$
+          Set $B_n = 0$ and solve for $M$:
+          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}.$$
 
-          <br><strong>Continuous compounding (limit as periods → ∞)</strong><br>
-          The constant $e$ is defined by<br>
-          $$e = \lim_{m \to \infty} \left(1 + \frac{1}{m}\right)^m$$
-          so continuous growth at annual rate $R$ over time $t$ is $e^{Rt}$. The continuous monthly payment that amortizes the loan is<br>
-          $$M = P \times \frac{R e^{Rt}}{e^{Rt} - 1}$$
-          (Most consumer home and car loans use the discrete monthly formula above.)
+          Continuous limit ($m \to \infty$ periods):
+          $$e = \lim_{m\to\infty}\left(1+\frac{1}{m}\right)^m, \quad M = P \times \frac{R e^{Rt}}{e^{Rt}-1}.$$
         </div>
       </details>
     </div>
