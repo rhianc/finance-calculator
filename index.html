@@ -111,29 +111,33 @@
   }
   .pie-row {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 0.75rem;
   }
   .pie-container {
-    flex: 1;
+    width: 100%;
+    max-width: 220px;
     height: 180px;
     position: relative;
   }
   .pie-legend {
-    flex: 1;
-    font-size: 0.82rem;
+    width: 100%;
+    font-size: 0.85rem;
   }
   .pie-legend div {
     display: flex;
     justify-content: space-between;
-    margin: 0.25rem 0;
+    align-items: center;
+    margin: 0.3rem 0;
+    padding: 0.15rem 0;
   }
   .pie-legend .swatch {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 2px;
-    margin-right: 6px;
+    margin-right: 8px;
   }
   details {
     margin-top: 0.9rem;
@@ -228,7 +232,7 @@
       <div>
         <label>Down Payment</label>
         <div class="input-group">
-          <input type="text" id="down-amt" inputmode="decimal" value="200,000" readonly style="background:#f1f5f9;">
+          <input type="text" id="down-amt" inputmode="decimal" value="200,000">
           <span class="unit">$</span>
         </div>
       </div>
@@ -301,7 +305,7 @@
       $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
       Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
       <details>
-        <summary>Derivation & scale factor plot</summary>
+        <summary>Derivation</summary>
         <div style="text-align:left;padding-top:0.5rem;line-height:1.55;">
           Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
           $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
@@ -414,17 +418,24 @@ function setupMoneyInput(id) {
     this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
   });
 }
-['home-price','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
+['home-price','down-amt','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
 
-function updateDown() {
+function updateDownFromPct() {
   const price = parseMoney(document.getElementById('home-price').value);
   const pct = parseFloat(document.getElementById('down-pct').value) || 0;
   const down = price * pct / 100;
   document.getElementById('down-amt').value = formatWithCommas(down.toFixed(0));
 }
-document.getElementById('home-price').addEventListener('input', updateDown);
-document.getElementById('down-pct').addEventListener('input', updateDown);
-updateDown();
+function updatePctFromAmt() {
+  const price = parseMoney(document.getElementById('home-price').value);
+  const down = parseMoney(document.getElementById('down-amt').value);
+  const pct = price > 0 ? (down / price) * 100 : 0;
+  document.getElementById('down-pct').value = Math.round(pct * 10) / 10;
+}
+document.getElementById('home-price').addEventListener('input', updateDownFromPct);
+document.getElementById('down-pct').addEventListener('input', updateDownFromPct);
+document.getElementById('down-amt').addEventListener('input', updatePctFromAmt);
+updateDownFromPct();
 
 let spChart = null;
 
