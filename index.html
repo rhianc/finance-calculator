@@ -440,6 +440,12 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
     }
   }
 
+  const allVals = [...houseData, ...stockData].filter(v => v > 0);
+  const dataMin = Math.min(...allVals);
+  const dataMax = Math.max(...allVals);
+  const logMin = Math.pow(10, Math.floor(Math.log10(dataMin)));
+  const logMax = Math.pow(10, Math.ceil(Math.log10(dataMax * 1.1)));
+
   if (spChart) spChart.destroy();
   const homeLabel = 'House + tax savings (' + (homeApp * 100).toFixed(1) + '% app.)';
   const stockLabel = 'Rent + Stocks (' + (spReturn * 100).toFixed(1) + '%)';
@@ -485,8 +491,9 @@ function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI) {
         },
         y: {
           type: 'logarithmic',
+          min: logMin,
+          max: logMax,
           title: { display: true, text: 'Net worth (log)' },
-          min: 1000,
           ticks: {
             callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k')
           }
