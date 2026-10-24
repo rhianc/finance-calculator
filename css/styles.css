@@ -135,18 +135,23 @@ select.bare:focus { outline: none; }
 
 .control .unit {
   flex: 0 0 auto;
-  min-width: 3.4rem;
-  padding: 0 0.35rem 0 0.7rem;
-  color: var(--muted);
-  font-size: 0.8rem;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin: 0.35rem 0 0.35rem 0.35rem;
+  padding: 0 0.55rem;
+  border-radius: 7px;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
   line-height: 1;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .control input {
-  padding-left: 0.15rem;
+  padding-left: 0.55rem;
 }
 
 select.bare {
