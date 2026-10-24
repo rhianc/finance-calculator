@@ -4,932 +4,421 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Home Loan Calculator</title>
+<meta name="description" content="Fixed-rate home loan payment and a month-by-month rent versus buy comparison, with the formulas written out.">
+<title>Home loan & rent vs buy</title>
+<link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<style>
-  :root {
-    --bg: #f5f7fa;
-    --card: #ffffff;
-    --primary: #2563eb;
-    --text: #1e2937;
-    --muted: #64748b;
-    --border: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-  }
-  .container {
-    max-width: 520px;
-    margin: 0 auto;
-    padding: 1rem;
-  }
-  h1 {
-    font-size: 1.45rem;
-    text-align: center;
-    margin: 1rem 0 0.4rem;
-  }
-  .subtitle {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.88rem;
-    margin-bottom: 1.1rem;
-  }
-  .card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 1.15rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin-bottom: 1rem;
-  }
-  label {
-    display: block;
-    margin: 0.65rem 0 0.2rem;
-    font-size: 0.88rem;
-    font-weight: 500;
-  }
-  input, select {
-    width: 100%;
-    padding: 0.7rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 1rem;
-  }
-  .input-group {
-    position: relative;
-  }
-  .input-group input {
-    padding-right: 3.2rem;
-  }
-  .input-group .unit {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 0.9rem;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-  .row {
-    display: flex;
-    gap: 0.6rem;
-  }
-  .row > div { flex: 1; }
-  .results {
-    margin-top: 1.25rem;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--border);
-  }
-  .results-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .results-summary {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  .summary-item {
-    text-align: left;
-  }
-  .summary-item .label {
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
-  .summary-item .value {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--primary);
-  }
-  .pie-container {
-    flex: 1;
-    height: 200px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  details {
-    margin-top: 0.9rem;
-    font-size: 0.85rem;
-  }
-  details summary {
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--primary);
-    padding: 0.3rem 0;
-  }
-  .equation {
-    margin-top: 0.5rem;
-    padding: 0.4rem 0.9rem;
-    background: #f8fafc;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    color: var(--muted);
-    text-align: center;
-    overflow-x: auto;
-  }
-  .equation details {
-    margin-top: 0;
-  }
-  .equation details summary {
-    padding: 0.2rem 0;
-  }
-  .note {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 0.9rem;
-    text-align: center;
-  }
-  .plot-container {
-    position: relative;
-    height: 280px;
-    margin-top: 0.5rem;
-  }
-  .refresh-btn {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    padding: 0.35rem 0.6rem;
-    background: #f1f5f9;
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    z-index: 10;
-  }
-  .container { position: relative; }
-</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
-<div class="container">
-  <h1>Home Loan & Cost Calculator</h1>
-  <p class="subtitle">Monthly payment + typical owner costs</p>
-  <div class="card">
-    <button class="refresh-btn" onclick="location.reload()">↻</button>
-    <div class="row">
-      <div>
-        <label>Home Price</label>
-        <div class="input-group">
-          <input type="text" id="home-price" inputmode="decimal" value="1,000">
-          <span class="unit">$k</span>
-        </div>
-      </div>
-      <div>
-        <label>State</label>
-        <select id="state">
-      <option value="0.71" selected>California (0.71%)</option>
-      <option value="2.23">New Jersey (2.23%)</option>
-      <option value="1.92">Illinois (1.92%)</option>
-      <option value="1.78">Connecticut (1.78%)</option>
-      <option value="1.68">Texas (1.68%)</option>
-      <option value="1.46">New York (1.46%)</option>
-      <option value="0.91">Florida (0.91%)</option>
-      <option value="0.84">Washington (0.84%)</option>
-      <option value="0.72">Montana (0.72%)</option>
-      <option value="0.70">New Mexico (0.70%)</option>
-      <option value="0.62">Arizona (0.62%)</option>
-      <option value="0.55">Colorado (0.55%)</option>
-      <option value="0.27">Hawaii (0.27%)</option>
-      <option value="1.02">U.S. Median (~1.02%)</option>
-    </select>
-      </div>
-    </div>
+<header class="wrap">
+  <p class="eyebrow">Primary residence</p>
+  <h1>Home loan &amp; rent vs buy</h1>
+  <p class="lede">The monthly cost of a fixed-rate loan, then a month-by-month test of whether buying builds more wealth than renting and investing the cash you did not put into the house.</p>
+</header>
 
-    <div class="row">
-      <div>
-        <label>Down Payment</label>
-        <div class="input-group">
-          <input type="number" id="down-pct" value="20" min="0" max="100" step="1">
-          <span class="unit">%</span>
+<main class="wrap stack">
+  <div class="grid">
+    <section class="card" aria-labelledby="loan-heading">
+      <h2 id="loan-heading">The house</h2>
+      <div class="fields">
+        <div class="field">
+          <label for="home-price">Home price</label>
+          <div class="control">
+            <span class="unit prefix">$</span>
+            <input id="home-price" inputmode="decimal" autocomplete="off" value="1,000,000">
+          </div>
         </div>
-      </div>
-      <div>
-        <label>Down Payment</label>
-        <div class="input-group">
-          <input type="text" id="down-amt" inputmode="decimal" value="200">
-          <span class="unit">$k</span>
+        <div class="field">
+          <label for="state">State</label>
+          <select id="state" class="bare">
+            <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
+            <option value="CA-eff" data-rate="0.71" data-growth="prop13">California, statewide effective</option>
+            <option value="NJ" data-rate="2.23" data-growth="market">New Jersey</option>
+            <option value="IL" data-rate="1.92" data-growth="market">Illinois</option>
+            <option value="CT" data-rate="1.78" data-growth="market">Connecticut</option>
+            <option value="TX" data-rate="1.68" data-growth="market">Texas</option>
+            <option value="NY" data-rate="1.46" data-growth="market">New York</option>
+            <option value="FL" data-rate="0.91" data-growth="market">Florida</option>
+            <option value="WA" data-rate="0.84" data-growth="market">Washington</option>
+            <option value="MT" data-rate="0.72" data-growth="market">Montana</option>
+            <option value="NM" data-rate="0.70" data-growth="market">New Mexico</option>
+            <option value="AZ" data-rate="0.62" data-growth="market">Arizona</option>
+            <option value="CO" data-rate="0.55" data-growth="market">Colorado</option>
+            <option value="HI" data-rate="0.27" data-growth="market">Hawaii</option>
+            <option value="US" data-rate="1.02" data-growth="market">U.S. median</option>
+          </select>
         </div>
-      </div>
-    </div>
+        <div class="field">
+          <label for="tax-rate">Property tax rate</label>
+          <div class="control">
+            <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="tax-growth">How the tax bill grows</label>
+          <select id="tax-growth" class="bare">
+            <option value="prop13" selected>California cap, 2% a year</option>
+            <option value="market">With the home's value</option>
+            <option value="inflation">With inflation</option>
+          </select>
+        </div>
+        <p class="hint span-2" id="tax-hint">A new California purchase is assessed at the price you pay. The statewide 0.71% figure is lower because longtime owners are taxed on old assessments. Local bonds often put a new bill near 1.1% to 1.3%. Edit the rate to match the parcel.</p>
 
-    <div class="row">
-      <div>
-        <label>Interest Rate</label>
-        <div class="input-group">
-          <input type="number" id="loan-rate" value="6.5" min="0" step="0.1">
-          <span class="unit">%</span>
+        <div class="field">
+          <label for="down-pct">Down payment</label>
+          <div class="control">
+            <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="down-amt">Amount</label>
+          <div class="control">
+            <span class="unit prefix">$</span>
+            <input id="down-amt" inputmode="decimal" autocomplete="off" value="200,000">
+          </div>
+        </div>
+        <div class="field">
+          <label for="loan-rate">Interest rate</label>
+          <div class="control">
+            <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="loan-years">Term</label>
+          <div class="control">
+            <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+            <span class="unit">yrs</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="insurance">Insurance</label>
+          <div class="control">
+            <input id="insurance" inputmode="decimal" autocomplete="off" value="5,000">
+            <span class="unit">$/yr</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="maintenance">Maintenance</label>
+          <div class="control">
+            <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
+            <span class="unit">%/yr</span>
+          </div>
+        </div>
+        <p class="hint span-2" id="cost-hint"></p>
+        <div class="field">
+          <label for="hoa">HOA</label>
+          <div class="control">
+            <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
+            <span class="unit">$/mo</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="pmi-rate">PMI rate</label>
+          <div class="control">
+            <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
+            <span class="unit">%/yr</span>
+          </div>
+        </div>
+        <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price. That is when you can request cancellation on a conventional loan. Automatic cancellation is at 78%. FHA premiums, which can last the life of the loan, are not modeled.</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="pay-heading">
+      <h2 id="pay-heading">This month</h2>
+      <p class="big" id="res-total">—</p>
+      <p class="sub" id="res-sub">Cash cost of owning, before the tax savings below.</p>
+      <div class="breakdown" id="breakdown"></div>
+      <div class="chart-box" aria-hidden="true">
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="meta">
+        <div>
+          <div class="k">Loan amount</div>
+          <div class="v" id="res-loan">—</div>
+        </div>
+        <div>
+          <div class="k">Interest over the term</div>
+          <div class="v" id="res-interest">—</div>
+        </div>
+        <div>
+          <div class="k">Tax savings, first year</div>
+          <div class="v" id="res-tax-year">—</div>
+        </div>
+        <div>
+          <div class="k">PMI</div>
+          <div class="v" id="res-pmi">—</div>
         </div>
       </div>
-      <div>
-        <label>Term</label>
-        <div class="input-group">
-          <input type="number" id="loan-years" value="30" min="1" step="1">
+      <p class="hint" id="res-note"></p>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="wealth-heading">
+    <h2 id="wealth-heading">Wealth, in today's dollars</h2>
+    <p class="section-lead">Both lines use the loan above. Buying is what you would keep if you sold that year: home value, minus the loan, the cost to sell, and tax on the gain, plus tax savings invested along the way. Renting starts with the down payment and closing costs in stocks, then adds each month's ownership cash minus that month's rent.</p>
+    <div class="fields">
+      <div class="field">
+        <label for="home-app">Home appreciation, nominal</label>
+        <div class="control">
+          <input id="home-app" type="number" min="-10" max="20" step="0.1" value="3" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="stock-return">Stock return, nominal</label>
+        <div class="control">
+          <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rent">Rent for a comparable home</label>
+        <div class="control">
+          <input id="rent" inputmode="decimal" autocomplete="off" value="3,000">
+          <span class="unit">$/mo</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="inflation">Inflation</label>
+        <div class="control">
+          <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="horizon">Comparison length</label>
+        <div class="control">
+          <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
           <span class="unit">yrs</span>
         </div>
       </div>
-    </div>
-
-    <details>
-      <summary>Other typical costs (optional)</summary>
-      <div style="padding-top:0.5rem;">
-        <label>Homeowners Insurance</label>
-        <div class="input-group">
-          <input type="text" id="insurance" inputmode="decimal" value="5,000">
-          <span class="unit">$/yr</span>
-        </div>
-        <p style="font-size:0.75rem;color:var(--muted);margin:0.2rem 0 0.6rem;">About 4k-6k typical for a 1M home in CA (non-high-wildfire areas). Varies widely by location.</p>
-
-        <label>Maintenance / Repairs</label>
-        <div class="input-group">
-          <input type="text" id="maintenance" inputmode="decimal" value="4,500">
-          <span class="unit">$/yr</span>
-        </div>
-
-        <label>HOA Fees</label>
-        <div class="input-group">
-          <input type="text" id="hoa" inputmode="decimal" value="0">
-          <span class="unit">$/mo</span>
-        </div>
-
-        <p class="pmi-note" id="pmi-note">PMI auto-applies if down payment is under 20% (typical 0.5-1% of loan/year).</p>
-      </div>
-    </details>
-
-    <div id="results" class="results">
-      <div class="results-row">
-        <div class="results-summary">
-          <div class="summary-item">
-            <div class="label">Loan Amount</div>
-            <div class="value" id="res-loan"></div>
-          </div>
-          <div class="summary-item">
-            <div class="label">Total Monthly</div>
-            <div class="value" id="res-total"></div>
-          </div>
-        </div>
-        <div class="pie-container">
-          <canvas id="pieChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <details style="margin-top:0.5rem;">
-      <summary>Derivation</summary>
-      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);text-align:left;">
-        <strong>Monthly principal & interest</strong><br>
-        $$M = P \times \frac{r(1+r)^{n}}{(1+r)^{n} - 1}$$
-        Where $P$ = loan amount, $r$ = monthly rate (annual / 12), $n$ = months.
-        <br><br>
-          Remaining balance after $n$ months is the principal grown forward minus the future value of the payment annuity:
-          $$B_n = P(1+r)^n - M \sum_{k=0}^{n-1} (1+r)^k$$
-          The sum is geometric:
-          $$\sum_{k=0}^{n-1} (1+r)^k = \frac{(1+r)^n - 1}{r}$$
-          so
-          $$B_n = P(1+r)^n - M \frac{(1+r)^n - 1}{r}.$$
-          Set $B_n = 0$ and solve for $M$:
-          $$M = P \times \frac{r(1+r)^n}{(1+r)^n - 1}.$$
-
-          Continuous limit ($m \to \infty$ periods):
-          $$e = \lim_{m\to\infty}\left(1+\frac{1}{m}\right)^m, \quad M = P \times \frac{R e^{Rt}}{e^{Rt}-1}.$$
-
-          <p style="margin-top:1rem;font-weight:500;text-align:center;">Principal Scale Factor (M/P)</p>
-          <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0 0 0.5rem;">Monthly payment as a fraction of loan amount vs annual rate</p>
-          <div class="plot-container">
-            <canvas id="scaleChart"></canvas>
-          </div>
-        </div>
-      </details>
-  </div>
-
-  <div class="card">
-    <h2 style="font-size:1.1rem;margin:0 0 0.5rem;text-align:center;">Net Worth: House vs Rent + Stocks</h2>
-    <div class="row" style="margin-bottom:0.5rem;">
-      <div>
-        <label>Home Appreciation</label>
-        <div class="input-group">
-          <input type="number" id="home-app" value="3" min="0" step="0.1">
+      <div class="field">
+        <label for="drag">Investment tax drag</label>
+        <div class="control">
+          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
           <span class="unit">%/yr</span>
         </div>
       </div>
-      <div>
-        <label>Stock Return</label>
-        <div class="input-group">
-          <input type="number" id="stock-return" value="10" min="0" step="0.1">
-          <span class="unit">%/yr</span>
+      <div class="field">
+        <label for="closing">Buyer closing costs</label>
+        <div class="control">
+          <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
+          <span class="unit">%</span>
         </div>
       </div>
-    </div>
-    <div class="row" style="margin-bottom:0.5rem;">
-      <div>
-        <label>Monthly Rent</label>
-        <div class="input-group">
-          <input type="text" id="rent" inputmode="decimal" value="3,000">
-          <span class="unit">$</span>
-        </div>
-      </div>
-      <div>
-        <label>Marginal Tax Rate</label>
-        <div class="input-group">
-          <input type="number" id="tax-rate" value="32" min="0" max="50" step="1">
+      <div class="field">
+        <label for="selling">Cost to sell</label>
+        <div class="control">
+          <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
           <span class="unit">%</span>
         </div>
       </div>
     </div>
-    <div class="row" style="margin-bottom:0.5rem;">
-      <div>
-        <label>Inflation</label>
-        <div class="input-group">
-          <input type="number" id="inflation" value="2.5" min="0" step="0.1">
-          <span class="unit">%/yr</span>
+    <p class="hint">Closing costs are cash the renter keeps and invests, and they raise the home's tax basis. The cost to sell comes off the price in the year you look at. Drag is subtracted from the stock return: leave it at 0 in a retirement account, or try 0.5 to 1.5 in a taxable one. Rent, insurance, maintenance, and HOA step up with inflation once a year.</p>
+
+    <details>
+      <summary id="tax-summary">Tax rules</summary>
+      <div class="fields" style="margin-top:0.8rem;">
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing" class="bare">
+            <option value="mfj" selected>Married filing jointly</option>
+            <option value="single">Single</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="federal-rate">Federal marginal rate</label>
+          <div class="control">
+            <input id="federal-rate" type="number" min="0" max="37" step="1" value="24" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="state-rate">State marginal rate</label>
+          <div class="control">
+            <input id="state-rate" type="number" min="0" max="15" step="0.1" value="9.3" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ltcg">Long-term gains rate</label>
+          <div class="control">
+            <input id="ltcg" type="number" min="0" max="30" step="0.1" value="15" inputmode="decimal">
+            <span class="unit">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="other-salt">State income tax you already pay</label>
+          <div class="control">
+            <span class="unit prefix">$</span>
+            <input id="other-salt" inputmode="decimal" autocomplete="off" value="0">
+            <span class="unit">/yr</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="other-itemized">Other itemized deductions</label>
+          <div class="control">
+            <span class="unit prefix">$</span>
+            <input id="other-itemized" inputmode="decimal" autocomplete="off" value="0">
+            <span class="unit">/yr</span>
+          </div>
+        </div>
+        <div class="field span-2">
+          <label for="magi">MAGI, if you want the SALT phaseout</label>
+          <div class="control">
+            <span class="unit prefix">$</span>
+            <input id="magi" inputmode="decimal" autocomplete="off" placeholder="Blank uses the full $40,400 cap">
+          </div>
         </div>
       </div>
-      <div></div>
-    </div>
-    <details style="margin-top:0.5rem;">
-      <summary>Net worth over time (house vs rent + stocks)</summary>
-      <p style="font-size:0.8rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;">House equity + tax savings vs rent + stocks (in today's dollars)</p>
-      <div class="plot-container">
-        <canvas id="spChart"></canvas>
-      </div>
+      <p class="hint">Federal savings count only the housing deductions that beat the 2026 standard deduction ($16,100 single, $32,200 joint) after the deductions you would have anyway. Mortgage interest is deductible on up to $750,000 of the loan. Property tax shares the SALT cap with the state income tax you enter. State savings are your state rate times deductible mortgage interest, which assumes your state allows that deduction. Set the state rate to 0 where there is no income tax. Add 3.8 to the long-term rate if the net investment income tax applies.</p>
     </details>
-    <details style="margin-top:0.5rem;">
-      <summary>How the net worth comparison works</summary>
-      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
-        <p><strong>House path:</strong> Home value grows monthly at the home appreciation rate. Loan balance declines as principal is paid. Equity = home value − remaining balance. Each month the tax savings from deductible mortgage interest plus property tax (capped at the $10k annual SALT limit) are invested at the stock return rate and added to the house side. The result is discounted by inflation to today’s dollars.</p>
-        <p><strong>Rent + stocks path:</strong> The down payment starts invested in stocks. Each month the difference between total ownership cost and rent is added to (or withdrawn from) the stock balance. Total ownership cost = principal & interest + property tax + insurance + maintenance + HOA + PMI (if down payment < 20%). The stock balance compounds at the stock return rate and is also discounted by inflation to today’s dollars.</p>
-        <p>Both lines are in today’s dollars. The house line includes equity plus the invested tax savings; the rent line is the opportunity cost of the down payment plus the monthly cash-flow difference, both growing at the stock return.</p>
-      </div>
-    </details>
-    <div class="plot-container" style="height:260px;margin-top:0.25rem;margin-bottom:1.25rem;width:100%;">
-      <div id="crossoverChart" style="width:100%;height:100%;"></div>
-    </div>
-    <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin:0.5rem 0 0.75rem;clear:both;">Contour of house-vs-stocks net-worth delta (today's $). Zero contour = crossover (above it owning is ahead). Evaluated monthly.</p>
-    <details style="margin-top:0.5rem;">
-      <summary>Taxes & assumptions</summary>
-      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
-        <p><strong>Tax benefit (modeled):</strong> Homeowners can itemize deductions for mortgage interest and property taxes (subject to limits). The estimated tax savings = (monthly interest + monthly property tax) × marginal tax rate. Those savings are assumed to be invested at the stock return rate and added to the house net worth line. Default 32% is a rough combined federal + state marginal rate for higher earners. Real benefits depend on whether you itemize, the SALT cap ($10k federal), loan limits, and your full tax situation.</p>
-        <p><strong>Selling early:</strong> The $250k / $500k primary-residence capital-gains exclusion generally requires you to have owned and lived in the home for at least 2 of the 5 years before the sale. Selling sooner can forfeit or reduce the exclusion. Gains on property held ≤1 year are short-term (taxed as ordinary income); longer holds get long-term rates. Selling also incurs closing costs, realtor commissions (~5–6%), and any transfer taxes.</p>
-        <p><strong>Other ownership taxes:</strong> Ongoing property taxes (modeled), possible capital-gains tax on appreciation when you sell (after the exclusion), and in some places transfer or recording taxes at purchase or sale. This model does not include capital-gains tax, depreciation recapture (more relevant for rentals), or state-specific transfer taxes. Not tax advice — actual results depend on your full situation, filing status, and current law.</p>
-      </div>
-    </details>
-  </div>
 
-  <p class="note">Estimates only. Property tax rates are approximate statewide effective rates. Insurance for a 1M home in California is often 4k-6k+/year outside high-wildfire zones (can be much higher in brush areas). Actual costs vary. Not financial advice.</p>
-</div>
+    <div class="stats" aria-live="polite">
+      <div class="stat">
+        <div class="k" id="stat-cross-k">Buying pulls ahead</div>
+        <div class="v" id="stat-cross">—</div>
+      </div>
+      <div class="stat">
+        <div class="k">Gap at the horizon</div>
+        <div class="v" id="stat-gap">—</div>
+      </div>
+      <div class="stat">
+        <div class="k" id="stat-end-k">Buy, if sold</div>
+        <div class="v" id="stat-end">—</div>
+      </div>
+    </div>
+    <p class="fine" id="stat-note"></p>
 
+    <h3 class="plot-title">Crossover</h3>
+    <p class="fine">Buy minus rent, in today's dollars. Green means buying is ahead. The black curve is where the two paths are equal, and the dashed line is the price entered above. Rent and HOA stay fixed. The down payment, insurance, and maintenance scale with the price.</p>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
+
+    <h3 class="plot-title">This home</h3>
+    <div class="chart-box tall">
+      <canvas id="wealthChart" aria-label="Buy versus rent net worth in today's dollars"></canvas>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Year</th><th>Buy, if sold</th><th>Rent &amp; invest</th><th>Buy − rent</th></tr>
+        </thead>
+        <tbody id="year-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="math-heading">
+    <details class="sheet" id="formulas">
+      <summary id="math-heading">How the wealth comparison works</summary>
+    <p class="section-lead">The chart is this arithmetic, once a month. Rates you type are effective annual rates. Home value and both portfolios compound monthly. Rent and the operating costs step up on each anniversary. Dollars on the chart are then divided by inflation.</p>
+
+    <h3>Loan</h3>
+    <p>\(P\) is the amount borrowed, \(R\) the annual mortgage rate, \(r = R/12\), and \(N\) the number of payments.</p>
+    <div class="math">\[
+      M =
+      \begin{cases}
+        P / N &amp; r = 0 \\
+        P \dfrac{r(1+r)^{N}}{(1+r)^{N}-1} &amp; r &gt; 0
+      \end{cases}
+    \]</div>
+    <p>Balance after \(t\) payments, before the extra cents of a last-payment cleanup:</p>
+    <div class="math">\[
+      B_t =
+      \begin{cases}
+        P\left(1 - t/N\right) &amp; r = 0 \\
+        P(1+r)^{t} - M \dfrac{(1+r)^{t}-1}{r} &amp; r &gt; 0
+      \end{cases}
+    \]</div>
+
+    <h3>The two portfolios</h3>
+    <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. \(\tau_t\) is the tax saved that month. \(R_t\) is rent. \(r_s\) is the monthly stock return after the drag, \(r_s = (1+s)^{1/12}-1\).</p>
+    <div class="math">\[ H_t = H_0 (1+g)^{t/12} \]</div>
+    <div class="math">\[ S_0 = D + c_b H_0 \]</div>
+    <div class="math">\[ S_t = S_{t-1}(1+r_s) + (O_t - R_t) \]</div>
+    <div class="math">\[ T_0 = 0,\quad T_t = T_{t-1}(1+r_s) + \tau_t \]</div>
+    <p>\(S\) is the renter's portfolio. \(T\) is the owner's tax savings, invested at the same return. Because those savings sit in \(T\), they are not also subtracted from the renter's deposit.</p>
+
+    <h3>If you sold that month</h3>
+    <div class="math">\[ \mathrm{Gain}_t = \max\left(0,\ H_t(1-c_s) - H_0(1+c_b)\right) \]</div>
+    <div class="math">\[ G_t = \max\left(0,\ \mathrm{Gain}_t - X_t\right) \times (\text{federal gain rate} + \text{state rate}) \]</div>
+    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for single filers and $500,000 for a joint return. Before 12 months the federal piece uses your ordinary federal rate. After 12 months it uses the long-term rate you entered.</p>
+    <div class="math">\[ L_t = H_t(1-c_s) - B_t - G_t \]</div>
+    <div class="math">\[
+      W^H_t = \frac{L_t + T_t}{(1+i)^{t/12}},\qquad
+      W^R_t = \frac{S_t}{(1+i)^{t/12}}
+    \]</div>
+    <p>\(i\) is inflation. \(W^H\) is the buy line and \(W^R\) is the rent line, both in today's dollars. \(L_t\) is what's left after the loan, the sale, and tax on the gain.</p>
+
+    <h3>Tax saved</h3>
+    <p>Interest is deductible on the portion of the balance under the $750,000 acquisition-debt cap. At the start of month \(t\):</p>
+    <div class="math">\[
+      \text{Deductible interest}_t = \text{Interest}_t \times \min\left(1,\ \frac{750{,}000}{B_{t-1}}\right)
+    \]</div>
+    <p>Property tax and the state income tax you enter share the 2026 SALT cap of $40,400. Above $505,000 of MAGI the cap shrinks by 30 cents per dollar and does not fall below $10,000. The federal benefit is only the extra itemizing the house creates:</p>
+    <div class="math">\[
+      \tau^{\mathrm{fed}} = \left[\max(0,\ I_{\mathrm{own}} - \mathrm{Std}) - \max(0,\ I_{\mathrm{rent}} - \mathrm{Std})\right] \times \text{federal rate}
+    \]</div>
+    <p>\(I_{\mathrm{own}}\) includes deductible interest and the property tax that still fits under the cap. \(I_{\mathrm{rent}}\) is your other itemized deductions only. \(\mathrm{Std}\) is $16,100 or $32,200. The year's federal savings are recognized month by month as the running total crosses the standard deduction, so early months in the year can show $0 federally. State savings each month are deductible interest times your state rate.</p>
+
+    <h3>Property tax over time</h3>
+    <p>\(\rho\) is the rate you entered. In California mode the assessed value grows with inflation, and never by more than 2% a year. In market mode the bill tracks appreciation, so the effective rate stays constant.</p>
+    <div class="math">\[ \mathrm{Tax}^{\mathrm{CA}}_y = H_0 \,(1+\min(i,\ 0.02))^y \,\rho \]</div>
+    <div class="math">\[ \mathrm{Tax}^{\mathrm{market}}_y = H_0 \,(1+g)^y \,\rho \]</div>
+
+    <h3>First month, with these inputs</h3>
+    <div class="steps" id="worked"></div>
+
+    <details id="derivation">
+      <summary>Where the payment formula comes from</summary>
+      <p>Each month the balance grows by \(r\), then the payment is subtracted. After \(t\) months the unpaid balance is the loan grown forward, minus the future value of the payments already made:</p>
+      <div class="math">\[ B_t = P(1+r)^t - M \sum_{k=0}^{t-1} (1+r)^k \]</div>
+      <p>The sum is a geometric series, \(\sum_{k=0}^{t-1}(1+r)^k = ((1+r)^t - 1)/r\). The loan is paid off when \(B_N = 0\). Solving that for \(M\) gives the payment formula above. The chart is that payment on a $1,000 loan.</p>
+      <div class="chart-box tall">
+        <canvas id="scaleChart"></canvas>
+      </div>
+    </details>
+
+    <h3>Left out on purpose</h3>
+    <ul class="left-out">
+      <li>Extra principal payments, refinancing, and adjustable rates.</li>
+      <li>Deducting PMI, and FHA loans that keep a premium for the life of the loan.</li>
+      <li>The 3.8% net investment income tax, unless you fold it into the long-term gains rate.</li>
+      <li>A partial home-sale exclusion, depreciation from a rental period, and improvements added to basis.</li>
+      <li>The SALT cap's return to $10,000 in 2030. Entered MAGI does phase the cap down today.</li>
+      <li>Lumpy repairs, special assessments, and the chance that returns bounce around instead of arriving in a straight line.</li>
+    </ul>
+    </details>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Estimates for a home you live in. Federal dollar amounts are for tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 163(h), and 164(b)(7)). Statewide property-tax percentages are approximate effective rates. This is not tax or investment advice.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="js/model.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/main.js"></script>
 <script>
-function formatWithCommas(value) {
-  let cleaned = value.replace(/[^0-9.]/g, '');
-  const parts = cleaned.split('.');
-  if (parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
-  const [intPart, decPart] = cleaned.split('.');
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return decPart !== undefined ? formattedInt + '.' + decPart : formattedInt;
-}
-function parseMoney(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; }
-function formatMoney(n) {
-  return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
-}
-function formatMoney2(n) {
-  return '$' + n.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-
-function setupMoneyInput(id) {
-  const el = document.getElementById(id);
-  if (!el || el.readOnly) return;
-  el.addEventListener('input', function() {
-    const cursor = this.selectionStart;
-    const oldLen = this.value.length;
-    this.value = formatWithCommas(this.value);
-    const newLen = this.value.length;
-    this.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
-  });
-}
-['home-price','down-amt','insurance','maintenance','hoa','rent'].forEach(setupMoneyInput);
-
-function updateDownFromPct() {
-  const price = parseMoney(document.getElementById('home-price').value) * 1000;
-  const pct = parseFloat(document.getElementById('down-pct').value) || 0;
-  const down = price * pct / 100;
-  document.getElementById('down-amt').value = formatWithCommas((down / 1000).toFixed(0));
-}
-function updatePctFromAmt() {
-  const price = parseMoney(document.getElementById('home-price').value) * 1000;
-  const down = parseMoney(document.getElementById('down-amt').value) * 1000;
-  const pct = price > 0 ? (down / price) * 100 : 0;
-  document.getElementById('down-pct').value = Math.round(pct * 10) / 10;
-}
-document.getElementById('home-price').addEventListener('input', updateDownFromPct);
-document.getElementById('down-pct').addEventListener('input', updateDownFromPct);
-document.getElementById('down-amt').addEventListener('input', updatePctFromAmt);
-updateDownFromPct();
-
-let crossoverChart = null;
-
-function updateCrossoverChart() {
-  const basePrice = parseMoney(document.getElementById('home-price').value) * 1000;
-  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
-  const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
-  const years = 30;
-  const n = years * 12;
-  const r = annualRate / 12;
-  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
-  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
-  const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
-  const rent = parseMoney(document.getElementById('rent').value);
-  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
-  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
-  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
-  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
-  const insYear = parseMoney(document.getElementById('insurance').value);
-  const maintYear = parseMoney(document.getElementById('maintenance').value);
-  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
-
-  // Price grid (in $k) up to 1M and monthly time grid
-  const pricesK = [];
-  for (let p = 200; p <= 1000; p += 25) pricesK.push(p);
-  const months = [];
-  for (let m = 1; m <= n; m++) months.push(m); // 1 to 360
-  const yearsAxis = months.map(m => m / 12);
-
-  // z[priceIdx][monthIdx] = houseNW - stockNW (today's $)
-  const z = [];
-  for (let pi = 0; pi < pricesK.length; pi++) {
-    const price = pricesK[pi] * 1000;
-    const down = price * downPct / 100;
-    const loan = Math.max(0, price - down);
-    let pi_pay = 0;
-    if (loan > 0 && n > 0) {
-      if (r === 0) pi_pay = loan / n;
-      else pi_pay = loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-    }
-    const taxMonthly = (price * propTaxRate) / 12;
-    const insMonthly = insYear / 12;
-    const maintMonthly = maintYear / 12;
-    let pmiMonthly = 0;
-    if (price > 0 && loan / price > 0.8) pmiMonthly = (loan * 0.006) / 12;
-    const totalMonthly = pi_pay + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
-    const monthlyInvest = totalMonthly - rent;
-
-    let homeValue = price;
-    let remaining = loan;
-    let stockBalance = down;
-    let taxSavingsInvested = 0;
-    const row = [];
-
-    for (let m = 0; m < n; m++) {
-      homeValue *= (1 + monthlyHomeApp);
-      let interestThisMonth = 0;
-      if (remaining > 0 && r > 0) {
-        interestThisMonth = remaining * r;
-        const principal = Math.min(pi_pay - interestThisMonth, remaining);
-        remaining = Math.max(0, remaining - principal);
-      } else if (remaining > 0) {
-        remaining = Math.max(0, remaining - pi_pay);
-      }
-      const propTaxMonth = (price * propTaxRate) / 12;
-      const saltCapMonth = 10000 / 12;
-      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
-      const deductible = interestThisMonth + deductiblePropTax;
-      const savings = deductible * margTax;
-      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
-      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
-
-      const yr = (m + 1) / 12;
-      const discount = Math.pow(1 + inflation, yr);
-      const equity = homeValue - remaining;
-      const houseNW = (equity + taxSavingsInvested) / discount;
-      const stockNW = stockBalance / discount;
-      row.push(Math.round(houseNW - stockNW));
-    }
-    z.push(row);
-  }
-
-  const contours = {
-    start: -1000000,
-    end: 1000000,
-    size: 100000,
-    coloring: 'heatmap',
-    showlines: true,
-    labelfont: { size: 10, color: 'white' }
-  };
-
-  // Extract approximate zero-crossing price for each month for a bold line
-  const zeroYears = [];
-  const zeroPrices = [];
-  for (let mi = 0; mi < yearsAxis.length; mi++) {
-    for (let pi = 0; pi < pricesK.length - 1; pi++) {
-      const z0 = z[pi][mi];
-      const z1 = z[pi + 1][mi];
-      if ((z0 <= 0 && z1 >= 0) || (z0 >= 0 && z1 <= 0)) {
-        const frac = z0 === z1 ? 0 : -z0 / (z1 - z0);
-        const p = pricesK[pi] + frac * (pricesK[pi + 1] - pricesK[pi]);
-        zeroYears.push(yearsAxis[mi]);
-        zeroPrices.push(p);
-        break;
-      }
-    }
-  }
-
-  const data = [{
-    type: 'contour',
-    z: z,
-    x: yearsAxis,
-    y: pricesK,
-    colorscale: [
-      [0, '#450a0a'],
-      [0.15, '#7f1d1d'],
-      [0.3, '#dc2626'],
-      [0.42, '#fca5a5'],
-      [0.5, '#ffffff'],
-      [0.58, '#86efac'],
-      [0.7, '#22c55e'],
-      [0.85, '#15803d'],
-      [1, '#052e16']
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.renderMathInElement) return;
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '\\[', right: '\\]', display: true },
+      { left: '\\(', right: '\\)', display: false }
     ],
-    contours: contours,
-    line: { width: 1, color: 'rgba(0,0,0,0.25)' },
-    colorbar: {
-      title: { text: 'Delta ($)', side: 'top', font: { size: 11 } },
-      tickvals: [-1000000, -500000, 0, 500000, 1000000],
-      ticktext: ['−1M', '−500k', '0', '500k', '1M'],
-      thickness: 8,
-      len: 1,
-      xpad: 4
-    },
-    hovertemplate: 'Year: %{x:.1f}<br>Price: $%{y}k<br>Delta: $%{z:,.0f}<extra></extra>'
-  }, {
-    type: 'scatter',
-    mode: 'lines',
-    x: zeroYears,
-    y: zeroPrices,
-    line: { color: '#111827', width: 3 },
-    name: 'Crossover (delta = 0)',
-    hovertemplate: 'Year: %{x:.1f}<br>Crossover: $%{y:.0f}k<extra></extra>'
-  }];
-
-  const layout = {
-    margin: { t: 30, r: 28, b: 40, l: 55 },
-    xaxis: {
-      title: { text: 'Years', font: { size: 11 }, standoff: 8 },
-      tick0: 1,
-      dtick: 2,
-      range: [0, 30]
-    },
-    yaxis: {
-      title: { text: 'Home price ($k)', font: { size: 11 }, standoff: 8 },
-      autorange: true
-    },
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 11 }
-  };
-
-  Plotly.react('crossoverChart', data, layout, { responsive: true, displayModeBar: false });
-}
-
-let spChart = null;
-
-function updateNetWorthChart(price, down, loan, annualRate, years, monthlyPI, totalMonthly) {
-  const homeApp = (parseFloat(document.getElementById('home-app').value) || 0) / 100;
-  const spReturn = (parseFloat(document.getElementById('stock-return').value) || 0) / 100;
-  const inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
-  const rent = parseMoney(document.getElementById('rent').value);
-  const margTax = (parseFloat(document.getElementById('tax-rate').value) || 0) / 100;
-  const propTaxRate = parseFloat(document.getElementById('state').value) / 100;
-  const monthlyHomeApp = Math.pow(1 + homeApp, 1/12) - 1;
-  const monthlySp = Math.pow(1 + spReturn, 1/12) - 1;
-  const n = years * 12;
-  const r = annualRate / 12;
-  const monthlyInvest = totalMonthly - rent;
-
-  const labels = [];
-  const houseData = [];
-  const stockData = [];
-
-  let homeValue = price;
-  let remaining = loan;
-  let stockBalance = down;
-  let taxSavingsInvested = 0;
-
-  for (let m = 0; m <= n; m++) {
-    if (m % 12 === 0) {
-      labels.push(m / 12);
-      const yearsOut = m / 12;
-      const discount = Math.pow(1 + inflation, yearsOut);
-      const equity = homeValue - remaining;
-      const houseVal = Math.round((equity + taxSavingsInvested) / discount);
-      const stockVal = Math.round(stockBalance / discount);
-      houseData.push(houseVal > 0 ? houseVal : null);
-      stockData.push(stockVal > 0 ? stockVal : null);
-    }
-    if (m < n) {
-      homeValue *= (1 + monthlyHomeApp);
-      let interestThisMonth = 0;
-      if (remaining > 0 && r > 0) {
-        interestThisMonth = remaining * r;
-        const principal = Math.min(monthlyPI - interestThisMonth, remaining);
-        remaining = Math.max(0, remaining - principal);
-      } else if (remaining > 0) {
-        remaining = Math.max(0, remaining - monthlyPI);
-      }
-      // Property tax deduction based on original price (matches actual tax paid)
-      // Apply simplified $10k annual SALT cap on property tax portion
-      const propTaxMonth = (price * propTaxRate) / 12;
-      const saltCapMonth = 10000 / 12;
-      const deductiblePropTax = Math.min(propTaxMonth, saltCapMonth);
-      const deductible = interestThisMonth + deductiblePropTax;
-      const savings = deductible * margTax;
-      taxSavingsInvested = taxSavingsInvested * (1 + monthlySp) + savings;
-
-      // Down payment compounds; monthly difference (ownership cost - rent) is added or withdrawn
-      // Allow negative so the comparison shows the full cost of the rent path
-      stockBalance = stockBalance * (1 + monthlySp) + monthlyInvest;
-    }
-  }
-
-  const positiveVals = [...houseData, ...stockData].filter(v => v != null && v > 0);
-  const dataMin = positiveVals.length ? Math.min(...positiveVals) : 1;
-  const dataMax = positiveVals.length ? Math.max(...positiveVals) : 1;
-  const logMin = Math.pow(10, Math.floor(Math.log10(Math.max(1, dataMin))));
-  const logMax = Math.pow(10, Math.ceil(Math.log10(Math.max(1, dataMax * 1.1))));
-
-  if (spChart) spChart.destroy();
-  const homeLabel = 'House + tax savings (' + (homeApp * 100).toFixed(1) + '% app.)';
-  const stockLabel = 'Rent + Stocks (' + (spReturn * 100).toFixed(1) + '%)';
-  spChart = new Chart(document.getElementById('spChart'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: homeLabel,
-          data: houseData,
-          borderColor: '#2563eb',
-          backgroundColor: '#2563eb20',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.1
-        },
-        {
-          label: stockLabel,
-          data: stockData,
-          borderColor: '#16a34a',
-          backgroundColor: '#16a34a20',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        datalabels: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString()
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Years' },
-          ticks: { maxTicksLimit: 10 },
-          grid: {
-            color: 'rgba(0,0,0,0.08)',
-            borderDash: [2, 3]
-          }
-        },
-        y: {
-          type: 'logarithmic',
-          min: logMin,
-          max: logMax,
-          title: { display: true, text: 'Net worth (today\'s $, log)' },
-          ticks: {
-            callback: function(value) {
-              const exp = Math.log10(value);
-              if (Math.abs(exp - Math.round(exp)) < 0.01) {
-                if (value >= 1000000) return '$' + (value/1000000).toFixed(0) + 'M';
-                if (value >= 1000) return '$' + (value/1000).toFixed(0) + 'k';
-                return '$' + value.toFixed(0);
-              }
-              return '';
-            },
-            maxTicksLimit: 20
-          },
-          grid: {
-            color: 'rgba(0,0,0,0.1)',
-            borderDash: [1, 2],
-            drawTicks: true
-          },
-          border: { display: false }
-        }
-      }
-    }
+    throwOnError: false
   });
-}
-
-let pieChart = null;
-function updatePieChart(pi, tax, ins, pmi, maint, hoa) {
-  const labels = [];
-  const data = [];
-  const colors = [];
-  const colorMap = {
-    'P&I': '#2563eb',
-    'Tax': '#7c3aed',
-    'Insurance': '#dc2626',
-    'PMI': '#f59e0b',
-    'Maintenance': '#10b981',
-    'HOA': '#6b7280'
-  };
-  const items = [
-    ['P&I', pi],
-    ['Tax', tax],
-    ['Insurance', ins],
-    ['PMI', pmi],
-    ['Maintenance', maint],
-    ['HOA', hoa]
-  ];
-  items.forEach(([label, val]) => {
-    if (val > 0.5) {
-      labels.push(label);
-      data.push(Math.round(val));
-      colors.push(colorMap[label]);
-    }
-  });
-
-  if (pieChart) pieChart.destroy();
-  pieChart = new Chart(document.getElementById('pieChart'), {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: colors,
-        borderWidth: 2,
-        borderColor: '#ffffff'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '55%',
-      layout: { padding: 30 },
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          anchor: 'end',
-          align: 'end',
-          offset: 8,
-          color: '#1e2937',
-          font: { size: 11, weight: '500' },
-          formatter: (value, ctx) => ctx.chart.data.labels[ctx.dataIndex],
-          clamp: true
-        },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString()
-          }
-        }
-      }
-    }
-  });
-
-  // Labels are drawn radially on the chart via datalabels plugin
-  
-}
-
-function calculate() {
-  const price = parseMoney(document.getElementById('home-price').value) * 1000;
-  const downPct = parseFloat(document.getElementById('down-pct').value) || 0;
-  const down = price * downPct / 100;
-  const loan = Math.max(0, price - down);
-  const annualRate = (parseFloat(document.getElementById('loan-rate').value) || 0) / 100;
-  const years = parseFloat(document.getElementById('loan-years').value) || 30;
-  const n = years * 12;
-  const r = annualRate / 12;
-
-  let pi = 0;
-  if (loan > 0 && n > 0) {
-    if (r === 0) pi = loan / n;
-    else pi = loan * (r * Math.pow(1+r, n)) / (Math.pow(1+r, n) - 1);
-  }
-
-  const taxRate = parseFloat(document.getElementById('state').value) / 100;
-  const taxMonthly = (price * taxRate) / 12;
-
-  const insYear = parseMoney(document.getElementById('insurance').value);
-  const insMonthly = insYear / 12;
-
-  const maintYear = parseMoney(document.getElementById('maintenance').value);
-  const maintMonthly = maintYear / 12;
-
-  const hoaMonthly = parseMoney(document.getElementById('hoa').value);
-
-  let pmiMonthly = 0;
-  const ltv = price > 0 ? loan / price : 0;
-  if (ltv > 0.8 && loan > 0) {
-    pmiMonthly = (loan * 0.006) / 12;
-  }
-
-  const total = pi + taxMonthly + insMonthly + maintMonthly + hoaMonthly + pmiMonthly;
-
-  document.getElementById('res-loan').textContent = formatMoney(loan);
-  document.getElementById('res-total').textContent = formatMoney2(total);
-
-  updatePieChart(pi, taxMonthly, insMonthly, pmiMonthly, maintMonthly, hoaMonthly);
-  updateNetWorthChart(price, down, loan, annualRate, years, pi, total);
-  updateCrossoverChart();
-}
-
-function scaleFactor(annualPct, years) {
-  const annual = annualPct / 100;
-  const r = annual / 12;
-  const n = years * 12;
-  if (r === 0) return 1 / n;
-  return (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-}
-
-function initChart() {
-  const rates = [];
-  for (let i = 0; i <= 100; i++) rates.push(i * 0.1);
-
-  const terms = [15, 20, 30];
-  const colors = ['#2563eb', '#7c3aed', '#dc2626'];
-
-  const datasets = terms.map((yrs, idx) => ({
-    label: yrs + ' years',
-    data: rates.map(rate => scaleFactor(rate, yrs) * 1000),
-    borderColor: colors[idx],
-    backgroundColor: colors[idx] + '20',
-    borderWidth: 2,
-    pointRadius: 0,
-    tension: 0.1
-  }));
-
-  new Chart(document.getElementById('scaleChart'), {
-    type: 'line',
-    data: {
-      labels: rates.map(r => r.toFixed(1) + '%'),
-      datasets
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        datalabels: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + ' / $1,000'
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Annual interest rate' },
-          ticks: { maxTicksLimit: 8 }
-        },
-        y: {
-          title: { display: true, text: 'Monthly payment per $1,000 principal' },
-          beginAtZero: true
-        }
-      }
-    }
-  });
-}
-
-Chart.register(ChartDataLabels);
-initChart();
-calculate();
-
-const autoUpdateIds = ['home-price','down-pct','loan-rate','loan-years','state','insurance','maintenance','hoa','home-app','stock-return','rent','tax-rate','inflation'];
-autoUpdateIds.forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', calculate);
 });
-document.getElementById('state').addEventListener('change', calculate);
 </script>
 </body>
 </html>
-
