@@ -21,6 +21,7 @@
 <main class="wrap stack">
   <section class="card" aria-labelledby="cross-heading">
     <h2 id="cross-heading">Crossover</h2>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
     <p class="section-lead">Green is buying ahead, in today's dollars, if you sold that year. The black curve is where the two paths are equal. The dashed line is the price in the inputs below. Rent and HOA stay fixed as the price changes. The down payment, insurance, and maintenance scale with it.</p>
     <div class="stats" aria-live="polite">
       <div class="stat">
@@ -37,8 +38,7 @@
       </div>
     </div>
     <p class="fine" id="stat-note"></p>
-    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
-    <div class="fields">
+        <div class="fields">
       <div class="field">
         <label for="home-price">Home price</label>
         <div class="control">
@@ -79,6 +79,14 @@
           <option value="mfj" selected>Married filing jointly</option>
           <option value="single">Single</option>
         </select>
+      </div>
+      <div class="field">
+        <label for="other-salt">State and local income tax</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
+          <span class="unit">/yr</span>
+        </div>
       </div>
       <p class="hint span-2" id="income-hint"></p>
       <div class="field">
@@ -213,14 +221,6 @@
     <details>
       <summary id="tax-summary">Tax rules</summary>
       <div class="fields" style="margin-top:0.8rem;">
-        <div class="field">
-          <label for="other-salt">State and local income tax</label>
-          <div class="control">
-            <span class="unit prefix">$</span>
-            <input id="other-salt" inputmode="decimal" autocomplete="off" value="0">
-            <span class="unit">/yr</span>
-          </div>
-        </div>
         <div class="field">
           <label for="other-itemized">Other itemized deductions</label>
           <div class="control">
@@ -374,11 +374,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js"></script>
-<script src="js/model.js"></script>
-<script src="js/markets.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/main.js"></script>
+<script src="js/taxes.js?v=5"></script>
+<script src="js/model.js?v=5"></script>
+<script src="js/markets.js?v=5"></script>
+<script src="js/charts.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

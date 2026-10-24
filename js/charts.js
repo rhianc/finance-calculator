@@ -468,7 +468,11 @@
       font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12 }
     };
 
-    Plotly.react(el, data, layout, { responsive: true, displayModeBar: false });
+    try {
+      Plotly.react(el, data, layout, { responsive: true, displayModeBar: false });
+    } catch (err) {
+      el.textContent = 'The crossover map could not be drawn.';
+    }
   }
 
   root.FinanceCharts = {

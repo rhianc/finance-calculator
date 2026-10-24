@@ -443,10 +443,14 @@
     FinanceCharts.resizeScale();
   });
 
-  buildStates();
-  fillCities();
-  applyAppreciation();
-  applyInsurance();
-  applyStateTax();
-  refresh();
+  function boot() {
+    buildStates();
+    fillCities();
+    try { applyAppreciation(); } catch (err) { console.error(err); }
+    try { applyInsurance(); } catch (err) { console.error(err); }
+    try { applyStateTax(); } catch (err) { console.error(err); }
+    refresh();
+  }
+
+  boot();
 })();
