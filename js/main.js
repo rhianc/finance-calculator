@@ -479,5 +479,9 @@
     refresh();
   }
 
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refresh);
+  }
+
   boot();
 })();

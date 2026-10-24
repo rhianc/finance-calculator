@@ -18,6 +18,10 @@
   var pieChart = null;
   var lineChart = null;
 
+  function isDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
   function $(id) { return document.getElementById(id); }
 
   function parseNum(value) {
@@ -266,10 +270,15 @@
   }
 
   function renderPie(slices) {
+    var dark = isDark();
     if (pieChart) pieChart.destroy();
     pieChart = null;
     var canvas = $('pieChart');
     if (!canvas || typeof Chart === 'undefined' || !slices.length) return;
+    if (typeof Chart !== 'undefined') {
+      Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
+      Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
+    }
     pieChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -278,7 +287,7 @@
           data: slices.map(function (s) { return s.value; }),
           backgroundColor: slices.map(function (s) { return s.color; }),
           borderWidth: 2,
-          borderColor: '#fffdf8'
+          borderColor: isDark() ? '#221e1b' : '#fffdf8'
         }]
       },
       options: {
@@ -294,6 +303,9 @@
   function renderLines(points) {
     var canvas = $('wealthChart');
     if (!canvas || typeof Chart === 'undefined') return;
+    var dark = isDark();
+    Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
+    Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
     if (lineChart) lineChart.destroy();
     lineChart = new Chart(canvas, {
       type: 'line',
@@ -360,6 +372,7 @@
   function renderCrossover(input) {
     var el = $('crossoverChart');
     if (!el || typeof Plotly === 'undefined') return;
+    var dark = isDark();
     var horizon = Math.round(input.horizonYears * 12);
     var focus = Math.min(horizon, 30 * 12);
     function gapAt(price) {
@@ -450,7 +463,7 @@
         [0.50, '#fffdf8'], [0.52, '#bbf7d0'], [0.58, '#16a34a'], [0.70, '#166534'], [1, '#14532d']
       ],
       contours: { start: -zExtent, end: zExtent, size: zStep, coloring: 'heatmap', showlines: true },
-      line: { width: 0.6, color: 'rgba(31, 26, 23, 0.18)' },
+      line: { width: 0.6, color: dark ? 'rgba(244, 239, 232, 0.16)' : 'rgba(31, 26, 23, 0.18)' },
       colorbar: {
         thickness: 8,
         len: 1,
@@ -458,19 +471,24 @@
         tickmode: 'array',
         tickvals: [-zExtent, 0, zExtent],
         ticktext: [-zExtent, 0, zExtent].map(compactMoney),
-        tickfont: { size: 10 },
+        tickfont: { size: 10, color: dark ? '#b7aba2' : '#6b625b' },
         ticks: ''
       },
       hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Rental − stocks %{z:$,.0f}<extra></extra>',
       showscale: true
     }];
+    var ink = dark ? '#f4efe8' : '#1c1917';
+    var yours = dark ? '#9ec0ef' : '#1f4b82';
+    var card = dark ? '#221e1b' : '#fffdf8';
+    var muted = dark ? '#b7aba2' : '#6b625b';
+    var grid = dark ? '#3c342e' : '#e4dcd0';
     series.forEach(function (line, index) {
       data.push({
         type: 'scatter',
         mode: 'lines',
         x: line.x,
         y: line.y,
-        line: { color: '#1c1917', width: 3 },
+        line: { color: ink, width: 3 },
         name: 'Even',
         showlegend: index === 0,
         hovertemplate: 'Even at year %{x:.1f}<br>$%{y:.0f}k<extra></extra>'
@@ -482,7 +500,7 @@
         mode: 'lines',
         x: [0, years[years.length - 1]],
         y: [input.price / 1000, input.price / 1000],
-        line: { color: '#1f4b82', width: 2, dash: 'dash' },
+        line: { color: yours, width: 2, dash: 'dash' },
         name: 'Yours',
         hovertemplate: 'This rental, $%{y:.0f}k<extra></extra>'
       });
@@ -492,12 +510,13 @@
     try {
       Plotly.react(el, data, {
         margin: { t: 28, r: 44, b: 36, l: 48 },
-        xaxis: { title: { text: 'Years', font: { size: 11 }, standoff: 4 }, range: [0, years[years.length - 1]], dtick: years[years.length - 1] > 20 ? 5 : 2, zeroline: false, automargin: false },
-        yaxis: { title: { text: 'Price ($k)', font: { size: 11 }, standoff: 2 }, range: [yBottom, yTop], automargin: false },
-        legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11 }, bgcolor: 'rgba(0,0,0,0)', itemwidth: 24 },
+        xaxis: { title: { text: 'Years', font: { size: 11, color: muted }, standoff: 4 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [0, years[years.length - 1]], dtick: years[years.length - 1] > 20 ? 5 : 2, zeroline: false, automargin: false },
+        yaxis: { title: { text: 'Price ($k)', font: { size: 11, color: muted }, standoff: 2 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [yBottom, yTop], automargin: false },
+        legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11, color: ink }, bgcolor: 'rgba(0,0,0,0)', itemwidth: 24 },
+        hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
-        font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12 }
+        font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12, color: ink }
       }, { responsive: true, displayModeBar: false });
     } catch (err) {
       el.textContent = 'The crossover map could not be drawn.';
@@ -602,6 +621,14 @@
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     refresh();
+  }
+
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+      if (lineChart) { lineChart.destroy(); lineChart = null; }
+      if (pieChart) { pieChart.destroy(); pieChart = null; }
+      refresh();
+    });
   }
 
   boot();

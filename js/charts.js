@@ -6,12 +6,32 @@
   var scaleChart = null;
   var HOUSE = '#1f4b82';
   var RENT = '#a65b2b';
+  var chartDark = null;
+
+  function isDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function chartTheme() {
+    var dark = isDark();
+    if (typeof Chart !== 'undefined') {
+      Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
+      Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
+    }
+    if (chartDark !== null && chartDark !== dark) {
+      if (lineChart) { lineChart.destroy(); lineChart = null; }
+      if (pieChart) { pieChart.destroy(); pieChart = null; }
+    }
+    chartDark = dark;
+    return dark;
+  }
 
   function destroy(chart) {
     if (chart) chart.destroy();
   }
 
   function renderPie(canvas, slices) {
+    chartTheme();
     destroy(pieChart);
     pieChart = null;
     if (!canvas || typeof Chart === 'undefined' || !slices.length) return;
@@ -23,7 +43,7 @@
           data: slices.map(function (slice) { return slice.value; }),
           backgroundColor: slices.map(function (slice) { return slice.color; }),
           borderWidth: 2,
-          borderColor: '#fffdf8'
+          borderColor: chartDark ? '#221e1b' : '#fffdf8'
         }]
       },
       options: {
@@ -47,6 +67,7 @@
 
   function renderLines(canvas, points) {
     if (!canvas || typeof Chart === 'undefined') return;
+    chartTheme();
     var house = points.map(function (point) { return { x: point.month / 12, y: point.houseReal }; });
     var rent = points.map(function (point) { return { x: point.month / 12, y: point.rentReal }; });
     var last = points.length ? points[points.length - 1].month / 12 : 0;
@@ -309,6 +330,7 @@
       el.textContent = 'The crossover map needs a network connection to draw.';
       return;
     }
+    var dark = isDark();
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
     var focusMonth = Math.min(horizon, 30 * 12);
@@ -389,7 +411,7 @@
         coloring: 'heatmap',
         showlines: true
       },
-      line: { width: 0.6, color: 'rgba(31, 26, 23, 0.18)' },
+      line: { width: 0.6, color: dark ? 'rgba(244, 239, 232, 0.16)' : 'rgba(31, 26, 23, 0.18)' },
       colorbar: {
         thickness: 8,
         len: 1,
@@ -397,20 +419,23 @@
         tickmode: 'array',
         tickvals: [-zExtent, 0, zExtent],
         ticktext: [-zExtent, 0, zExtent].map(compactMoney),
-        tickfont: { size: 10 },
+        tickfont: { size: 10, color: dark ? '#b7aba2' : '#6b625b' },
         ticks: ''
       },
       hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Buy − rent %{z:$,.0f}<extra></extra>',
       showscale: true
     }];
 
+    var ink = dark ? '#f4efe8' : '#1c1917';
+    var yours = dark ? '#9ec0ef' : '#1f4b82';
+    var card = dark ? '#221e1b' : '#fffdf8';
     series.forEach(function (line, index) {
       data.push({
         type: 'scatter',
         mode: 'lines',
         x: line.x,
         y: line.y,
-        line: { color: '#1c1917', width: 3 },
+        line: { color: ink, width: 3 },
         name: 'Even',
         showlegend: index === 0,
         hovertemplate: 'Even at year %{x:.1f}<br>$%{y:.0f}k<extra></extra>'
@@ -425,7 +450,7 @@
         mode: 'lines',
         x: [0, years[years.length - 1]],
         y: [spec.price / 1000, spec.price / 1000],
-        line: { color: '#1f4b82', width: 2, dash: 'dash' },
+        line: { color: yours, width: 2, dash: 'dash' },
         name: 'Yours',
         hovertemplate: 'This home, $%{y:.0f}k<extra></extra>'
       });
@@ -436,7 +461,7 @@
           mode: 'markers',
           x: [mine.totals.crossoverMonth / 12],
           y: [spec.price / 1000],
-          marker: { size: 11, color: '#1c1917', line: { color: '#fffdf8', width: 2 } },
+          marker: { size: 11, color: ink, line: { color: card, width: 2 } },
           name: 'Tie',
           showlegend: false,
           hovertemplate: 'This home ties at year %{x:.1f}<extra></extra>'
@@ -444,17 +469,25 @@
       }
     }
 
+    var muted = dark ? '#b7aba2' : '#6b625b';
+    var grid = dark ? '#3c342e' : '#e4dcd0';
     var layout = {
       margin: { t: 28, r: 44, b: 36, l: 48 },
       xaxis: {
-        title: { text: 'Years', font: { size: 11 }, standoff: 4 },
+        title: { text: 'Years', font: { size: 11, color: muted }, standoff: 4 },
+        tickfont: { color: muted },
+        gridcolor: grid,
+        linecolor: grid,
         range: [0, years[years.length - 1]],
         dtick: years[years.length - 1] > 20 ? 5 : 2,
         zeroline: false,
         automargin: false
       },
       yaxis: {
-        title: { text: 'Price ($k)', font: { size: 11 }, standoff: 2 },
+        title: { text: 'Price ($k)', font: { size: 11, color: muted }, standoff: 2 },
+        tickfont: { color: muted },
+        gridcolor: grid,
+        linecolor: grid,
         range: [yBottom, yTop],
         automargin: false
       },
@@ -464,13 +497,14 @@
         y: 1.02,
         x: 0,
         xanchor: 'left',
-        font: { size: 11 },
+        font: { size: 11, color: ink },
         bgcolor: 'rgba(0,0,0,0)',
         itemwidth: 24
       },
+      hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
-      font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12 }
+      font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12, color: ink }
     };
 
     try {
