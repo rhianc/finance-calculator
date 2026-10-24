@@ -105,6 +105,13 @@
     $('home-app').value = place.rate.toFixed(2);
   }
 
+  function applyInsurance() {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place || !(place.ins > 0)) return;
+    var price = Math.max(0, readNum('home-price'));
+    setMoney('insurance', price * place.ins / HomeMarkets.DWELLING);
+  }
+
   function syncPctFromAmt() {
     var price = readNum('home-price');
     var down = Math.max(0, readNum('down-amt'));
@@ -251,6 +258,18 @@
     return status === 'single' ? 'Single' : 'Married filing jointly';
   }
 
+  function insuranceNote(price) {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place || !(place.ins > 0)) return '';
+    var expected = price * place.ins / HomeMarkets.DWELLING;
+    var where = place.code === 'US' ? 'the U.S.' : (place.insFrom === 'city' ? place.city.name : place.state.name);
+    if (Math.abs(readNum('insurance') - expected) > 1) {
+      return 'Using your insurance premium instead of the ' + money(expected) + ' Insurify average for ' + where + ' at this price. Change the state, city, or price to put that average back.';
+    }
+    var scope = place.insFrom === 'city' || place.code === 'US' ? '' : ' statewide';
+    return 'Insurance is the Insurify average for ' + where + scope + ', ' + money(place.ins) + ' a year on $300,000 of dwelling coverage, scaled to this price. A $1,000 deductible. Flood is not included.';
+  }
+
   function refresh() {
     var input = readInputs();
     var price = input.price;
@@ -264,7 +283,7 @@
     if (stateOpt && !stateOpt.getAttribute('data-rate')) {
       $('tax-hint').textContent = 'No property-tax preset for this place, so the rate above is whatever you last entered. Edit it to match the parcel.';
     }
-    $('cost-hint').textContent = 'About ' + money(maint) + ' a year of maintenance at this price, before inflation. A few thousand dollars of insurance is common in California outside high-fire areas.';
+    $('cost-hint').textContent = 'About ' + money(maint) + ' a year of maintenance at this price, before inflation. ' + insuranceNote(input.price);
 
     var result = FinanceModel.project(input);
     var first = result.first;
@@ -338,10 +357,13 @@
       $('tax-growth').value = opt.getAttribute('data-growth');
       fillCities();
       applyAppreciation();
+      applyInsurance();
     } else if (id === 'city') {
       applyAppreciation();
+      applyInsurance();
     } else if (id === 'home-price' || id === 'down-pct') {
       syncDownFromPct();
+      if (id === 'home-price') applyInsurance();
     } else if (id === 'down-amt') {
       syncPctFromAmt();
     }
@@ -372,5 +394,6 @@
   buildStates();
   fillCities();
   applyAppreciation();
+  applyInsurance();
   refresh();
 })();

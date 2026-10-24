@@ -5,61 +5,65 @@
   // seasonally adjusted, 1991 Q1 (index = 100) through 2026 Q2. 35.25 years.
   // This is history, including the bust and the 2020-22 spike. It is not a forecast.
   // Cities are the FHFA top-100 metros and divisions, assigned to the first state in the name.
+  // ins is the Insurify average annual homeowners premium for $300,000 of dwelling
+  // coverage and a $1,000 deductible, as of October 21, 2026. Flood is not included.
+  // A published city figure replaces the state figure. Ventura uses the Oxnard figure.
+  var DWELLING = 300000;
   var SPAN = { from: '1991Q1', to: '2026Q2', years: 35.25 };
 
   var STATES = {
-    AK: { name: 'Alaska', rate: 4.07 },
-    AL: { name: 'Alabama', rate: 3.83 },
-    AR: { name: 'Arkansas', rate: 3.78 },
-    AZ: { name: 'Arizona', rate: 5.03 },
-    CA: { name: 'California', rate: 4.14 },
-    CO: { name: 'Colorado', rate: 5.56 },
-    CT: { name: 'Connecticut', rate: 3.35 },
-    DC: { name: 'District of Columbia', rate: 5.24 },
-    DE: { name: 'Delaware', rate: 3.60 },
-    FL: { name: 'Florida', rate: 4.94 },
-    GA: { name: 'Georgia', rate: 4.19 },
-    HI: { name: 'Hawaii', rate: 4.16 },
-    IA: { name: 'Iowa', rate: 3.86 },
-    ID: { name: 'Idaho', rate: 5.48 },
-    IL: { name: 'Illinois', rate: 3.48 },
-    IN: { name: 'Indiana', rate: 3.81 },
-    KS: { name: 'Kansas', rate: 4.12 },
-    KY: { name: 'Kentucky', rate: 4.08 },
-    LA: { name: 'Louisiana', rate: 3.76 },
-    MA: { name: 'Massachusetts', rate: 4.57 },
-    MD: { name: 'Maryland', rate: 3.77 },
-    ME: { name: 'Maine', rate: 4.64 },
-    MI: { name: 'Michigan', rate: 3.96 },
-    MN: { name: 'Minnesota', rate: 4.26 },
-    MO: { name: 'Missouri', rate: 4.08 },
-    MS: { name: 'Mississippi', rate: 3.43 },
-    MT: { name: 'Montana', rate: 5.85 },
-    NC: { name: 'North Carolina', rate: 4.29 },
-    ND: { name: 'North Dakota', rate: 4.44 },
-    NE: { name: 'Nebraska', rate: 4.27 },
-    NH: { name: 'New Hampshire', rate: 4.58 },
-    NJ: { name: 'New Jersey', rate: 4.31 },
-    NM: { name: 'New Mexico', rate: 4.07 },
-    NV: { name: 'Nevada', rate: 4.24 },
-    NY: { name: 'New York', rate: 4.22 },
-    OH: { name: 'Ohio', rate: 3.69 },
-    OK: { name: 'Oklahoma', rate: 3.88 },
-    OR: { name: 'Oregon', rate: 5.36 },
-    PA: { name: 'Pennsylvania', rate: 3.85 },
-    RI: { name: 'Rhode Island', rate: 4.30 },
-    SC: { name: 'South Carolina', rate: 4.36 },
-    SD: { name: 'South Dakota', rate: 4.66 },
-    TN: { name: 'Tennessee', rate: 4.55 },
-    TX: { name: 'Texas', rate: 4.32 },
-    UT: { name: 'Utah', rate: 5.78 },
-    VA: { name: 'Virginia', rate: 4.23 },
-    VT: { name: 'Vermont', rate: 4.38 },
-    WA: { name: 'Washington', rate: 5.13 },
-    WI: { name: 'Wisconsin', rate: 4.51 },
-    WV: { name: 'West Virginia', rate: 3.58 },
-    WY: { name: 'Wyoming', rate: 5.03 },
-    US: { name: 'United States', rate: 4.26 }
+    AK: { name: 'Alaska', rate: 4.07 , ins: 1320 },
+    AL: { name: 'Alabama', rate: 3.83 , ins: 3408 },
+    AR: { name: 'Arkansas', rate: 3.78 , ins: 3552 },
+    AZ: { name: 'Arizona', rate: 5.03 , ins: 2184 },
+    CA: { name: 'California', rate: 4.14 , ins: 2040 },
+    CO: { name: 'Colorado', rate: 5.56 , ins: 3240 },
+    CT: { name: 'Connecticut', rate: 3.35 , ins: 1980 },
+    DC: { name: 'District of Columbia', rate: 5.24 , ins: 1200 },
+    DE: { name: 'Delaware', rate: 3.60 , ins: 1272 },
+    FL: { name: 'Florida', rate: 4.94 , ins: 6408 },
+    GA: { name: 'Georgia', rate: 4.19 , ins: 2496 },
+    HI: { name: 'Hawaii', rate: 4.16 , ins: 1488 },
+    IA: { name: 'Iowa', rate: 3.86 , ins: 2508 },
+    ID: { name: 'Idaho', rate: 5.48 , ins: 1728 },
+    IL: { name: 'Illinois', rate: 3.48 , ins: 2568 },
+    IN: { name: 'Indiana', rate: 3.81 , ins: 2220 },
+    KS: { name: 'Kansas', rate: 4.12 , ins: 3996 },
+    KY: { name: 'Kentucky', rate: 4.08 , ins: 3252 },
+    LA: { name: 'Louisiana', rate: 3.76 , ins: 5028 },
+    MA: { name: 'Massachusetts', rate: 4.57 , ins: 1956 },
+    MD: { name: 'Maryland', rate: 3.77 , ins: 1944 },
+    ME: { name: 'Maine', rate: 4.64 , ins: 1200 },
+    MI: { name: 'Michigan', rate: 3.96 , ins: 2256 },
+    MN: { name: 'Minnesota', rate: 4.26 , ins: 2676 },
+    MO: { name: 'Missouri', rate: 4.08 , ins: 2904 },
+    MS: { name: 'Mississippi', rate: 3.43 , ins: 3348 },
+    MT: { name: 'Montana', rate: 5.85 , ins: 2664 },
+    NC: { name: 'North Carolina', rate: 4.29 , ins: 3192 },
+    ND: { name: 'North Dakota', rate: 4.44 , ins: 2664 },
+    NE: { name: 'Nebraska', rate: 4.27 , ins: 4044 },
+    NH: { name: 'New Hampshire', rate: 4.58 , ins: 1188 },
+    NJ: { name: 'New Jersey', rate: 4.31 , ins: 1224 },
+    NM: { name: 'New Mexico', rate: 4.07 , ins: 3264 },
+    NV: { name: 'Nevada', rate: 4.24 , ins: 1308 },
+    NY: { name: 'New York', rate: 4.22 , ins: 1356 },
+    OH: { name: 'Ohio', rate: 3.69 , ins: 1716 },
+    OK: { name: 'Oklahoma', rate: 3.88 , ins: 5556 },
+    OR: { name: 'Oregon', rate: 5.36 , ins: 1320 },
+    PA: { name: 'Pennsylvania', rate: 3.85 , ins: 1272 },
+    RI: { name: 'Rhode Island', rate: 4.30 , ins: 2364 },
+    SC: { name: 'South Carolina', rate: 4.36 , ins: 2700 },
+    SD: { name: 'South Dakota', rate: 4.66 , ins: 2736 },
+    TN: { name: 'Tennessee', rate: 4.55 , ins: 3096 },
+    TX: { name: 'Texas', rate: 4.32 , ins: 4668 },
+    UT: { name: 'Utah', rate: 5.78 , ins: 1524 },
+    VA: { name: 'Virginia', rate: 4.23 , ins: 1656 },
+    VT: { name: 'Vermont', rate: 4.38 , ins: 984 },
+    WA: { name: 'Washington', rate: 5.13 , ins: 1404 },
+    WI: { name: 'Wisconsin', rate: 4.51 , ins: 1512 },
+    WV: { name: 'West Virginia', rate: 3.58 , ins: 1536 },
+    WY: { name: 'Wyoming', rate: 5.03 , ins: 1704 },
+    US: { name: 'United States', rate: 4.26 , ins: 2808 }
   };
 
   var CITIES = {
@@ -74,18 +78,18 @@
       { id: '46060', name: 'Tucson', rate: 4.48, fhfa: 'Tucson, AZ' },
     ],
     CA: [
-      { id: '12540', name: 'Bakersfield', rate: 3.36, fhfa: 'Bakersfield-Delano, CA' },
-      { id: '23420', name: 'Fresno', rate: 3.88, fhfa: 'Fresno, CA' },
-      { id: '40140', name: 'Inland Empire', rate: 4.07, fhfa: 'Riverside-San Bernardino-Ontario, CA' },
-      { id: '31084', name: 'Los Angeles', rate: 4.33, fhfa: 'Los Angeles-Long Beach-Glendale, CA (MSAD)' },
+      { id: '12540', name: 'Bakersfield', rate: 3.36, ins: 1824, fhfa: 'Bakersfield-Delano, CA' },
+      { id: '23420', name: 'Fresno', rate: 3.88, ins: 2028, fhfa: 'Fresno, CA' },
+      { id: '40140', name: 'Inland Empire', rate: 4.07, ins: 2196, fhfa: 'Riverside-San Bernardino-Ontario, CA' },
+      { id: '31084', name: 'Los Angeles', rate: 4.33, ins: 2400, fhfa: 'Los Angeles-Long Beach-Glendale, CA (MSAD)' },
       { id: '36084', name: 'Oakland', rate: 4.40, fhfa: 'Oakland-Fremont-Berkeley, CA (MSAD)' },
       { id: '11244', name: 'Orange County', rate: 4.84, fhfa: 'Anaheim-Santa Ana-Irvine, CA (MSAD)' },
-      { id: '40900', name: 'Sacramento', rate: 3.68, fhfa: 'Sacramento-Roseville-Folsom, CA' },
-      { id: '41740', name: 'San Diego', rate: 4.87, fhfa: 'San Diego-Chula Vista-Carlsbad, CA' },
-      { id: '41884', name: 'San Francisco', rate: 4.76, fhfa: 'San Francisco-San Mateo-Redwood City, CA (MSAD)' },
-      { id: '41940', name: 'San Jose', rate: 4.91, fhfa: 'San Jose-Sunnyvale-Santa Clara, CA' },
-      { id: '44700', name: 'Stockton', rate: 3.59, fhfa: 'Stockton-Lodi, CA' },
-      { id: '37100', name: 'Ventura', rate: 4.14, fhfa: 'Oxnard-Thousand Oaks-Ventura, CA' },
+      { id: '40900', name: 'Sacramento', rate: 3.68, ins: 1788, fhfa: 'Sacramento-Roseville-Folsom, CA' },
+      { id: '41740', name: 'San Diego', rate: 4.87, ins: 1896, fhfa: 'San Diego-Chula Vista-Carlsbad, CA' },
+      { id: '41884', name: 'San Francisco', rate: 4.76, ins: 1812, fhfa: 'San Francisco-San Mateo-Redwood City, CA (MSAD)' },
+      { id: '41940', name: 'San Jose', rate: 4.91, ins: 1632, fhfa: 'San Jose-Sunnyvale-Santa Clara, CA' },
+      { id: '44700', name: 'Stockton', rate: 3.59, ins: 1824, fhfa: 'Stockton-Lodi, CA' },
+      { id: '37100', name: 'Ventura', rate: 4.14, ins: 1920, fhfa: 'Oxnard-Thousand Oaks-Ventura, CA' },
     ],
     CO: [
       { id: '17820', name: 'Colorado Springs', rate: 5.00, fhfa: 'Colorado Springs, CO' },
@@ -103,14 +107,14 @@
     ],
     FL: [
       { id: '22744', name: 'Fort Lauderdale', rate: 5.18, fhfa: 'Fort Lauderdale-Pompano Beach-Sunrise, FL (MSAD)' },
-      { id: '15980', name: 'Fort Myers', rate: 4.19, fhfa: 'Cape Coral-Fort Myers, FL' },
-      { id: '27260', name: 'Jacksonville', rate: 4.80, fhfa: 'Jacksonville, FL' },
+      { id: '15980', name: 'Fort Myers', rate: 4.19, ins: 8688, fhfa: 'Cape Coral-Fort Myers, FL' },
+      { id: '27260', name: 'Jacksonville', rate: 4.80, ins: 4020, fhfa: 'Jacksonville, FL' },
       { id: '29460', name: 'Lakeland', rate: 4.50, fhfa: 'Lakeland-Winter Haven, FL' },
-      { id: '33124', name: 'Miami', rate: 6.07, fhfa: 'Miami-Miami Beach-Kendall, FL (MSAD)' },
-      { id: '36740', name: 'Orlando', rate: 4.56, fhfa: 'Orlando-Kissimmee-Sanford, FL' },
+      { id: '33124', name: 'Miami', rate: 6.07, ins: 15360, fhfa: 'Miami-Miami Beach-Kendall, FL (MSAD)' },
+      { id: '36740', name: 'Orlando', rate: 4.56, ins: 5256, fhfa: 'Orlando-Kissimmee-Sanford, FL' },
       { id: '35840', name: 'Sarasota', rate: 4.91, fhfa: 'North Port-Bradenton-Sarasota, FL' },
       { id: '41304', name: 'St. Petersburg', rate: 5.54, fhfa: 'St. Petersburg-Clearwater-Largo, FL (MSAD)' },
-      { id: '45294', name: 'Tampa', rate: 4.99, fhfa: 'Tampa, FL (MSAD)' },
+      { id: '45294', name: 'Tampa', rate: 4.99, ins: 6180, fhfa: 'Tampa, FL (MSAD)' },
       { id: '48424', name: 'West Palm Beach', rate: 5.32, fhfa: 'West Palm Beach-Boca Raton-Delray Beach, FL (MSAD)' },
     ],
     GA: [
@@ -137,8 +141,8 @@
       { id: '31140', name: 'Louisville', rate: 4.18, fhfa: 'Louisville/Jefferson County, KY-IN' },
     ],
     LA: [
-      { id: '12940', name: 'Baton Rouge', rate: 3.72, fhfa: 'Baton Rouge, LA' },
-      { id: '35380', name: 'New Orleans', rate: 4.20, fhfa: 'New Orleans-Metairie, LA' },
+      { id: '12940', name: 'Baton Rouge', rate: 3.72, ins: 4764, fhfa: 'Baton Rouge, LA' },
+      { id: '35380', name: 'New Orleans', rate: 4.20, ins: 8388, fhfa: 'New Orleans-Metairie, LA' },
     ],
     MA: [
       { id: '14454', name: 'Boston', rate: 4.78, fhfa: 'Boston, MA (MSAD)' },
@@ -194,8 +198,8 @@
       { id: '19430', name: 'Dayton', rate: 3.29, fhfa: 'Dayton-Kettering-Beavercreek, OH' },
     ],
     OK: [
-      { id: '36420', name: 'Oklahoma City', rate: 4.03, fhfa: 'Oklahoma City, OK' },
-      { id: '46140', name: 'Tulsa', rate: 3.93, fhfa: 'Tulsa, OK' },
+      { id: '36420', name: 'Oklahoma City', rate: 4.03, ins: 6228, fhfa: 'Oklahoma City, OK' },
+      { id: '46140', name: 'Tulsa', rate: 3.93, ins: 4980, fhfa: 'Tulsa, OK' },
     ],
     OR: [
       { id: '38900', name: 'Portland', rate: 5.37, fhfa: 'Portland-Vancouver-Hillsboro, OR-WA' },
@@ -220,12 +224,12 @@
       { id: '34980', name: 'Nashville', rate: 5.17, fhfa: 'Nashville-Davidson--Murfreesboro--Franklin, TN' },
     ],
     TX: [
-      { id: '12420', name: 'Austin', rate: 5.59, fhfa: 'Austin-Round Rock-San Marcos, TX' },
-      { id: '19124', name: 'Dallas', rate: 4.33, fhfa: 'Dallas-Plano-Irving, TX (MSAD)' },
-      { id: '21340', name: 'El Paso', rate: 3.65, fhfa: 'El Paso, TX' },
+      { id: '12420', name: 'Austin', rate: 5.59, ins: 3180, fhfa: 'Austin-Round Rock-San Marcos, TX' },
+      { id: '19124', name: 'Dallas', rate: 4.33, ins: 5148, fhfa: 'Dallas-Plano-Irving, TX (MSAD)' },
+      { id: '21340', name: 'El Paso', rate: 3.65, ins: 2280, fhfa: 'El Paso, TX' },
       { id: '23104', name: 'Fort Worth', rate: 4.20, fhfa: 'Fort Worth-Arlington-Grapevine, TX (MSAD)' },
-      { id: '26420', name: 'Houston', rate: 4.24, fhfa: 'Houston-Pasadena-The Woodlands, TX' },
-      { id: '41700', name: 'San Antonio', rate: 4.34, fhfa: 'San Antonio-New Braunfels, TX' },
+      { id: '26420', name: 'Houston', rate: 4.24, ins: 6084, fhfa: 'Houston-Pasadena-The Woodlands, TX' },
+      { id: '41700', name: 'San Antonio', rate: 4.34, ins: 3576, fhfa: 'San Antonio-New Braunfels, TX' },
     ],
     UT: [
       { id: '39340', name: 'Provo', rate: 5.58, fhfa: 'Provo-Orem-Lehi, UT' },
@@ -328,15 +332,24 @@
     if (cityId) {
       for (i = 0; i < list.length; i++) {
         if (list[i].id === cityId) {
-          return { kind: 'city', rate: list[i].rate, city: list[i], state: state, code: code };
+          return {
+            kind: 'city',
+            rate: list[i].rate,
+            ins: list[i].ins || state.ins,
+            insFrom: list[i].ins ? 'city' : 'state',
+            city: list[i],
+            state: state,
+            code: code
+          };
         }
       }
     }
-    return { kind: 'state', rate: state.rate, city: null, state: state, code: code };
+    return { kind: 'state', rate: state.rate, ins: state.ins, insFrom: 'state', city: null, state: state, code: code };
   }
 
   root.HomeMarkets = {
     SPAN: SPAN,
+    DWELLING: DWELLING,
     STATES: STATES,
     CITIES: CITIES,
     options: options,

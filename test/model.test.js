@@ -271,6 +271,16 @@ var opts = H.options();
 check('new California purchase stays first', opts[0].id === 'CA' && opts[0].taxRate === 1.10 && opts[0].taxGrowth === 'prop13');
 check('California effective rate is unchanged', opts[1].id === 'CA-eff' && opts[1].taxRate === 0.71);
 check('New Jersey tax preset is unchanged', opts.some(function (opt) { return opt.id === 'NJ' && opt.taxRate === 2.23; }));
+near('California insurance at $300k dwelling', H.STATES.CA.ins, 2040, 0.01);
+near('U.S. insurance at $300k dwelling', H.STATES.US.ins, 2808, 0.01);
+near('Los Angeles insurance is its own figure', H.place('CA', '31084').ins, 2400, 0.01);
+check('Los Angeles insurance is tagged as a city figure', H.place('CA', '31084').insFrom === 'city');
+check('Oakland falls back to the California premium', H.place('CA', '36084').ins === 2040 && H.place('CA', '36084').insFrom === 'state');
+check('Miami costs more than Jacksonville at the same coverage', H.place('FL', '33124').ins > H.place('FL', '27260').ins);
+check('a $1,000,000 California home scales the $300,000 premium', Math.round(1000000 * H.place('CA', '').ins / H.DWELLING) === 6800);
+check('New Orleans uses the October 2026 city premium', H.place('LA', '35380').ins === 8388);
+check('Oklahoma City uses the October 2026 city premium', H.place('OK', '36420').ins === 6228);
+check('Ventura uses the Oxnard premium', H.place('CA', '37100').ins === 1920 && H.place('CA', '37100').insFrom === 'city');
 check('every listed city has a finite rate', Object.keys(H.CITIES).every(function (code) {
   return H.CITIES[code].every(function (city) { return city.rate > 0 && city.rate < 12; });
 }));
