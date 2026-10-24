@@ -200,15 +200,83 @@
     if (scaleChart) scaleChart.resize();
   }
 
-  function priceGrid(price) {
-    var low = 200000;
-    var high = 2000000;
-    if (price > high * 0.9) high = Math.ceil(price * 1.25 / 100000) * 100000;
-    if (price > 0 && price < low) low = Math.max(50000, Math.floor(price * 0.5 / 50000) * 50000);
-    var step = (high - low) / 50000 > 48 ? 100000 : 50000;
+  // About $1.2M of prices, centered on the year-30 breakeven. The floor stays
+  // at $0, and the entered price stays inside, so a cheap breakeven sits a
+  // little below the middle rather than sending the axis negative.
+  var PRICE_HALF = 600000;
+  var PRICE_PAD = 50000;
+
+  function gapAtMonth(spec, price, month) {
+    var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, price));
+    var point = result.points[Math.min(month, result.points.length - 1)];
+    return point.houseReal - point.rentReal;
+  }
+
+  function breakevenAt(spec, month) {
+    var samples = [];
+    var price;
+    for (price = 50000; price <= 4000000; price += 200000) {
+      samples.push({ price: price, gap: gapAtMonth(spec, price, month) });
+    }
+    var target = spec.price > 0 ? spec.price : 1000000;
+    var best = null;
+    var i;
+    for (i = 0; i < samples.length - 1; i++) {
+      var g0 = samples[i].gap;
+      var g1 = samples[i + 1].gap;
+      if (!((g0 <= 0 && g1 > 0) || (g0 >= 0 && g1 < 0))) continue;
+      var lo = samples[i].price;
+      var hi = samples[i + 1].price;
+      var glo = g0;
+      var k;
+      for (k = 0; k < 18; k++) {
+        var mid = (lo + hi) / 2;
+        var gap = gapAtMonth(spec, mid, month);
+        if (gap === 0) return mid;
+        if ((gap > 0) === (glo > 0)) {
+          lo = mid;
+          glo = gap;
+        } else {
+          hi = mid;
+        }
+      }
+      var root = (lo + hi) / 2;
+      if (best == null || Math.abs(root - target) < Math.abs(best - target)) best = root;
+    }
+    return best;
+  }
+
+  function priceWindow(center, price) {
+    if (!(center > 0)) center = price > 0 ? price : PRICE_HALF;
+    var half = PRICE_HALF;
+    if (price > 0) half = Math.max(half, Math.abs(price - center) + PRICE_PAD);
+    var low = center - half;
+    var high = center + half;
+    if (low > 0) {
+      half = Math.ceil(half / PRICE_PAD) * PRICE_PAD;
+      low = center - half;
+      high = center + half;
+    }
+    if (low < 0) {
+      low = 0;
+      high = Math.ceil(high / PRICE_PAD) * PRICE_PAD;
+    }
+    if (price > 0 && high < price + PRICE_PAD) {
+      high = Math.ceil((price + PRICE_PAD) / PRICE_PAD) * PRICE_PAD;
+    }
+    if (high <= low) high = low + PRICE_HALF * 2;
+    return { low: low, high: high, center: center };
+  }
+
+  function priceGrid(low, high) {
+    var start = Math.max(PRICE_PAD, low);
+    start = Math.ceil(start / PRICE_PAD) * PRICE_PAD;
+    var end = Math.floor(high / PRICE_PAD) * PRICE_PAD;
+    if (end <= start) end = start + PRICE_PAD;
+    var step = (end - start) / PRICE_PAD > 48 ? 100000 : PRICE_PAD;
     var prices = [];
     var p;
-    for (p = low; p <= high + step * 0.01; p += step) prices.push(Math.round(p));
+    for (p = start; p <= end + step * 0.01; p += step) prices.push(Math.round(p));
     return prices;
   }
 
@@ -242,8 +310,11 @@
       return;
     }
     var spec = root.FinanceModel.normalize(input);
-    var prices = priceGrid(spec.price);
     var horizon = Math.round(spec.horizonYears * 12);
+    var focusMonth = Math.min(horizon, 30 * 12);
+    var evenPrice = breakevenAt(spec, focusMonth);
+    var yWindow = priceWindow(evenPrice, spec.price);
+    var prices = priceGrid(yWindow.low, yWindow.high);
     var years = [];
     var month;
     for (month = 0; month <= horizon; month++) years.push(month / 12);
@@ -345,8 +416,8 @@
       });
     });
 
-    var yTop = pricesK[pricesK.length - 1];
-    var yBottom = pricesK[0];
+    var yTop = yWindow.high / 1000;
+    var yBottom = yWindow.low / 1000;
     if (spec.price > 0) {
       data.push({
         type: 'scatter',
