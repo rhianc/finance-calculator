@@ -135,23 +135,16 @@ select.bare:focus { outline: none; }
 
 .control .unit {
   flex: 0 0 auto;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  margin: 0.35rem 0 0.35rem 0.35rem;
-  padding: 0 0.55rem;
-  border-radius: 7px;
-  background: var(--soft);
-  color: var(--ink);
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  padding: 0 0.75rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
 
 .control input {
-  padding-left: 0.55rem;
+  padding-right: 0.25rem;
 }
 
 select.bare {
