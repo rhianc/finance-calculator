@@ -42,16 +42,15 @@
       <div class="field">
         <label for="home-price">Home price</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$</span>
           <input id="home-price" inputmode="decimal" autocomplete="off" value="500,000">
         </div>
       </div>
       <div class="field">
         <label for="rent">Rent for a comparable home</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$/mo</span>
           <input id="rent" inputmode="decimal" autocomplete="off" value="3,650">
-          <span class="unit">/mo</span>
         </div>
       </div>
       <div class="field">
@@ -69,9 +68,8 @@
       <div class="field">
         <label for="income">Household income</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$/yr</span>
           <input id="income" inputmode="decimal" autocomplete="off" value="300,000">
-          <span class="unit">/yr</span>
         </div>
       </div>
       <div class="field">
@@ -84,74 +82,73 @@
       <div class="field">
         <label for="other-salt">State and local income tax</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$/yr</span>
           <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
-          <span class="unit">/yr</span>
         </div>
       </div>
       <p class="hint span-2" id="income-hint"></p>
       <div class="field">
         <label for="home-app">Home appreciation, nominal</label>
         <div class="control">
-          <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="stock-return">Stock return, nominal</label>
         <div class="control">
-          <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
         </div>
       </div>
       <p class="hint span-2" id="app-hint"></p>
       <div class="field">
         <label for="inflation">Inflation</label>
         <div class="control">
-          <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="drag">Investment tax drag</label>
         <div class="control">
-          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="horizon">Comparison length</label>
         <div class="control">
-          <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
           <span class="unit">yrs</span>
+          <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
         </div>
       </div>
       <div class="field">
         <label for="down-pct">Down payment</label>
         <div class="control">
-          <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
           <span class="unit">%</span>
+          <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="down-amt">Amount</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$</span>
           <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
         </div>
       </div>
       <div class="field">
         <label for="loan-rate">Interest rate</label>
         <div class="control">
-          <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="loan-years">Term</label>
         <div class="control">
-          <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
           <span class="unit">yrs</span>
+          <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
         </div>
       </div>
 
@@ -159,8 +156,8 @@
       <div class="field">
         <label for="tax-rate">Property tax rate</label>
         <div class="control">
-          <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
         </div>
       </div>
       <div class="field">
@@ -175,47 +172,45 @@
       <div class="field">
         <label for="insurance">Insurance</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$/yr</span>
           <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
-          <span class="unit">/yr</span>
         </div>
       </div>
       <div class="field">
         <label for="maintenance">Maintenance</label>
         <div class="control">
-          <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
         </div>
       </div>
       <p class="hint span-2" id="cost-hint"></p>
       <div class="field">
         <label for="hoa">HOA</label>
         <div class="control">
-          <span class="unit prefix">$</span>
+          <span class="unit">$/mo</span>
           <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
-          <span class="unit">/mo</span>
         </div>
       </div>
       <div class="field">
         <label for="pmi-rate">PMI rate</label>
         <div class="control">
-          <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
           <span class="unit">%/yr</span>
+          <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
         </div>
       </div>
       <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price. That is when you can request cancellation on a conventional loan. Automatic cancellation is at 78%. FHA premiums, which can last the life of the loan, are not modeled.</p>
       <div class="field">
         <label for="closing">Buyer closing costs</label>
         <div class="control">
-          <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
           <span class="unit">%</span>
+          <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
         </div>
       </div>
       <div class="field">
         <label for="selling">Cost to sell</label>
         <div class="control">
-          <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
           <span class="unit">%</span>
+          <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
         </div>
       </div>
     </div>
@@ -227,9 +222,8 @@
         <div class="field">
           <label for="other-itemized">Other itemized deductions</label>
           <div class="control">
-            <span class="unit prefix">$</span>
+            <span class="unit">$/yr</span>
             <input id="other-itemized" inputmode="decimal" autocomplete="off" value="0">
-            <span class="unit">/yr</span>
           </div>
         </div>
       </div>

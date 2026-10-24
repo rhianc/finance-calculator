@@ -134,15 +134,19 @@ select.bare {
 select.bare:focus { outline: none; }
 
 .control .unit {
-  padding-right: 0.7rem;
+  flex: 0 0 auto;
+  min-width: 3.4rem;
+  padding: 0 0.35rem 0 0.7rem;
   color: var(--muted);
   font-size: 0.8rem;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.control .unit.prefix {
-  padding-right: 0;
-  padding-left: 0.7rem;
+.control input {
+  padding-left: 0.15rem;
 }
 
 select.bare {
