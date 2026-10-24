@@ -391,13 +391,14 @@
       },
       line: { width: 0.6, color: 'rgba(31, 26, 23, 0.18)' },
       colorbar: {
-        title: { text: 'Buy − rent', font: { size: 12 } },
-        thickness: 14,
-        len: 0.72,
+        thickness: 8,
+        len: 1,
+        outlinewidth: 0,
         tickmode: 'array',
-        tickvals: [-zExtent, -zExtent / 2, 0, zExtent / 2, zExtent],
-        ticktext: [-zExtent, -zExtent / 2, 0, zExtent / 2, zExtent].map(compactMoney),
-        tickfont: { size: 11 }
+        tickvals: [-zExtent, 0, zExtent],
+        ticktext: [-zExtent, 0, zExtent].map(compactMoney),
+        tickfont: { size: 10 },
+        ticks: ''
       },
       hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Buy − rent %{z:$,.0f}<extra></extra>',
       showscale: true
@@ -425,7 +426,7 @@
         x: [0, years[years.length - 1]],
         y: [spec.price / 1000, spec.price / 1000],
         line: { color: '#1f4b82', width: 2, dash: 'dash' },
-        name: 'This home',
+        name: 'Yours',
         hovertemplate: 'This home, $%{y:.0f}k<extra></extra>'
       });
       var mine = root.FinanceModel.project(spec);
@@ -436,32 +437,36 @@
           x: [mine.totals.crossoverMonth / 12],
           y: [spec.price / 1000],
           marker: { size: 11, color: '#1c1917', line: { color: '#fffdf8', width: 2 } },
-          name: 'This home ties',
+          name: 'Tie',
+          showlegend: false,
           hovertemplate: 'This home ties at year %{x:.1f}<extra></extra>'
         });
       }
     }
 
     var layout = {
-      margin: { t: 64, r: 12, b: 52, l: 62 },
+      margin: { t: 28, r: 44, b: 36, l: 48 },
       xaxis: {
-        title: { text: 'Years', font: { size: 12 }, standoff: 8 },
+        title: { text: 'Years', font: { size: 11 }, standoff: 4 },
         range: [0, years[years.length - 1]],
         dtick: years[years.length - 1] > 20 ? 5 : 2,
         zeroline: false,
-        automargin: true
+        automargin: false
       },
       yaxis: {
-        title: { text: 'Home price ($k)', font: { size: 12 }, standoff: 6 },
+        title: { text: 'Price ($k)', font: { size: 11 }, standoff: 2 },
         range: [yBottom, yTop],
-        automargin: true
+        automargin: false
       },
       legend: {
         orientation: 'h',
         yanchor: 'bottom',
         y: 1.02,
         x: 0,
-        font: { size: 12 }
+        xanchor: 'left',
+        font: { size: 11 },
+        bgcolor: 'rgba(0,0,0,0)',
+        itemwidth: 24
       },
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',

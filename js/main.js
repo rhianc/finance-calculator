@@ -303,10 +303,6 @@
     });
   }
 
-  function filingLabel(status) {
-    return status === 'single' ? 'Single' : 'Married filing jointly';
-  }
-
   function rateText(rate) {
     var pct = rate * 100;
     var digits = Math.abs(pct * 10 - Math.round(pct * 10)) < 0.05 ? 1 : 2;
@@ -315,30 +311,27 @@
 
   function taxCopy(input) {
     var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
-    var place = HomeMarkets.place(input.stateCode, '');
-    var where = input.cityName || (place ? place.state.name : 'this state');
     var federal = rateText(profile.federalMarginal);
     var stateRate = rateText(profile.stateMarginal);
     var expected = profile.stateTax;
     var overridden = Math.abs(input.otherSalt - expected) > 1;
     var lead;
     if (input.stateCode === 'US') {
-      lead = 'The national average is not a state, so no state income tax is applied.';
+      lead = 'No state income tax.';
     } else if (input.stateCode === 'WA') {
-      lead = 'Washington has no wage tax, and its capital-gains tax does not apply to a home sale.';
+      lead = 'No wage tax. The capital-gains tax skips a home sale.';
     } else if (profile.stateTax < 1 && profile.stateMarginal < 0.0005) {
-      lead = where + ' has no income tax.';
+      lead = 'No income tax.';
     } else {
-      lead = 'A dollar of deductible interest saves ' + stateRate + '% here. State and local income tax is about ' + money(expected) + ' a year.';
+      lead = 'State tax about ' + money(expected) + '. Interest saves ' + stateRate + '% here.';
     }
-    var who = input.filingStatus === 'single' ? 'A single filer' : 'A joint return';
-    var hint = who + ' at ' + money(input.income) + ' is in the ' + federal + '% federal bracket. ' + lead;
-    hint += ' Brackets stay at 2026 levels, and this income does not rise with inflation.';
+    var filing = input.filingStatus === 'single' ? 'single' : 'joint';
+    var hint = federal + '% federal, ' + filing + '. ' + lead;
     return {
-      summary: 'Tax rules · ' + money(input.income) + ' · ' + filingLabel(input.filingStatus) + ' · ' + federal + '% federal · ' + stateRate + '% on interest',
+      summary: '',
       hint: hint,
       override: overridden
-        ? 'Using your ' + money(input.otherSalt) + ' state-tax figure instead of the ' + money(expected) + ' estimate. Change income, filing status, or the state to put the estimate back.'
+        ? 'Using ' + money(input.otherSalt) + ' instead of the ' + money(expected) + ' estimate.'
         : ''
     };
   }
@@ -349,33 +342,31 @@
     var expected = price * place.ins / HomeMarkets.DWELLING;
     var where = place.code === 'US' ? 'the U.S.' : (place.insFrom === 'city' ? place.city.name : place.state.name);
     if (Math.abs(readNum('insurance') - expected) > 1) {
-      return 'Using your insurance premium instead of the ' + money(expected) + ' Insurify average for ' + where + ' at this price. Change the state, city, or price to put that average back.';
+      return 'Using your premium instead of the ' + money(expected) + ' Insurify average.';
     }
     var scope = place.insFrom === 'city' || place.code === 'US' ? '' : ' statewide';
-    return 'Insurance is the Insurify average for ' + where + scope + ', ' + money(place.ins) + ' a year on $300,000 of dwelling coverage, scaled to this price. A $1,000 deductible. Flood is not included.';
+    return 'Insurify for ' + where + scope + ', scaled from ' + money(place.ins) + ' on a $300,000 home. No flood.';
   }
 
   function refresh() {
     var input = readInputs();
-    var price = input.price;
-    var maint = price * input.maintenanceRate;
     $('tax-hint').textContent = {
-      prop13: 'Assessed value starts at the purchase price and rises with inflation, capped at 2% a year. A new California bill is often about 1.1% to 1.3% after local bonds. The 0.71% statewide figure is lower because longtime owners are taxed on old assessments.',
-      market: 'The bill grows with the home value, so this effective rate stays constant. States that were already on the list keep their previous presets. The others use the Census ACS 2024 effective rate on owner-occupied homes. Edit the rate to match the parcel.',
-      inflation: 'The bill grows with inflation and does not follow home appreciation.'
+      prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',
+      market: 'Grows with the home value. Edit the rate to match the parcel.',
+      inflation: 'Grows with inflation, not the home value.'
     }[input.taxGrowth];
     var stateOpt = $('state').selectedOptions[0];
     if (stateOpt && !stateOpt.getAttribute('data-rate')) {
-      $('tax-hint').textContent = 'No property-tax preset for this place, so the rate above is whatever you last entered. Edit it to match the parcel.';
+      $('tax-hint').textContent = 'No preset for this place. Enter the parcel rate.';
     }
-    $('cost-hint').textContent = 'About ' + money(maint) + ' a year of maintenance at this price, before inflation. ' + insuranceNote(input.price);
+    $('cost-hint').textContent = insuranceNote(input.price);
 
     var result = FinanceModel.project(input);
     var first = result.first;
     if (!first) return;
 
     $('res-total').textContent = money(first.ownerOutlay, 2);
-    $('res-sub').textContent = 'Cash cost of owning this month. Tax savings are separate: ' + money(first.savings, 2) + ' this month.';
+    $('res-sub').textContent = 'Before ' + money(first.savings, 2) + ' of tax savings.';
     var slices = renderBreakdown(first);
     $('res-loan').textContent = money(first.loan);
     $('res-interest').textContent = money(result.totals.interest);
@@ -389,7 +380,7 @@
     }
     var fed = result.totals.firstYearFederal;
     var state = result.totals.firstYearState;
-    $('res-note').textContent = 'First-year tax savings are ' + money(fed) + ' federal and ' + money(state) + ' state. Federal savings show up only after housing deductions pass the ' + money(first.standardDeduction) + ' standard deduction, so month one is often just the state piece. Insurance, maintenance, HOA, and the tax bill step up later. This payment is year one.';
+    $('res-note').textContent = money(fed) + ' federal and ' + money(state) + ' state in tax savings the first year.';
 
     var last = result.points[result.points.length - 1];
     var gap = last.houseReal - last.rentReal;
@@ -398,13 +389,12 @@
     $('stat-gap').textContent = (gap >= 0 ? 'Buying +' : 'Renting +') + money(Math.abs(gap));
     $('stat-gap').className = 'v ' + (gap >= 0 ? 'pos' : 'neg');
     $('stat-end').textContent = money(last.houseReal);
-    var horizonYears = Math.round(last.month / 12);
-    var note = 'At ' + horizonYears + ' years, buying is ' + money(last.houseReal) + ' and renting is ' + money(last.rentReal) + ', in today\'s dollars.';
+    var note = '';
     if (cross != null && !result.totals.endsAhead) {
-      note += ' Buying leads at ' + formatDuration(cross) + ', then finishes behind.';
+      note = 'Buying leads at ' + formatDuration(cross) + ', then falls behind.';
     }
     if (input.rentMonth === 0) {
-      note += ' Rent is $0, so the renter invests the entire cost of owning.';
+      note += (note ? ' ' : '') + 'Rent is $0, so the whole cost of owning is invested.';
     }
     $('stat-note').textContent = note;
 
@@ -418,14 +408,12 @@
     if (!place) {
       $('app-hint').textContent = '';
     } else if (matched && place.kind === 'city') {
-      $('app-hint').textContent = place.city.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. ' + place.state.name + ' statewide was ' + place.state.rate.toFixed(2) + '%. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.';
+      $('app-hint').textContent = place.city.name + ', ' + place.rate.toFixed(2) + '% a year since 1991. Statewide was ' + place.state.rate.toFixed(2) + '%.';
     } else if (matched) {
-      var cityCount = HomeMarkets.cities(place.code).length;
-      var cityNote = cityCount ? ' Pick a city to use that metro instead.' : ' None of the FHFA top-100 metros are based in this state.';
-      $('app-hint').textContent = place.state.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.' + cityNote;
+      $('app-hint').textContent = place.state.name + ', ' + place.rate.toFixed(2) + '% a year since 1991. Not a forecast.';
     } else {
       var label = place.kind === 'city' ? place.city.name : place.state.name;
-      $('app-hint').textContent = 'Using ' + formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '. Change the state or city to put that rate back.';
+      $('app-hint').textContent = formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '.';
     }
 
     renderYears(result.points);

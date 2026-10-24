@@ -15,14 +15,14 @@
 <header class="wrap">
   <p class="eyebrow">Primary residence</p>
   <h1>Buy or rent?</h1>
-  <p class="lede">Where buying builds more wealth than renting, by price and by year. The monthly payment is below the map.</p>
+  <p class="lede">Where buying comes out ahead of renting, by price and by year.</p>
 </header>
 
 <main class="wrap stack">
   <section class="card" aria-labelledby="cross-heading">
     <h2 id="cross-heading">Crossover</h2>
     <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
-    <p class="section-lead">Green is buying ahead, in today's dollars, if you sold that year. The black curve is where the two paths are equal. The dashed line is the price in the inputs below. Rent and HOA stay fixed as the price changes. The down payment, insurance, and maintenance scale with it.</p>
+    <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
     <div class="stats" aria-live="polite">
       <div class="stat">
         <div class="k" id="stat-cross-k">Buying pulls ahead</div>
@@ -175,7 +175,7 @@
               <span class="unit">$/yr</span>
             </div>
           </div>
-          <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price, and it drops off once you can cancel it. Closing costs are cash the renter keeps and invests. The cost to sell comes off the price in the year you look at. Drag is subtracted from the stock return: leave it at 0 in a retirement account. Rent, insurance, maintenance, and HOA step up with inflation once a year.</p>
+          <p class="hint span-2">PMI applies only while the loan is above 80% of the price. Drag comes off the stock return. Costs step up with inflation each year.</p>
         </div>
       </details>
 
@@ -229,17 +229,17 @@
           <p class="hint span-2" id="tax-hint"></p>
           <p class="hint span-2" id="cost-hint"></p>
           <p class="hint span-2" id="tax-readout"></p>
-          <p class="hint span-2">These start from the place, the price, and the income. Change one here if you want a different number. Changing the state, city, price, or income puts the filled-in value back. Federal tax uses the 2026 brackets. A housing deduction saves tax only once itemizing beats the standard deduction. Property tax shares the SALT cap with the state income tax above. The sale is taxed on top of this income.</p>
+          <p class="hint span-2">Filled in from the place, price, and income. A change here sticks until you change one of those.</p>
         </div>
       </details>
     </div>
-    <p class="fine">The price axis is about $1.2 million tall and is centered on the black curve at 30 years, or at the end of the comparison if that is sooner. It stays at or above $0 and widens when that is what it takes to include the price entered above. This map is only valid if the renter invests, every month, the difference between that month's cost of owning and that month's rent. The cost of owning is principal, interest, property tax, insurance, maintenance, HOA, and PMI. The down payment and buyer closing costs are invested at the start. When rent is higher, the extra is withdrawn from that portfolio.</p>
+    <p class="fine">The renter is assumed to invest whatever owning would have cost that month.</p>
   </section>
 
   <section class="card" aria-labelledby="pay-heading">
     <h2 id="pay-heading">This month</h2>
     <p class="big" id="res-total">—</p>
-    <p class="sub" id="res-sub">Cash cost of owning, before the tax savings below.</p>
+    <p class="sub" id="res-sub">Before tax savings.</p>
     <div class="breakdown" id="breakdown"></div>
     <div class="chart-box" aria-hidden="true">
       <canvas id="pieChart"></canvas>
@@ -267,7 +267,7 @@
 
   <section class="card" aria-labelledby="path-heading">
     <h2 id="path-heading">This home</h2>
-    <p class="section-lead">The dashed line on the map, followed out to the comparison length. Buying is what you would keep if you sold that year.</p>
+    <p class="section-lead">This price, if you sold, against renting and investing the difference.</p>
     <div class="chart-box tall">
       <canvas id="wealthChart" aria-label="Buy versus rent net worth in today's dollars"></canvas>
     </div>
@@ -284,7 +284,7 @@
   <section class="card" aria-labelledby="math-heading">
     <details class="sheet" id="formulas">
       <summary id="math-heading">How the wealth comparison works</summary>
-    <p class="section-lead">The chart is this arithmetic, once a month. The mortgage rate is nominal: its monthly rate is the annual rate divided by 12. Appreciation, the stock return, and inflation are effective annual rates, turned into a monthly rate with \((1+r)^{1/12}-1\). Drag is subtracted from the stock return before that conversion. Rent, insurance, maintenance, HOA, and property tax step up on each anniversary and stay flat through the year. The chart then divides by inflation.</p>
+    <p class="section-lead">Once a month. The mortgage rate is divided by 12. Appreciation, stocks, and inflation are effective annual rates. The chart is in today's dollars.</p>
 
     <h3>Loan</h3>
     <p>\(P\) is the amount borrowed, \(R\) the annual mortgage rate, \(r = R/12\), and \(N\) the number of payments.</p>
@@ -357,19 +357,19 @@
     <ul class="left-out">
       <li>Extra principal payments, refinancing, and adjustable rates.</li>
       <li>Deducting PMI, and FHA loans that keep a premium for the life of the loan.</li>
-      <li>Income and the 2026 brackets are not inflated, so the marginal rate does not drift. A raise is not modeled.</li>
+      <li>Income and the 2026 brackets are not inflated.</li>
       <li>Dependents, the alternative minimum tax, and New York's tax-benefit recapture.</li>
-      <li>Local income tax is a statewide average of the wage tax, except New York City, which uses its own brackets, and Philadelphia, which uses the resident wage tax. Those wage taxes are not applied to the home sale.</li>
-      <li>Payroll taxes, including California disability insurance. Alabama, Missouri, and Oregon let filers deduct some federal income tax; that deduction is not included.</li>
+      <li>Most local wage taxes, except New York City and Philadelphia. Those are not applied to the sale.</li>
+      <li>Payroll taxes, and the federal-tax deduction in Alabama, Missouri, and Oregon.</li>
       <li>A partial home-sale exclusion, depreciation from a rental period, and improvements added to basis.</li>
-      <li>Lumpy repairs, special assessments, and the chance that returns bounce around instead of arriving in a straight line.</li>
+      <li>Irregular repairs, special assessments, and returns that don't arrive in a straight line.</li>
     </ul>
     </details>
   </section>
 </main>
 
 <footer class="wrap">
-  <p>Estimates for a home you live in. Federal brackets, the standard deduction, and the long-term gain bands are tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 1411, 163(h), and 164(b)(7)). State income tax follows the Tax Foundation's January 2026 brackets for the selected state, for two adults and no dependents. Statewide property-tax percentages are approximate effective rates. Appreciation presets are the FHFA purchase-only index, compounded from 1991 Q1 to 2026 Q2. Insurance presets are Insurify averages for $300,000 of dwelling coverage as of October 2026, scaled to the price, and they leave out flood. Neither is a quote. This is not tax or investment advice.</p>
+  <p>For a home you live in. Brackets are tax year 2026. Appreciation is FHFA, 1991–2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -377,8 +377,8 @@
 <script src="js/taxes.js?v=9"></script>
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=9"></script>
-<script src="js/charts.js?v=9"></script>
-<script src="js/main.js?v=9"></script>
+<script src="js/charts.js?v=10"></script>
+<script src="js/main.js?v=10"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
