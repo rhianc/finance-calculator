@@ -282,13 +282,13 @@
     } else if (profile.stateTax < 1 && profile.stateMarginal < 0.0005) {
       lead = where + ' has no income tax.';
     } else {
-      lead = 'The state bracket on a dollar of deductible interest is ' + stateRate + '%. State and local income tax is about ' + money(expected) + ' a year.';
+      lead = 'A dollar of deductible interest saves ' + stateRate + '% here. State and local income tax is about ' + money(expected) + ' a year.';
     }
     var who = input.filingStatus === 'single' ? 'A single filer' : 'A joint return';
     var hint = who + ' at ' + money(input.income) + ' is in the ' + federal + '% federal bracket. ' + lead;
     hint += ' Brackets stay at 2026 levels, and this income does not rise with inflation.';
     return {
-      summary: 'Tax rules · ' + money(input.income) + ' · ' + filingLabel(input.filingStatus) + ' · ' + federal + '% federal · ' + stateRate + '% state',
+      summary: 'Tax rules · ' + money(input.income) + ' · ' + filingLabel(input.filingStatus) + ' · ' + federal + '% federal · ' + stateRate + '% on interest',
       hint: hint,
       override: overridden
         ? 'Using your ' + money(input.otherSalt) + ' state-tax figure instead of the ' + money(expected) + ' estimate. Change income, filing status, or the state to put the estimate back.'
