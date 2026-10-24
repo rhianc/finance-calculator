@@ -369,6 +369,14 @@
         <canvas id="spChart"></canvas>
       </div>
     </details>
+    <details style="margin-top:0.5rem;">
+      <summary>How the net worth comparison works</summary>
+      <div style="padding-top:0.5rem;font-size:0.82rem;line-height:1.5;color:var(--text);">
+        <p><strong>House path:</strong> Home value grows monthly at the home appreciation rate. Loan balance declines as principal is paid. Equity = home value − remaining balance. Each month the tax savings from deductible mortgage interest plus property tax (capped at the $10k annual SALT limit) are invested at the stock return rate and added to the house side. The result is discounted by inflation to today’s dollars.</p>
+        <p><strong>Rent + stocks path:</strong> The down payment starts invested in stocks. Each month the difference between total ownership cost and rent is added to (or withdrawn from) the stock balance. Total ownership cost = principal & interest + property tax + insurance + maintenance + HOA + PMI (if down payment < 20%). The stock balance compounds at the stock return rate and is also discounted by inflation to today’s dollars.</p>
+        <p>Both lines are in today’s dollars. The house line includes equity plus the invested tax savings; the rent line is the opportunity cost of the down payment plus the monthly cash-flow difference, both growing at the stock return.</p>
+      </div>
+    </details>
     <div class="plot-container" style="height:260px;margin-top:0.25rem;margin-bottom:1.25rem;width:100%;">
       <div id="crossoverChart" style="width:100%;height:100%;"></div>
     </div>
