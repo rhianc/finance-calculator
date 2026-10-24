@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Where a rental property beats putting the same cash in the stock market.">
+<title>Rent it out?</title>
+<link rel="stylesheet" href="css/styles.css?v=11">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+<header class="wrap">
+  <nav class="pages" aria-label="Which comparison">
+    <a href="index.html">Live in it</a>
+    <a href="rental.html" aria-current="page">Rent it out</a>
+  </nav>
+  <p class="eyebrow">Rental property</p>
+  <h1>Rent it out?</h1>
+  <p class="lede">Where a rental beats putting the same cash in stocks, by price and by year.</p>
+</header>
+
+<main class="wrap stack">
+  <section class="card" aria-labelledby="cross-heading">
+    <h2 id="cross-heading">Crossover</h2>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of a rental versus stocks by purchase price and year"></div>
+    <p class="section-lead">Green is the rental ahead if you sold. Black is where it ties stocks. Rent stays fixed as the price changes.</p>
+    <div class="stats" aria-live="polite">
+      <div class="stat">
+        <div class="k">Rental pulls ahead</div>
+        <div class="v" id="stat-cross">—</div>
+      </div>
+      <div class="stat">
+        <div class="k">Gap at the horizon</div>
+        <div class="v" id="stat-gap">—</div>
+      </div>
+      <div class="stat">
+        <div class="k">Rental, if sold</div>
+        <div class="v" id="stat-end">—</div>
+      </div>
+    </div>
+    <p class="fine" id="stat-note"></p>
+    <div class="fields">
+      <div class="field">
+        <label for="home-price">Purchase price</label>
+        <div class="control">
+          <input id="home-price" inputmode="decimal" autocomplete="off" value="500,000">
+          <span class="unit">$</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rent">Rent collected</label>
+        <div class="control">
+          <input id="rent" inputmode="decimal" autocomplete="off" value="3,650">
+          <span class="unit">$/mo</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="state">State</label>
+        <select id="state" class="bare">
+          <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="city">City</label>
+        <select id="city" class="bare">
+          <option value="">Statewide</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="income">Household income</label>
+        <div class="control">
+          <input id="income" inputmode="decimal" autocomplete="off" value="300,000">
+          <span class="unit">$/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="filing">Filing status</label>
+        <select id="filing" class="bare">
+          <option value="mfj" selected>Married filing jointly</option>
+          <option value="single">Single</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="down-pct">Down payment</label>
+        <div class="control">
+          <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loan-rate">Interest rate</label>
+        <div class="control">
+          <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <p class="hint span-2" id="income-hint"></p>
+
+      <details class="span-2 fold">
+        <summary>Typical assumptions</summary>
+        <div class="fields">
+          <div class="field">
+            <label for="stock-return">Stock return, nominal</label>
+            <div class="control">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inflation">Inflation</label>
+            <div class="control">
+              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="vacancy">Vacancy</label>
+            <div class="control">
+              <input id="vacancy" type="number" min="0" max="50" step="0.5" value="5" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="management">Property management</label>
+            <div class="control">
+              <input id="management" type="number" min="0" max="30" step="0.5" value="8" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="maintenance">Maintenance</label>
+            <div class="control">
+              <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="hoa">HOA</label>
+            <div class="control">
+              <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
+              <span class="unit">$/mo</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="horizon">Comparison length</label>
+            <div class="control">
+              <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="loan-years">Term</label>
+            <div class="control">
+              <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pmi-rate">PMI rate</label>
+            <div class="control">
+              <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.80" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="closing">Buyer closing costs</label>
+            <div class="control">
+              <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="selling">Cost to sell</label>
+            <div class="control">
+              <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="land">Land share of the price</label>
+            <div class="control">
+              <input id="land" type="number" min="0" max="90" step="1" value="20" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="drag">Investment tax drag</label>
+            <div class="control">
+              <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <p class="hint span-2">Vacancy is rent you don't collect. Management is a share of the rent you do. The building, not the land, depreciates over 27.5 years. Drag comes off the stock return.</p>
+        </div>
+      </details>
+
+      <details class="span-2 fold">
+        <summary>Follows your choices</summary>
+        <div class="fields">
+          <div class="field">
+            <label for="home-app">Home appreciation, nominal</label>
+            <div class="control">
+              <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="insurance">Insurance</label>
+            <div class="control">
+              <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
+              <span class="unit">$/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tax-rate">Property tax rate</label>
+            <div class="control">
+              <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tax-growth">How the tax bill grows</label>
+            <select id="tax-growth" class="bare">
+              <option value="prop13" selected>California cap, 2% a year</option>
+              <option value="market">With the home's value</option>
+              <option value="inflation">With inflation</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="down-amt">Down payment amount</label>
+            <div class="control">
+              <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
+              <span class="unit">$</span>
+            </div>
+          </div>
+          <p class="hint span-2" id="app-hint"></p>
+          <p class="hint span-2" id="tax-hint"></p>
+          <p class="hint span-2" id="cost-hint"></p>
+          <p class="hint span-2">Filled in from the place and the price. A change here sticks until you change one of those.</p>
+        </div>
+      </details>
+    </div>
+    <p class="fine">The stock account starts with the down payment and closing costs. Any cash the rental needs after that is invested there too. Cash the rental pays out is invested beside the house.</p>
+  </section>
+
+  <section class="card" aria-labelledby="pay-heading">
+    <h2 id="pay-heading">This month</h2>
+    <p class="big" id="res-total">—</p>
+    <p class="sub" id="res-sub">Cash flow after the mortgage and expenses.</p>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="chart-box" aria-hidden="true">
+      <canvas id="pieChart"></canvas>
+    </div>
+    <div class="meta">
+      <div>
+        <div class="k">Loan amount</div>
+        <div class="v" id="res-loan">—</div>
+      </div>
+      <div>
+        <div class="k">Interest over the comparison</div>
+        <div class="v" id="res-interest">—</div>
+      </div>
+      <div>
+        <div class="k">Depreciation, first year</div>
+        <div class="v" id="res-dep">—</div>
+      </div>
+      <div>
+        <div class="k">PMI</div>
+        <div class="v" id="res-pmi">—</div>
+      </div>
+    </div>
+    <p class="hint" id="res-note"></p>
+  </section>
+
+  <section class="card" aria-labelledby="path-heading">
+    <h2 id="path-heading">This property</h2>
+    <p class="section-lead">If you sold that year, after tax, against the stock account.</p>
+    <div class="chart-box tall">
+      <canvas id="wealthChart" aria-label="Rental versus stocks in today's dollars"></canvas>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Year</th><th>Rental, if sold</th><th>Stocks</th><th>Rental − stocks</th></tr>
+        </thead>
+        <tbody id="year-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="math-heading">
+    <details class="sheet" id="formulas">
+      <summary id="math-heading">How the comparison works</summary>
+      <p class="section-lead">Once a month. The mortgage rate is divided by 12. Appreciation, rent growth, and the stock return are effective annual rates. Figures on the chart are after inflation.</p>
+
+      <h3>Loan</h3>
+      <p>\(P\) is the amount borrowed, \(r\) the monthly rate, \(N\) the number of payments.</p>
+      <div class="math">\[
+        M = P \dfrac{r(1+r)^{N}}{(1+r)^{N}-1}
+      \]</div>
+
+      <h3>Cash flow</h3>
+      <p>Collected rent is the asking rent times \(1-v\), where \(v\) is vacancy. Management is a share of collected rent. Depreciation is the building basis divided by 27.5 years. It does not leave the bank, but it does change the tax.</p>
+      <div class="math">\[
+        \mathrm{CF} = \text{collected} - \text{operating costs} - M - \text{income tax}
+      \]</div>
+      <p>Income tax is federal, state, and the 3.8% net investment income tax on profit. A loss offsets wages only up to the $25,000 allowance, which phases out from $100,000 to $150,000 of income. The rest waits until you sell. There is no primary-residence exclusion.</p>
+
+      <h3>The two accounts</h3>
+      <p>\(S\) starts as the down payment plus closing costs. Negative cash flow is added to \(S\). Positive cash flow is added to \(T\), invested beside the house. Both earn the stock return after drag.</p>
+      <div class="math">\[
+        S_t = S_{t-1}(1+r_s) + \max(0,-\mathrm{CF}_t)
+      \]</div>
+      <div class="math">\[
+        T_t = T_{t-1}(1+r_s) + \max(0,\mathrm{CF}_t)
+      \]</div>
+
+      <h3>If you sold that month</h3>
+      <div class="math">\[
+        \mathrm{Gain} = \max\left(0,\ H(1-c_s) - (\mathrm{basis} - \mathrm{depreciation})\right)
+      \]</div>
+      <p>Depreciation taken so far is taxed at your ordinary rate, up to 25%. The rest of the gain is long-term after a year. Suspended losses offset that gain first. What you keep is the sale price after selling costs, minus the loan and the tax, plus \(T\).</p>
+
+      <h3>Left out on purpose</h3>
+      <ul class="left-out">
+        <li>1031 exchanges, cost segregation, and bonus depreciation.</li>
+        <li>The mid-month depreciation convention, and improvements beyond the maintenance rate.</li>
+        <li>Real estate professional status, and the qualified business income deduction.</li>
+        <li>Refinancing, extra principal, and adjustable rates.</li>
+        <li>Rent control, and returns that don't arrive in a straight line.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>For a rental, not a home you live in. Brackets are tax year 2026. Depreciation is 27.5 years. The loss allowance is the federal active-participation limit. Appreciation is FHFA, 1991–2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="js/taxes.js?v=11"></script>
+<script src="js/markets.js?v=11"></script>
+<script src="js/rental-model.js?v=11"></script>
+<script src="js/rental-page.js?v=11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.renderMathInElement) return;
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '\\[', right: '\\]', display: true },
+      { left: '\\(', right: '\\)', display: false }
+    ],
+    throwOnError: false
+  });
+});
+</script>
+</body>
+</html>

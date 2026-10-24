@@ -32,6 +32,27 @@ body {
 
 header.wrap { padding: 2.2rem 0 0.4rem; }
 
+.pages {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+}
+
+.pages a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.28rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.pages a[aria-current="page"] {
+  color: var(--ink);
+  background: var(--card);
+}
+
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--house);
