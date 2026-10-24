@@ -38,7 +38,7 @@
       </div>
     </div>
     <p class="fine" id="stat-note"></p>
-        <div class="fields">
+    <div class="fields">
       <div class="field">
         <label for="home-price">Home price</label>
         <div class="control">
@@ -49,8 +49,9 @@
       <div class="field">
         <label for="rent">Rent for a comparable home</label>
         <div class="control">
+          <span class="unit prefix">$</span>
           <input id="rent" inputmode="decimal" autocomplete="off" value="3,650">
-          <span class="unit">$/mo</span>
+          <span class="unit">/mo</span>
         </div>
       </div>
       <div class="field">
@@ -143,7 +144,7 @@
         <label for="loan-rate">Interest rate</label>
         <div class="control">
           <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
-          <span class="unit">%</span>
+          <span class="unit">%/yr</span>
         </div>
       </div>
       <div class="field">
@@ -159,7 +160,7 @@
         <label for="tax-rate">Property tax rate</label>
         <div class="control">
           <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
-          <span class="unit">%</span>
+          <span class="unit">%/yr</span>
         </div>
       </div>
       <div class="field">
@@ -174,8 +175,9 @@
       <div class="field">
         <label for="insurance">Insurance</label>
         <div class="control">
+          <span class="unit prefix">$</span>
           <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
-          <span class="unit">$/yr</span>
+          <span class="unit">/yr</span>
         </div>
       </div>
       <div class="field">
@@ -189,8 +191,9 @@
       <div class="field">
         <label for="hoa">HOA</label>
         <div class="control">
+          <span class="unit prefix">$</span>
           <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
-          <span class="unit">$/mo</span>
+          <span class="unit">/mo</span>
         </div>
       </div>
       <div class="field">
@@ -250,7 +253,7 @@
         <div class="v" id="res-loan">—</div>
       </div>
       <div>
-        <div class="k">Interest over the term</div>
+        <div class="k">Interest in the comparison</div>
         <div class="v" id="res-interest">—</div>
       </div>
       <div>
@@ -284,7 +287,7 @@
   <section class="card" aria-labelledby="math-heading">
     <details class="sheet" id="formulas">
       <summary id="math-heading">How the wealth comparison works</summary>
-    <p class="section-lead">The chart is this arithmetic, once a month. Rates you type are effective annual rates. Home value and both portfolios compound monthly. Rent and the operating costs step up on each anniversary. Dollars on the chart are then divided by inflation.</p>
+    <p class="section-lead">The chart is this arithmetic, once a month. The mortgage rate is nominal: its monthly rate is the annual rate divided by 12. Appreciation, the stock return, and inflation are effective annual rates, turned into a monthly rate with \((1+r)^{1/12}-1\). Drag is subtracted from the stock return before that conversion. Rent, insurance, maintenance, HOA, and property tax step up on each anniversary and stay flat through the year. The chart then divides by inflation.</p>
 
     <h3>Loan</h3>
     <p>\(P\) is the amount borrowed, \(R\) the annual mortgage rate, \(r = R/12\), and \(N\) the number of payments.</p>
@@ -295,7 +298,7 @@
         P \dfrac{r(1+r)^{N}}{(1+r)^{N}-1} &amp; r &gt; 0
       \end{cases}
     \]</div>
-    <p>Balance after \(t\) payments, before the extra cents of a last-payment cleanup:</p>
+    <p>Balance after \(t\) payments. A leftover under half a cent is wiped to zero. Unpaid interest is not added to the balance: if the payment does not cover the interest, the balance stays where it is.</p>
     <div class="math">\[
       B_t =
       \begin{cases}
@@ -305,7 +308,7 @@
     \]</div>
 
     <h3>The two portfolios</h3>
-    <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. \(\tau_t\) is the tax saved that month. \(R_t\) is rent. \(r_s\) is the monthly stock return after the drag, \(r_s = (1+s)^{1/12}-1\).</p>
+    <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. PMI is the original loan times its annual rate, divided by 12, and it is charged only while the balance is above 80% of the purchase price. \(\tau_t\) is the tax saved that month. \(R_t\) is rent. \(s\) is the stock return and \(d\) is the drag, so \(r_s = (1+s-d)^{1/12}-1\).</p>
     <div class="math">\[ H_t = H_0 (1+g)^{t/12} \]</div>
     <div class="math">\[ S_0 = D + c_b H_0 \]</div>
     <div class="math">\[ S_t = S_{t-1}(1+r_s) + (O_t - R_t) \]</div>
@@ -315,7 +318,7 @@
     <h3>If you sold that month</h3>
     <div class="math">\[ \mathrm{Gain}_t = \max\left(0,\ H_t(1-c_s) - H_0(1+c_b)\right) \]</div>
     <div class="math">\[ G_t = \text{tax on }\max(0,\ \mathrm{Gain}_t - X_t)\text{, stacked on top of household income} \]</div>
-    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for single filers and $500,000 for a joint return. Before 12 months the federal piece is ordinary income. After 12 months it is long-term gain: 0%, 15%, and 20% in the 2026 bands, with wages filling the bands from the bottom. The 3.8% net investment income tax applies to the taxable gain once income including that gain is over $250,000 joint or $200,000 single. State tax is the extra tax from adding the gain on top of wages.</p>
+    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for a single filer and $500,000 for a joint return. Standard deduction the wages did not use comes off the taxable gain. Before 12 months the federal piece is ordinary income, stacked on the wages. After 12 months it is long-term gain, 0%, 15%, and 20% in the 2026 bands, and the wages fill those bands from the bottom. The 3.8% net investment income tax applies to the smaller of the taxable gain and the amount by which wages plus that gain exceed $250,000 joint or $200,000 single. State tax is the extra state tax from adding the gain on top of wages. Maryland adds 2% of the taxable gain when wages plus the gain exceed $350,000. Minnesota adds 1% of the gain above $1,000,000.</p>
     <div class="math">\[ L_t = H_t(1-c_s) - B_t - G_t \]</div>
     <div class="math">\[
       W^H_t = \frac{L_t + T_t}{(1+i)^{t/12}},\qquad
@@ -332,12 +335,13 @@
     <div class="math">\[
       \tau^{\mathrm{fed}} = \mathrm{Tax}(TI_{\mathrm{rent}}) - \mathrm{Tax}(TI_{\mathrm{own}})
     \]</div>
-    <p>\(TI_{\mathrm{rent}}\) subtracts the standard deduction, or other itemized deductions if those are larger. \(TI_{\mathrm{own}}\) also subtracts deductible interest and the property tax that still fits under the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule. The year's savings are recognized month by month as the running total crosses the standard deduction, so early months can show $0 federally. State savings are the state tax without the mortgage-interest deduction, minus the state tax with it.</p>
+    <p>\(TI_{\mathrm{rent}}\) is wages minus the larger of the standard deduction and the deductions already on the return: state and local income tax, limited by that year's SALT cap, plus other itemized deductions. \(TI_{\mathrm{own}}\) also subtracts deductible mortgage interest and the property tax that still fits in the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule, so a deduction that crosses a bracket is split across the rates it passes. Federal savings stay $0 until housing deductions push itemizing past the standard deduction. State savings start with the first dollar of deductible interest. Property tax is not deducted on the state return here.</p>
 
     <h3>Property tax over time</h3>
-    <p>\(\rho\) is the rate you entered. In California mode the assessed value grows with inflation, and never by more than 2% a year. In market mode the bill tracks appreciation, so the effective rate stays constant.</p>
+    <p>\(\rho\) is the rate you entered, applied to the purchase price. California mode grows that assessment with inflation, and never by more than 2% a year. Market mode follows appreciation, so the effective rate stays constant. Inflation mode follows inflation and ignores appreciation. Year 0 is the purchase year, before any of that growth.</p>
     <div class="math">\[ \mathrm{Tax}^{\mathrm{CA}}_y = H_0 \,(1+\min(i,\ 0.02))^y \,\rho \]</div>
     <div class="math">\[ \mathrm{Tax}^{\mathrm{market}}_y = H_0 \,(1+g)^y \,\rho \]</div>
+    <div class="math">\[ \mathrm{Tax}^{\mathrm{inflation}}_y = H_0 \,(1+i)^y \,\rho \]</div>
 
     <h3>First month, with these inputs</h3>
     <div class="steps" id="worked"></div>
@@ -346,7 +350,7 @@
       <summary>Where the payment formula comes from</summary>
       <p>Each month the balance grows by \(r\), then the payment is subtracted. After \(t\) months the unpaid balance is the loan grown forward, minus the future value of the payments already made:</p>
       <div class="math">\[ B_t = P(1+r)^t - M \sum_{k=0}^{t-1} (1+r)^k \]</div>
-      <p>The sum is a geometric series, \(\sum_{k=0}^{t-1}(1+r)^k = ((1+r)^t - 1)/r\). The loan is paid off when \(B_N = 0\). Solving that for \(M\) gives the payment formula above. The chart is that payment on a $1,000 loan.</p>
+      <p>The sum is a geometric series, \(\sum_{k=0}^{t-1}(1+r)^k = ((1+r)^t - 1)/r\). The loan is paid off when \(B_N = 0\). Solving that for \(M\) gives the payment formula above. That formula is what the small chart draws, on a $1,000 loan. The comparison itself does not add unpaid interest to the balance.</p>
       <div class="chart-box tall">
         <canvas id="scaleChart"></canvas>
       </div>
@@ -356,7 +360,6 @@
     <ul class="left-out">
       <li>Extra principal payments, refinancing, and adjustable rates.</li>
       <li>Deducting PMI, and FHA loans that keep a premium for the life of the loan.</li>
-      <li>The 3.8% net investment income tax is included. So is the SALT cap's return to $10,000 in 2030.</li>
       <li>Income and the 2026 brackets are not inflated, so the marginal rate does not drift. A raise is not modeled.</li>
       <li>Dependents, the alternative minimum tax, and New York's tax-benefit recapture.</li>
       <li>Local income tax is a statewide average of the wage tax, except New York City, which uses its own brackets, and Philadelphia, which uses the resident wage tax. Those wage taxes are not applied to the home sale.</li>
@@ -374,11 +377,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=5"></script>
-<script src="js/model.js?v=5"></script>
-<script src="js/markets.js?v=5"></script>
-<script src="js/charts.js?v=5"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/taxes.js?v=6"></script>
+<script src="js/model.js?v=6"></script>
+<script src="js/markets.js?v=6"></script>
+<script src="js/charts.js?v=6"></script>
+<script src="js/main.js?v=6"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

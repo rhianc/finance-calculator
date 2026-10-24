@@ -27,6 +27,37 @@
     });
   }
 
+  // Commas while the field is being edited. The caret stays on the same digit.
+  function formatMoneyLive(el) {
+    var raw = el.value;
+    var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+    var sigBefore = raw.slice(0, caret).replace(/[^\d.]/g, '').length;
+    var cleaned = raw.replace(/[^\d.]/g, '');
+    var dot = cleaned.indexOf('.');
+    var intDigits = dot === -1 ? cleaned : cleaned.slice(0, dot);
+    var frac = dot === -1 ? '' : cleaned.slice(dot + 1).replace(/\./g, '');
+    intDigits = intDigits.replace(/^0+(?=\d)/, '');
+    var grouped = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    if (!grouped && dot !== -1) grouped = '0';
+    var next = grouped + (dot === -1 ? '' : '.' + frac);
+    if (next === raw) return;
+    el.value = next;
+    var seen = 0;
+    var pos = 0;
+    while (pos < next.length && seen < sigBefore) {
+      if (/[\d.]/.test(next.charAt(pos))) seen += 1;
+      pos += 1;
+    }
+    var place = function () {
+      if (document.activeElement !== el || el._fmtGen !== gen) return;
+      try { el.setSelectionRange(pos, pos); } catch (err) {}
+    };
+    el._fmtGen = (el._fmtGen || 0) + 1;
+    var gen = el._fmtGen;
+    place();
+    requestAnimationFrame(place);
+  }
+
   function money(n, digits) {
     var d = digits == null ? 0 : digits;
     var neg = n < 0;
@@ -398,6 +429,7 @@
 
   function onEdit(event) {
     var id = event.target.id;
+    if (MONEY_IDS.indexOf(id) !== -1 && event.type === 'input') formatMoneyLive(event.target);
     if (id === 'state') {
       var opt = event.target.selectedOptions[0];
       var preset = opt.getAttribute('data-rate');
