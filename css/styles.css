@@ -308,6 +308,47 @@ details {
   padding-top: 0.7rem;
 }
 
+details.overrides {
+  margin: 0.2rem 0 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0;
+}
+
+details.overrides > summary {
+  min-height: 2.7rem;
+  display: flex;
+  align-items: center;
+  padding: 0.62rem 0.85rem;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+details.overrides > summary::before,
+details.overrides[open] > summary::before {
+  content: "";
+  display: none;
+}
+
+details.overrides > summary::after {
+  content: "";
+  margin-left: auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg) translateY(-0.1rem);
+}
+
+details.overrides[open] > summary::after {
+  transform: rotate(-135deg) translateY(-0.1rem);
+}
+
+details.overrides > .fields {
+  padding: 0.15rem 0.85rem 0.9rem;
+}
+
 details.sheet {
   margin-top: 0;
   border-top: 0;

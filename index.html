@@ -79,35 +79,7 @@
           <option value="single">Single</option>
         </select>
       </div>
-      <div class="field">
-        <label for="salt-mode">State and local income tax</label>
-        <select id="salt-mode" class="bare">
-          <option value="auto">Estimated, $19,441</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="field span-2" id="salt-field" hidden>
-        <label for="other-salt">Custom state tax</label>
-        <div class="control">
-          <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
-          <span class="unit">$/yr</span>
-        </div>
-      </div>
       <p class="hint span-2" id="income-hint"></p>
-      <div class="field">
-        <label for="home-app-mode">Home appreciation, nominal</label>
-        <select id="home-app-mode" class="bare">
-          <option value="auto">California history, 4.14%</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="field span-2" id="home-app-field" hidden>
-        <label for="home-app">Custom appreciation</label>
-        <div class="control">
-          <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
       <div class="field">
         <label for="stock-return">Stock return, nominal</label>
         <div class="control">
@@ -115,7 +87,6 @@
           <span class="unit">%/yr</span>
         </div>
       </div>
-      <p class="hint span-2" id="app-hint"></p>
       <div class="field">
         <label for="inflation">Inflation</label>
         <div class="control">
@@ -145,20 +116,6 @@
         </div>
       </div>
       <div class="field">
-        <label for="down-mode">Amount</label>
-        <select id="down-mode" class="bare">
-          <option value="auto">From the percent, $100,000</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="field span-2" id="down-field" hidden>
-        <label for="down-amt">Custom amount</label>
-        <div class="control">
-          <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
-          <span class="unit">$</span>
-        </div>
-      </div>
-      <div class="field">
         <label for="loan-rate">Interest rate</label>
         <div class="control">
           <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
@@ -172,46 +129,6 @@
           <span class="unit">yrs</span>
         </div>
       </div>
-
-      <p class="group-label span-2">Costs that scale across the map</p>
-      <div class="field">
-        <label for="tax-rate-mode">Property tax rate</label>
-        <select id="tax-rate-mode" class="bare">
-          <option value="auto">State preset, 1.10%</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="field span-2" id="tax-rate-field" hidden>
-        <label for="tax-rate">Custom property tax</label>
-        <div class="control">
-          <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="tax-growth">How the tax bill grows</label>
-        <select id="tax-growth" class="bare">
-          <option value="auto" data-growth="prop13" selected>Match the state</option>
-          <option value="prop13">California cap, 2% a year</option>
-          <option value="market">With the home's value</option>
-          <option value="inflation">With inflation</option>
-        </select>
-      </div>
-      <p class="hint span-2" id="tax-hint">A new California purchase is assessed at the price you pay. The statewide 0.71% figure is lower because longtime owners are taxed on old assessments. Local bonds often put a new bill near 1.1% to 1.3%. Edit the rate to match the parcel.</p>
-      <div class="field">
-        <label for="insurance-mode">Insurance</label>
-        <select id="insurance-mode" class="bare">
-          <option value="auto">Insurify, $3,400</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="field span-2" id="insurance-field" hidden>
-        <label for="insurance">Custom insurance</label>
-        <div class="control">
-          <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
-          <span class="unit">$/yr</span>
-        </div>
-      </div>
       <div class="field">
         <label for="maintenance">Maintenance</label>
         <div class="control">
@@ -219,7 +136,6 @@
           <span class="unit">%/yr</span>
         </div>
       </div>
-      <p class="hint span-2" id="cost-hint"></p>
       <div class="field">
         <label for="hoa">HOA</label>
         <div class="control">
@@ -249,6 +165,58 @@
           <span class="unit">%</span>
         </div>
       </div>
+
+      <details class="span-2 overrides">
+        <summary>Override filled-in values</summary>
+        <div class="fields">
+          <div class="field">
+            <label for="other-salt">State and local income tax</label>
+            <div class="control">
+              <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
+              <span class="unit">$/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="home-app">Home appreciation, nominal</label>
+            <div class="control">
+              <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <p class="hint span-2" id="app-hint"></p>
+          <div class="field">
+            <label for="down-amt">Down payment amount</label>
+            <div class="control">
+              <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
+              <span class="unit">$</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tax-rate">Property tax rate</label>
+            <div class="control">
+              <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tax-growth">How the tax bill grows</label>
+            <select id="tax-growth" class="bare">
+              <option value="prop13" selected>California cap, 2% a year</option>
+              <option value="market">With the home's value</option>
+              <option value="inflation">With inflation</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="insurance">Insurance</label>
+            <div class="control">
+              <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
+              <span class="unit">$/yr</span>
+            </div>
+          </div>
+          <p class="hint span-2" id="tax-hint"></p>
+          <p class="hint span-2" id="cost-hint"></p>
+        </div>
+      </details>
     </div>
     <p class="hint">Closing costs are cash the renter keeps and invests, and they raise the home's tax basis. The cost to sell comes off the price in the year you look at. Drag is subtracted from the stock return: leave it at 0 in a retirement account, or try 0.5 to 1.5 in a taxable one. Rent, insurance, maintenance, and HOA step up with inflation once a year.</p>
 
@@ -407,11 +375,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=7"></script>
-<script src="js/model.js?v=7"></script>
-<script src="js/markets.js?v=7"></script>
-<script src="js/charts.js?v=7"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/taxes.js?v=8"></script>
+<script src="js/model.js?v=8"></script>
+<script src="js/markets.js?v=8"></script>
+<script src="js/charts.js?v=8"></script>
+<script src="js/main.js?v=8"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
