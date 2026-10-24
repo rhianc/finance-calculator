@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="description" content="Fixed-rate home loan payment and a month-by-month rent versus buy comparison, with the formulas written out.">
+<meta name="description" content="Where buying beats renting, by home price and year, then the monthly payment.">
 <title>Home loan & rent vs buy</title>
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -15,146 +15,56 @@
 <header class="wrap">
   <p class="eyebrow">Primary residence</p>
   <h1>Home loan &amp; rent vs buy</h1>
-  <p class="lede">The monthly cost of a fixed-rate loan, then a month-by-month test of whether buying builds more wealth than renting and investing the cash you did not put into the house.</p>
+  <p class="lede">Where buying builds more wealth than renting, by price and by year. The monthly payment is below the map.</p>
 </header>
 
 <main class="wrap stack">
-  <div class="grid">
-    <section class="card" aria-labelledby="loan-heading">
-      <h2 id="loan-heading">The house</h2>
-      <div class="fields">
-        <div class="field span-2">
-          <label for="home-price">Home price</label>
-          <div class="control">
-            <span class="unit prefix">$</span>
-            <input id="home-price" inputmode="decimal" autocomplete="off" value="1,000,000">
-          </div>
-        </div>
-        <div class="field">
-          <label for="state">State</label>
-          <select id="state" class="bare">
-            <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="city">City</label>
-          <select id="city" class="bare">
-            <option value="">Statewide</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="tax-rate">Property tax rate</label>
-          <div class="control">
-            <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="tax-growth">How the tax bill grows</label>
-          <select id="tax-growth" class="bare">
-            <option value="prop13" selected>California cap, 2% a year</option>
-            <option value="market">With the home's value</option>
-            <option value="inflation">With inflation</option>
-          </select>
-        </div>
-        <p class="hint span-2" id="tax-hint">A new California purchase is assessed at the price you pay. The statewide 0.71% figure is lower because longtime owners are taxed on old assessments. Local bonds often put a new bill near 1.1% to 1.3%. Edit the rate to match the parcel.</p>
-
-        <div class="field">
-          <label for="down-pct">Down payment</label>
-          <div class="control">
-            <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="down-amt">Amount</label>
-          <div class="control">
-            <span class="unit prefix">$</span>
-            <input id="down-amt" inputmode="decimal" autocomplete="off" value="200,000">
-          </div>
-        </div>
-        <div class="field">
-          <label for="loan-rate">Interest rate</label>
-          <div class="control">
-            <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="loan-years">Term</label>
-          <div class="control">
-            <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
-            <span class="unit">yrs</span>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="insurance">Insurance</label>
-          <div class="control">
-            <input id="insurance" inputmode="decimal" autocomplete="off" value="5,000">
-            <span class="unit">$/yr</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="maintenance">Maintenance</label>
-          <div class="control">
-            <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
-            <span class="unit">%/yr</span>
-          </div>
-        </div>
-        <p class="hint span-2" id="cost-hint"></p>
-        <div class="field">
-          <label for="hoa">HOA</label>
-          <div class="control">
-            <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
-            <span class="unit">$/mo</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="pmi-rate">PMI rate</label>
-          <div class="control">
-            <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
-            <span class="unit">%/yr</span>
-          </div>
-        </div>
-        <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price. That is when you can request cancellation on a conventional loan. Automatic cancellation is at 78%. FHA premiums, which can last the life of the loan, are not modeled.</p>
+  <section class="card" aria-labelledby="cross-heading">
+    <h2 id="cross-heading">Crossover</h2>
+    <p class="section-lead">Green is buying ahead, in today's dollars, if you sold that year. The black curve is where the two paths are equal. The dashed line is the price in the inputs below. Rent and HOA stay fixed as the price changes. The down payment, insurance, and maintenance scale with it.</p>
+    <div class="stats" aria-live="polite">
+      <div class="stat">
+        <div class="k" id="stat-cross-k">Buying pulls ahead</div>
+        <div class="v" id="stat-cross">—</div>
       </div>
-    </section>
-
-    <section class="card" aria-labelledby="pay-heading">
-      <h2 id="pay-heading">This month</h2>
-      <p class="big" id="res-total">—</p>
-      <p class="sub" id="res-sub">Cash cost of owning, before the tax savings below.</p>
-      <div class="breakdown" id="breakdown"></div>
-      <div class="chart-box" aria-hidden="true">
-        <canvas id="pieChart"></canvas>
+      <div class="stat">
+        <div class="k">Gap at the horizon</div>
+        <div class="v" id="stat-gap">—</div>
       </div>
-      <div class="meta">
-        <div>
-          <div class="k">Loan amount</div>
-          <div class="v" id="res-loan">—</div>
-        </div>
-        <div>
-          <div class="k">Interest over the term</div>
-          <div class="v" id="res-interest">—</div>
-        </div>
-        <div>
-          <div class="k">Tax savings, first year</div>
-          <div class="v" id="res-tax-year">—</div>
-        </div>
-        <div>
-          <div class="k">PMI</div>
-          <div class="v" id="res-pmi">—</div>
-        </div>
+      <div class="stat">
+        <div class="k" id="stat-end-k">Buy, if sold</div>
+        <div class="v" id="stat-end">—</div>
       </div>
-      <p class="hint" id="res-note"></p>
-    </section>
-  </div>
-
-  <section class="card" aria-labelledby="wealth-heading">
-    <h2 id="wealth-heading">Wealth, in today's dollars</h2>
-    <p class="section-lead">Both lines use the loan above. Buying is what you would keep if you sold that year: home value, minus the loan, the cost to sell, and tax on the gain, plus tax savings invested along the way. Renting starts with the down payment and closing costs in stocks, then adds each month's ownership cash minus that month's rent.</p>
+    </div>
+    <p class="fine" id="stat-note"></p>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
     <div class="fields">
+      <div class="field">
+        <label for="home-price">Home price</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="home-price" inputmode="decimal" autocomplete="off" value="1,000,000">
+        </div>
+      </div>
+      <div class="field">
+        <label for="rent">Rent for a comparable home</label>
+        <div class="control">
+          <input id="rent" inputmode="decimal" autocomplete="off" value="3,000">
+          <span class="unit">$/mo</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="state">State</label>
+        <select id="state" class="bare">
+          <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="city">City</label>
+        <select id="city" class="bare">
+          <option value="">Statewide</option>
+        </select>
+      </div>
       <div class="field">
         <label for="home-app">Home appreciation, nominal</label>
         <div class="control">
@@ -171,16 +81,16 @@
       </div>
       <p class="hint span-2" id="app-hint"></p>
       <div class="field">
-        <label for="rent">Rent for a comparable home</label>
-        <div class="control">
-          <input id="rent" inputmode="decimal" autocomplete="off" value="3,000">
-          <span class="unit">$/mo</span>
-        </div>
-      </div>
-      <div class="field">
         <label for="inflation">Inflation</label>
         <div class="control">
           <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="drag">Investment tax drag</label>
+        <div class="control">
+          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
           <span class="unit">%/yr</span>
         </div>
       </div>
@@ -192,12 +102,81 @@
         </div>
       </div>
       <div class="field">
-        <label for="drag">Investment tax drag</label>
+        <label for="down-pct">Down payment</label>
         <div class="control">
-          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
+          <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="down-amt">Amount</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="down-amt" inputmode="decimal" autocomplete="off" value="200,000">
+        </div>
+      </div>
+      <div class="field">
+        <label for="loan-rate">Interest rate</label>
+        <div class="control">
+          <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="loan-years">Term</label>
+        <div class="control">
+          <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+          <span class="unit">yrs</span>
+        </div>
+      </div>
+
+      <p class="group-label span-2">Costs that scale across the map</p>
+      <div class="field">
+        <label for="tax-rate">Property tax rate</label>
+        <div class="control">
+          <input id="tax-rate" type="number" min="0" max="5" step="0.01" value="1.10" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="tax-growth">How the tax bill grows</label>
+        <select id="tax-growth" class="bare">
+          <option value="prop13" selected>California cap, 2% a year</option>
+          <option value="market">With the home's value</option>
+          <option value="inflation">With inflation</option>
+        </select>
+      </div>
+      <p class="hint span-2" id="tax-hint">A new California purchase is assessed at the price you pay. The statewide 0.71% figure is lower because longtime owners are taxed on old assessments. Local bonds often put a new bill near 1.1% to 1.3%. Edit the rate to match the parcel.</p>
+      <div class="field">
+        <label for="insurance">Insurance</label>
+        <div class="control">
+          <input id="insurance" inputmode="decimal" autocomplete="off" value="5,000">
+          <span class="unit">$/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="maintenance">Maintenance</label>
+        <div class="control">
+          <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
           <span class="unit">%/yr</span>
         </div>
       </div>
+      <p class="hint span-2" id="cost-hint"></p>
+      <div class="field">
+        <label for="hoa">HOA</label>
+        <div class="control">
+          <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
+          <span class="unit">$/mo</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pmi-rate">PMI rate</label>
+        <div class="control">
+          <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
+          <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price. That is when you can request cancellation on a conventional loan. Automatic cancellation is at 78%. FHA premiums, which can last the life of the loan, are not modeled.</p>
       <div class="field">
         <label for="closing">Buyer closing costs</label>
         <div class="control">
@@ -272,36 +251,48 @@
       </div>
       <p class="hint">Federal savings count only the housing deductions that beat the 2026 standard deduction ($16,100 single, $32,200 joint) after the deductions you would have anyway. Mortgage interest is deductible on up to $750,000 of the loan. Property tax shares the SALT cap with the state income tax you enter. State savings are your state rate times deductible mortgage interest, which assumes your state allows that deduction. Set the state rate to 0 where there is no income tax. Add 3.8 to the long-term rate if the net investment income tax applies.</p>
     </details>
+    <p class="fine">The price axis is about $1.2 million tall and is centered on the black curve at 30 years, or at the end of the comparison if that is sooner. It stays at or above $0 and widens when that is what it takes to include the price entered above. This map is only valid if the renter invests, every month, the difference between that month's cost of owning and that month's rent. The cost of owning is principal, interest, property tax, insurance, maintenance, HOA, and PMI. The down payment and buyer closing costs are invested at the start. When rent is higher, the extra is withdrawn from that portfolio.</p>
+  </section>
 
-    <div class="stats" aria-live="polite">
-      <div class="stat">
-        <div class="k" id="stat-cross-k">Buying pulls ahead</div>
-        <div class="v" id="stat-cross">—</div>
+  <section class="card" aria-labelledby="pay-heading">
+    <h2 id="pay-heading">This month</h2>
+    <p class="big" id="res-total">—</p>
+    <p class="sub" id="res-sub">Cash cost of owning, before the tax savings below.</p>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="chart-box" aria-hidden="true">
+      <canvas id="pieChart"></canvas>
+    </div>
+    <div class="meta">
+      <div>
+        <div class="k">Loan amount</div>
+        <div class="v" id="res-loan">—</div>
       </div>
-      <div class="stat">
-        <div class="k">Gap at the horizon</div>
-        <div class="v" id="stat-gap">—</div>
+      <div>
+        <div class="k">Interest over the term</div>
+        <div class="v" id="res-interest">—</div>
       </div>
-      <div class="stat">
-        <div class="k" id="stat-end-k">Buy, if sold</div>
-        <div class="v" id="stat-end">—</div>
+      <div>
+        <div class="k">Tax savings, first year</div>
+        <div class="v" id="res-tax-year">—</div>
+      </div>
+      <div>
+        <div class="k">PMI</div>
+        <div class="v" id="res-pmi">—</div>
       </div>
     </div>
-    <p class="fine" id="stat-note"></p>
+    <p class="hint" id="res-note"></p>
+  </section>
 
-    <h3 class="plot-title">Crossover</h3>
-    <p class="fine">Buy minus rent, in today's dollars. Green means buying is ahead. The black curve is where the two paths are equal, and the dashed line is the price entered above. The price axis is about $1.2 million tall and is centered on the black curve at 30 years, or at the end of the comparison if that is sooner. It stays at or above $0 and widens when that is what it takes to include the price entered above. Rent and HOA stay fixed. The down payment, insurance, and maintenance scale with the price. This map is only valid if the renter invests, every month, the difference between that month's cost of owning and that month's rent. The cost of owning is principal, interest, property tax, insurance, maintenance, HOA, and PMI. The down payment and buyer closing costs are invested at the start. When rent is higher, the extra is withdrawn from that portfolio.</p>
-    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
-
-    <h3 class="plot-title">This home</h3>
+  <section class="card" aria-labelledby="path-heading">
+    <h2 id="path-heading">This home</h2>
+    <p class="section-lead">The dashed line on the map, followed out to the comparison length. Buying is what you would keep if you sold that year.</p>
     <div class="chart-box tall">
       <canvas id="wealthChart" aria-label="Buy versus rent net worth in today's dollars"></canvas>
     </div>
-
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Year</th><th>Buy, if sold</th><th>Rent &amp; invest</th><th>Buy − rent</th></tr>
+          <tr><th>Year</th><th>Buy, if sold</th><th>Rent & invest</th><th>Buy − rent</th></tr>
         </thead>
         <tbody id="year-body"></tbody>
       </table>
