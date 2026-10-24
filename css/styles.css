@@ -308,7 +308,7 @@ details {
   padding-top: 0.7rem;
 }
 
-details.overrides {
+details.fold {
   margin: 0.2rem 0 0;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -316,7 +316,7 @@ details.overrides {
   padding: 0;
 }
 
-details.overrides > summary {
+details.fold > summary {
   min-height: 2.7rem;
   display: flex;
   align-items: center;
@@ -325,13 +325,13 @@ details.overrides > summary {
   font-weight: 600;
 }
 
-details.overrides > summary::before,
-details.overrides[open] > summary::before {
+details.fold > summary::before,
+details.fold[open] > summary::before {
   content: "";
   display: none;
 }
 
-details.overrides > summary::after {
+details.fold > summary::after {
   content: "";
   margin-left: auto;
   width: 0.45rem;
@@ -341,11 +341,11 @@ details.overrides > summary::after {
   transform: rotate(45deg) translateY(-0.1rem);
 }
 
-details.overrides[open] > summary::after {
+details.fold[open] > summary::after {
   transform: rotate(-135deg) translateY(-0.1rem);
 }
 
-details.overrides > .fields {
+details.fold > .fields {
   padding: 0.15rem 0.85rem 0.9rem;
 }
 

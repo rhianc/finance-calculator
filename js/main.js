@@ -409,7 +409,6 @@
     $('stat-note').textContent = note;
 
     var taxes = taxCopy(input);
-    $('tax-summary').textContent = taxes.summary;
     $('income-hint').textContent = taxes.hint;
     $('tax-readout').textContent = taxes.override;
 

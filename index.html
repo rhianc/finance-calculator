@@ -79,35 +79,6 @@
           <option value="single">Single</option>
         </select>
       </div>
-      <p class="hint span-2" id="income-hint"></p>
-      <div class="field">
-        <label for="stock-return">Stock return, nominal</label>
-        <div class="control">
-          <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="inflation">Inflation</label>
-        <div class="control">
-          <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="drag">Investment tax drag</label>
-        <div class="control">
-          <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="horizon">Comparison length</label>
-        <div class="control">
-          <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
-          <span class="unit">yrs</span>
-        </div>
-      </div>
       <div class="field">
         <label for="down-pct">Down payment</label>
         <div class="control">
@@ -122,60 +93,95 @@
           <span class="unit">%/yr</span>
         </div>
       </div>
-      <div class="field">
-        <label for="loan-years">Term</label>
-        <div class="control">
-          <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
-          <span class="unit">yrs</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="maintenance">Maintenance</label>
-        <div class="control">
-          <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="hoa">HOA</label>
-        <div class="control">
-          <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
-          <span class="unit">$/mo</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="pmi-rate">PMI rate</label>
-        <div class="control">
-          <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
-          <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price. That is when you can request cancellation on a conventional loan. Automatic cancellation is at 78%. FHA premiums, which can last the life of the loan, are not modeled.</p>
-      <div class="field">
-        <label for="closing">Buyer closing costs</label>
-        <div class="control">
-          <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="selling">Cost to sell</label>
-        <div class="control">
-          <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-      </div>
+      <p class="hint span-2" id="income-hint"></p>
 
-      <details class="span-2 overrides">
-        <summary>Override filled-in values</summary>
+      <details class="span-2 fold">
+        <summary>Typical assumptions</summary>
         <div class="fields">
           <div class="field">
-            <label for="other-salt">State and local income tax</label>
+            <label for="stock-return">Stock return, nominal</label>
             <div class="control">
-              <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inflation">Inflation</label>
+            <div class="control">
+              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="drag">Investment tax drag</label>
+            <div class="control">
+              <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="horizon">Comparison length</label>
+            <div class="control">
+              <input id="horizon" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="loan-years">Term</label>
+            <div class="control">
+              <input id="loan-years" type="number" min="1" max="40" step="1" value="30" inputmode="numeric">
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="maintenance">Maintenance</label>
+            <div class="control">
+              <input id="maintenance" type="number" min="0" max="5" step="0.1" value="1" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="hoa">HOA</label>
+            <div class="control">
+              <input id="hoa" inputmode="decimal" autocomplete="off" value="0">
+              <span class="unit">$/mo</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pmi-rate">PMI rate</label>
+            <div class="control">
+              <input id="pmi-rate" type="number" min="0" max="3" step="0.05" value="0.60" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="closing">Buyer closing costs</label>
+            <div class="control">
+              <input id="closing" type="number" min="0" max="10" step="0.1" value="2" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="selling">Cost to sell</label>
+            <div class="control">
+              <input id="selling" type="number" min="0" max="10" step="0.1" value="6" inputmode="decimal">
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="other-itemized">Other itemized deductions</label>
+            <div class="control">
+              <input id="other-itemized" inputmode="decimal" autocomplete="off" value="0">
               <span class="unit">$/yr</span>
             </div>
           </div>
+          <p class="hint span-2">PMI is charged only while the balance is above 80% of the purchase price, and it drops off once you can cancel it. Closing costs are cash the renter keeps and invests. The cost to sell comes off the price in the year you look at. Drag is subtracted from the stock return: leave it at 0 in a retirement account. Rent, insurance, maintenance, and HOA step up with inflation once a year.</p>
+        </div>
+      </details>
+
+      <details class="span-2 fold">
+        <summary>Follows your choices</summary>
+        <div class="fields">
           <div class="field">
             <label for="home-app">Home appreciation, nominal</label>
             <div class="control">
@@ -183,12 +189,11 @@
               <span class="unit">%/yr</span>
             </div>
           </div>
-          <p class="hint span-2" id="app-hint"></p>
           <div class="field">
-            <label for="down-amt">Down payment amount</label>
+            <label for="insurance">Insurance</label>
             <div class="control">
-              <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
-              <span class="unit">$</span>
+              <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
+              <span class="unit">$/yr</span>
             </div>
           </div>
           <div class="field">
@@ -207,33 +212,27 @@
             </select>
           </div>
           <div class="field">
-            <label for="insurance">Insurance</label>
+            <label for="other-salt">State and local income tax</label>
             <div class="control">
-              <input id="insurance" inputmode="decimal" autocomplete="off" value="3,400">
+              <input id="other-salt" inputmode="decimal" autocomplete="off" value="19,441">
               <span class="unit">$/yr</span>
             </div>
           </div>
+          <div class="field">
+            <label for="down-amt">Down payment amount</label>
+            <div class="control">
+              <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
+              <span class="unit">$</span>
+            </div>
+          </div>
+          <p class="hint span-2" id="app-hint"></p>
           <p class="hint span-2" id="tax-hint"></p>
           <p class="hint span-2" id="cost-hint"></p>
+          <p class="hint span-2" id="tax-readout"></p>
+          <p class="hint span-2">These start from the place, the price, and the income. Change one here if you want a different number. Changing the state, city, price, or income puts the filled-in value back. Federal tax uses the 2026 brackets. A housing deduction saves tax only once itemizing beats the standard deduction. Property tax shares the SALT cap with the state income tax above. The sale is taxed on top of this income.</p>
         </div>
       </details>
     </div>
-    <p class="hint">Closing costs are cash the renter keeps and invests, and they raise the home's tax basis. The cost to sell comes off the price in the year you look at. Drag is subtracted from the stock return: leave it at 0 in a retirement account, or try 0.5 to 1.5 in a taxable one. Rent, insurance, maintenance, and HOA step up with inflation once a year.</p>
-
-    <details>
-      <summary id="tax-summary">Tax rules</summary>
-      <div class="fields" style="margin-top:0.8rem;">
-        <div class="field">
-          <label for="other-itemized">Other itemized deductions</label>
-          <div class="control">
-            <input id="other-itemized" inputmode="decimal" autocomplete="off" value="0">
-            <span class="unit">$/yr</span>
-          </div>
-        </div>
-      </div>
-      <p class="hint" id="tax-readout"></p>
-      <p class="hint">The income above is wages, and it is also the MAGI used for the SALT cap. Federal tax uses the 2026 ordinary brackets, not one flat rate. A dollar of housing deduction saves whatever bracket it falls in, and only once itemizing beats the standard deduction ($16,100 single, $32,200 joint). Mortgage interest is deductible on up to $750,000 of the loan. Property tax shares the SALT cap with the state and local income tax. That cap is $40,400 in 2026, rises 1% a year through 2029, and returns to $10,000 in 2030. Above $505,000 of income it shrinks by 30 cents per dollar, and it does not fall below $10,000. State tax on the interest assumes the state allows the deduction. The sale is taxed on top of this income: 0%, 15%, or 20% federally, then the 3.8% net investment income tax when income including the gain is over $250,000 joint or $200,000 single, then state tax on the gain.</p>
-    </details>
     <p class="fine">The price axis is about $1.2 million tall and is centered on the black curve at 30 years, or at the end of the comparison if that is sooner. It stays at or above $0 and widens when that is what it takes to include the price entered above. This map is only valid if the renter invests, every month, the difference between that month's cost of owning and that month's rent. The cost of owning is principal, interest, property tax, insurance, maintenance, HOA, and PMI. The down payment and buyer closing costs are invested at the start. When rent is higher, the extra is withdrawn from that portfolio.</p>
   </section>
 
@@ -375,11 +374,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=8"></script>
-<script src="js/model.js?v=8"></script>
-<script src="js/markets.js?v=8"></script>
-<script src="js/charts.js?v=8"></script>
-<script src="js/main.js?v=8"></script>
+<script src="js/taxes.js?v=9"></script>
+<script src="js/model.js?v=9"></script>
+<script src="js/markets.js?v=9"></script>
+<script src="js/charts.js?v=9"></script>
+<script src="js/main.js?v=9"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
