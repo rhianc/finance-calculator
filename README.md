@@ -18,4 +18,4 @@ The calculation lives in `js/model.js`. Check it with JavaScriptCore:
 jsc test/model.test.js
 ```
 
-Federal dollar amounts follow tax year 2026. The page states the assumptions and what it leaves out.
+Federal dollar amounts follow tax year 2026. Home appreciation starts from the FHFA purchase-only house price index, seasonally adjusted, compounded from 1991 Q1 through 2026 Q2 for the selected state and for major metros in that state. That rate is nominal history, not a forecast, and it can be edited. The page states the assumptions and what it leaves out.

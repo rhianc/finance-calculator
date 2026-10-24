@@ -53,6 +53,58 @@
     setMoney('down-amt', price * pct / 100);
   }
 
+  function marketCode() {
+    var value = $('state').value;
+    if (value === 'US') return 'US';
+    if (value.indexOf('CA') === 0) return 'CA';
+    return value;
+  }
+
+  function buildStates() {
+    var sel = $('state');
+    var current = sel.value || 'CA';
+    sel.replaceChildren();
+    HomeMarkets.options().forEach(function (opt) {
+      var el = document.createElement('option');
+      el.value = opt.id;
+      el.textContent = opt.label;
+      if (opt.taxRate != null) el.setAttribute('data-rate', opt.taxRate.toFixed(2));
+      el.setAttribute('data-growth', opt.taxGrowth);
+      sel.appendChild(el);
+    });
+    sel.value = current;
+    if (!sel.value) sel.value = 'CA';
+  }
+
+  function fillCities() {
+    var sel = $('city');
+    var prev = sel.value;
+    var cities = HomeMarkets.cities(marketCode());
+    sel.replaceChildren();
+    var statewide = document.createElement('option');
+    statewide.value = '';
+    statewide.textContent = cities.length ? 'Statewide' : 'Statewide only';
+    sel.appendChild(statewide);
+    cities.forEach(function (city) {
+      var opt = document.createElement('option');
+      opt.value = city.id;
+      opt.textContent = city.name;
+      opt.title = city.fhfa;
+      sel.appendChild(opt);
+    });
+    var found = false;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === prev) found = true;
+    }
+    sel.value = found ? prev : '';
+  }
+
+  function applyAppreciation() {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place) return;
+    $('home-app').value = place.rate.toFixed(2);
+  }
+
   function syncPctFromAmt() {
     var price = readNum('home-price');
     var down = Math.max(0, readNum('down-amt'));
@@ -205,9 +257,13 @@
     var maint = price * input.maintenanceRate;
     $('tax-hint').textContent = {
       prop13: 'Assessed value starts at the purchase price and rises with inflation, capped at 2% a year. A new California bill is often about 1.1% to 1.3% after local bonds. The 0.71% statewide figure is lower because longtime owners are taxed on old assessments.',
-      market: 'The bill grows with the home value, so this effective rate stays constant. Statewide rates are approximate.',
+      market: 'The bill grows with the home value, so this effective rate stays constant. States that were already on the list keep their previous presets. The others use the Census ACS 2024 effective rate on owner-occupied homes. Edit the rate to match the parcel.',
       inflation: 'The bill grows with inflation and does not follow home appreciation.'
     }[input.taxGrowth];
+    var stateOpt = $('state').selectedOptions[0];
+    if (stateOpt && !stateOpt.getAttribute('data-rate')) {
+      $('tax-hint').textContent = 'No property-tax preset for this place, so the rate above is whatever you last entered. Edit it to match the parcel.';
+    }
     $('cost-hint').textContent = 'About ' + money(maint) + ' a year of maintenance at this price, before inflation. A few thousand dollars of insurance is common in California outside high-fire areas.';
 
     var result = FinanceModel.project(input);
@@ -250,6 +306,22 @@
 
     $('tax-summary').textContent = 'Tax rules · ' + filingLabel(input.filingStatus) + ' · ' + formatNumber(input.federalRate * 100, 0) + '% federal · ' + formatNumber(input.stateRate * 100, 1) + '% state';
 
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    var typed = input.homeAppreciation * 100;
+    var matched = place && Math.abs(typed - place.rate) < 0.005;
+    if (!place) {
+      $('app-hint').textContent = '';
+    } else if (matched && place.kind === 'city') {
+      $('app-hint').textContent = place.city.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. ' + place.state.name + ' statewide was ' + place.state.rate.toFixed(2) + '%. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.';
+    } else if (matched) {
+      var cityCount = HomeMarkets.cities(place.code).length;
+      var cityNote = cityCount ? ' Pick a city to use that metro instead.' : ' None of the FHFA top-100 metros are based in this state.';
+      $('app-hint').textContent = place.state.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.' + cityNote;
+    } else {
+      var label = place.kind === 'city' ? place.city.name : place.state.name;
+      $('app-hint').textContent = 'Using ' + formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '. Change the state or city to put that rate back.';
+    }
+
     renderYears(result.points);
     renderWorked(result);
     FinanceCharts.renderPie($('pieChart'), slices);
@@ -261,8 +333,13 @@
     var id = event.target.id;
     if (id === 'state') {
       var opt = event.target.selectedOptions[0];
-      $('tax-rate').value = opt.getAttribute('data-rate');
+      var preset = opt.getAttribute('data-rate');
+      if (preset) $('tax-rate').value = preset;
       $('tax-growth').value = opt.getAttribute('data-growth');
+      fillCities();
+      applyAppreciation();
+    } else if (id === 'city') {
+      applyAppreciation();
     } else if (id === 'home-price' || id === 'down-pct') {
       syncDownFromPct();
     } else if (id === 'down-amt') {
@@ -292,5 +369,8 @@
     FinanceCharts.resizeScale();
   });
 
+  buildStates();
+  fillCities();
+  applyAppreciation();
   refresh();
 })();

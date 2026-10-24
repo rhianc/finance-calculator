@@ -23,7 +23,7 @@
     <section class="card" aria-labelledby="loan-heading">
       <h2 id="loan-heading">The house</h2>
       <div class="fields">
-        <div class="field">
+        <div class="field span-2">
           <label for="home-price">Home price</label>
           <div class="control">
             <span class="unit prefix">$</span>
@@ -34,21 +34,12 @@
           <label for="state">State</label>
           <select id="state" class="bare">
             <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
-            <option value="CA-eff" data-rate="0.71" data-growth="prop13">California, statewide effective</option>
-            <option value="NJ" data-rate="2.23" data-growth="market">New Jersey</option>
-            <option value="IL" data-rate="1.92" data-growth="market">Illinois</option>
-            <option value="CT" data-rate="1.78" data-growth="market">Connecticut</option>
-            <option value="TX" data-rate="1.68" data-growth="market">Texas</option>
-            <option value="NY" data-rate="1.46" data-growth="market">New York</option>
-            <option value="MA" data-rate="1.14" data-growth="market">Massachusetts</option>
-            <option value="FL" data-rate="0.91" data-growth="market">Florida</option>
-            <option value="WA" data-rate="0.84" data-growth="market">Washington</option>
-            <option value="MT" data-rate="0.72" data-growth="market">Montana</option>
-            <option value="NM" data-rate="0.70" data-growth="market">New Mexico</option>
-            <option value="AZ" data-rate="0.62" data-growth="market">Arizona</option>
-            <option value="CO" data-rate="0.55" data-growth="market">Colorado</option>
-            <option value="HI" data-rate="0.27" data-growth="market">Hawaii</option>
-            <option value="US" data-rate="1.02" data-growth="market">U.S. median</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="city">City</label>
+          <select id="city" class="bare">
+            <option value="">Statewide</option>
           </select>
         </div>
         <div class="field">
@@ -167,7 +158,7 @@
       <div class="field">
         <label for="home-app">Home appreciation, nominal</label>
         <div class="control">
-          <input id="home-app" type="number" min="-10" max="20" step="0.1" value="3" inputmode="decimal">
+          <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
           <span class="unit">%/yr</span>
         </div>
       </div>
@@ -178,6 +169,7 @@
           <span class="unit">%/yr</span>
         </div>
       </div>
+      <p class="hint span-2" id="app-hint"></p>
       <div class="field">
         <label for="rent">Rent for a comparable home</label>
         <div class="control">
@@ -401,12 +393,13 @@
 </main>
 
 <footer class="wrap">
-  <p>Estimates for a home you live in. Federal dollar amounts are for tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 163(h), and 164(b)(7)). Statewide property-tax percentages are approximate effective rates. This is not tax or investment advice.</p>
+  <p>Estimates for a home you live in. Federal dollar amounts are for tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 163(h), and 164(b)(7)). Statewide property-tax percentages are approximate effective rates. Appreciation presets are the FHFA purchase-only index, compounded from 1991 Q1 to 2026 Q2, and they are a history rather than a forecast. This is not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script src="js/model.js"></script>
+<script src="js/markets.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/main.js"></script>
 <script>

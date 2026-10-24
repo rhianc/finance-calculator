@@ -1,4 +1,5 @@
 load('js/model.js');
+load('js/markets.js');
 
 var M = FinanceModel;
 var failed = 0;
@@ -256,6 +257,23 @@ var undragged = M.project(base({
   stockReturn: 0.10
 }));
 check('drag lowers the renter portfolio', drag.points[12].rentNominal < undragged.points[12].rentNominal - 1);
+
+var H = HomeMarkets;
+near('U.S. appreciation since 1991', H.place('US', '').rate, 4.26, 0.001);
+near('California statewide appreciation', H.place('CA', '').rate, 4.14, 0.001);
+near('Los Angeles appreciation', H.place('CA', '31084').rate, 4.33, 0.001);
+near('San Jose appreciation', H.place('CA', '41940').rate, 4.91, 0.001);
+check('Los Angeles ran ahead of Bakersfield', H.place('CA', '31084').rate > H.place('CA', '12540').rate);
+check('an unknown city falls back to the state', H.place('CA', 'nope').kind === 'state');
+check('Montana has no top-100 city', H.cities('MT').length === 0);
+check('Texas includes Austin', H.cities('TX').some(function (city) { return city.name === 'Austin' && city.rate === 5.59; }));
+var opts = H.options();
+check('new California purchase stays first', opts[0].id === 'CA' && opts[0].taxRate === 1.10 && opts[0].taxGrowth === 'prop13');
+check('California effective rate is unchanged', opts[1].id === 'CA-eff' && opts[1].taxRate === 0.71);
+check('New Jersey tax preset is unchanged', opts.some(function (opt) { return opt.id === 'NJ' && opt.taxRate === 2.23; }));
+check('every listed city has a finite rate', Object.keys(H.CITIES).every(function (code) {
+  return H.CITIES[code].every(function (city) { return city.rate > 0 && city.rate < 12; });
+}));
 
 if (failed) {
   print(failed + ' failed');
