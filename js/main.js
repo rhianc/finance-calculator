@@ -116,6 +116,13 @@
     setMoney('other-salt', bill);
   }
 
+  function applyInsurance() {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place || !(place.ins > 0)) return;
+    var price = Math.max(0, readNum('home-price'));
+    setMoney('insurance', price * place.ins / HomeMarkets.DWELLING);
+  }
+
   function syncPctFromAmt() {
     var price = readNum('home-price');
     var down = Math.max(0, readNum('down-amt'));
