@@ -1,3 +1,4 @@
+load('js/taxes.js');
 load('js/model.js');
 load('js/markets.js');
 
@@ -284,6 +285,53 @@ check('Ventura uses the Oxnard premium', H.place('CA', '37100').ins === 1920 && 
 check('every listed city has a finite rate', Object.keys(H.CITIES).every(function (code) {
   return H.CITIES[code].every(function (city) { return city.rate > 0 && city.rate < 12; });
 }));
+
+var T = TaxRules;
+near('2026 joint tax on $217,800 taxable', T.ordinaryTax('mfj', 217800), 37468, 0.01);
+near('that income is the 24% bracket', T.federalMarginal('mfj', 217800), 0.24, 0.0001);
+near('California marginal rate at $250,000', T.stateMarginal('CA', 'mfj', 250000, ''), 0.093, 0.0001);
+near('California tax at $250,000 joint', T.saltBill('CA', 'mfj', 250000, ''), 14790.84, 1);
+near('Texas has no income tax', T.saltBill('TX', 'mfj', 250000, ''), 0, 0.01);
+near('a dollar of California interest saves 9.3 cents', T.stateIncomeTax('CA', 'mfj', 250000, 0, '') - T.stateIncomeTax('CA', 'mfj', 250000, 1, ''), 0.093, 0.0001);
+near('long-term gain at the NIIT threshold', T.taxOnGain({
+  income: 250000, status: 'mfj', state: 'TX', city: '', taxableGain: 100000, longTerm: true
+}), 18800, 0.05);
+near('only the gain above $250,000 owes NIIT', T.taxOnGain({
+  income: 200000, status: 'mfj', state: 'TX', city: '', taxableGain: 100000, longTerm: true
+}), 16900, 0.05);
+near('a large gain reaches the 20% band', T.taxOnGain({
+  income: 250000, status: 'mfj', state: 'TX', city: '', taxableGain: 500000, longTerm: true
+}), 99205, 0.05);
+near('SALT cap in 2026', T.saltCapForYear(0, 250000), 40400, 0.01);
+near('SALT cap returns to $10,000 in 2030', T.saltCapForYear(4, 250000), 10000, 0.01);
+check('New York City tax exceeds the statewide average', T.saltBill('NY', 'mfj', 250000, 'New York') > T.saltBill('NY', 'mfj', 250000, '') + 1000);
+
+var bracketed = M.project(base({
+  price: 1000000,
+  downPayment: 1000000,
+  years: 1,
+  horizonYears: 5,
+  propertyTaxRate: 0.05,
+  taxGrowth: 'market',
+  homeAppreciation: 0,
+  stockReturn: 0,
+  inflation: 0,
+  income: 200000,
+  stateCode: 'TX',
+  filingStatus: 'mfj',
+  otherSalt: 0
+}));
+near('brackets, not a flat rate, price the federal savings', bracketed.points[12].taxPortfolio, 1804, 0.05);
+near('no federal savings once the SALT cap falls to $10,000', bracketed.points[60].taxPortfolio - bracketed.points[48].taxPortfolio, 0, 0.05);
+
+var kept = M.atPrice(base({
+  price: 1000000,
+  downPayment: 200000,
+  income: 250000,
+  stateCode: 'CA',
+  cityName: 'Los Angeles'
+}), 500000);
+check('income stays put as the price changes', kept.income === 250000 && kept.stateCode === 'CA' && kept.cityName === 'Los Angeles');
 
 if (failed) {
   print(failed + ' failed');

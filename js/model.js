@@ -62,7 +62,11 @@
       ltcgRate: clamp(finite(src.ltcgRate, 0), 0, 0.4),
       otherSalt: Math.max(0, finite(src.otherSalt, 0)),
       otherItemized: Math.max(0, finite(src.otherItemized, 0)),
-      magi: src.magi == null || src.magi === '' || !isFinite(src.magi) ? null : Math.max(0, src.magi)
+      magi: src.magi == null || src.magi === '' || !isFinite(src.magi) ? null : Math.max(0, src.magi),
+      // Household wages, treated as MAGI. Null keeps the flat rates passed in.
+      income: src.income == null || src.income === '' || !isFinite(+src.income) ? null : Math.max(0, +src.income),
+      stateCode: typeof src.stateCode === 'string' ? src.stateCode : '',
+      cityName: typeof src.cityName === 'string' ? src.cityName : ''
     };
   }
 
@@ -110,30 +114,65 @@
 
   function beginTaxYear(input, salt, std) {
     var other = Math.min(input.otherSalt, salt) + input.otherItemized;
-    return {
+    var tax = {
       std: std,
       federalRate: input.federalRate,
+      stateRate: input.stateRate,
       other: other,
       ytdHousing: 0,
       ytdProp: 0,
+      ytdInterest: 0,
       saltRoom: Math.max(0, salt - input.otherSalt),
-      prevBenefit: Math.max(0, other - std) * input.federalRate
+      prevBenefit: Math.max(0, other - std) * input.federalRate,
+      prevStateBenefit: 0,
+      income: input.income,
+      filingStatus: input.filingStatus,
+      stateCode: input.stateCode,
+      cityName: input.cityName
     };
+    if (input.income != null) {
+      var taxableRent = Math.max(0, input.income - Math.max(std, other));
+      tax.rentFederal = TaxRules.ordinaryTax(input.filingStatus, taxableRent);
+      tax.stateBase = TaxRules.stateIncomeTax(input.stateCode, input.filingStatus, input.income, 0, input.cityName);
+      tax.prevBenefit = 0;
+    }
+    return tax;
   }
 
   // Federal savings are only the housing deductions that clear the standard
   // deduction beyond what the household could already itemize without the house.
+  // With an income, that difference is computed on the 2026 brackets. Otherwise
+  // it is the flat federal rate passed in.
   function addHousing(tax, deductibleInterest, propertyTaxMonth) {
     var room = Math.max(0, tax.saltRoom - tax.ytdProp);
     var propDeduct = Math.min(Math.max(0, propertyTaxMonth), room);
     tax.ytdProp += propDeduct;
     tax.ytdHousing += deductibleInterest + propDeduct;
-    var ownerBenefit = Math.max(0, tax.other + tax.ytdHousing - tax.std) * tax.federalRate;
-    var increment = ownerBenefit - tax.prevBenefit;
-    tax.prevBenefit = ownerBenefit;
+    var fedIncrement;
+    if (tax.income == null) {
+      var ownerBenefit = Math.max(0, tax.other + tax.ytdHousing - tax.std) * tax.federalRate;
+      fedIncrement = ownerBenefit - tax.prevBenefit;
+      tax.prevBenefit = ownerBenefit;
+    } else {
+      var itemized = tax.other + tax.ytdHousing;
+      var taxableOwn = Math.max(0, tax.income - Math.max(tax.std, itemized));
+      var benefit = tax.rentFederal - TaxRules.ordinaryTax(tax.filingStatus, taxableOwn);
+      fedIncrement = benefit - tax.prevBenefit;
+      tax.prevBenefit = benefit;
+    }
+    var stateSavings;
+    if (tax.income == null) {
+      stateSavings = deductibleInterest * tax.stateRate;
+    } else {
+      tax.ytdInterest += deductibleInterest;
+      var stateBenefit = tax.stateBase - TaxRules.stateIncomeTax(tax.stateCode, tax.filingStatus, tax.income, tax.ytdInterest, tax.cityName);
+      stateSavings = stateBenefit - tax.prevStateBenefit;
+      tax.prevStateBenefit = stateBenefit;
+    }
     return {
       propDeduct: propDeduct,
-      fedIncrement: increment,
+      fedIncrement: fedIncrement,
+      stateSavings: stateSavings,
       ytdHousing: tax.ytdHousing,
       ownerItemized: tax.other + tax.ytdHousing
     };
@@ -168,8 +207,20 @@
       var heldLong = month >= 12;
       var excluded = month >= 24 ? exclusion : 0;
       var taxable = Math.max(0, gain - excluded);
-      var fedGain = heldLong ? input.ltcgRate : input.federalRate;
-      var gainsTax = taxable * (fedGain + input.stateRate);
+      var gainsTax;
+      if (input.income == null) {
+        var fedGain = heldLong ? input.ltcgRate : input.federalRate;
+        gainsTax = taxable * (fedGain + input.stateRate);
+      } else {
+        gainsTax = TaxRules.taxOnGain({
+          income: input.income,
+          status: input.filingStatus,
+          state: input.stateCode,
+          city: input.cityName,
+          taxableGain: taxable,
+          longTerm: heldLong
+        });
+      }
       var nominalHouse = realized - balance - gainsTax + taxPort;
       var discount = Math.pow(1 + input.inflation, month / 12);
       return {
@@ -198,7 +249,10 @@
     var tax = null;
 
     for (var m = 0; m < nHor; m++) {
-      if (m % 12 === 0) tax = beginTaxYear(input, salt, std);
+      if (m % 12 === 0) {
+        var saltYear = input.income == null ? salt : TaxRules.saltCapForYear(m / 12, input.income);
+        tax = beginTaxYear(input, saltYear, std);
+      }
 
       var startBalance = balance;
       home *= 1 + homeMonthly;
@@ -236,7 +290,7 @@
       var fraction = startBalance > 0 ? Math.min(1, cap / startBalance) : 0;
       var dedInterest = interest * fraction;
       var taxBits = addHousing(tax, dedInterest, costs.propertyTax);
-      var stateSavings = dedInterest * input.stateRate;
+      var stateSavings = taxBits.stateSavings;
       var savings = taxBits.fedIncrement + stateSavings;
       var ownerOutlay = interest + principal + costs.propertyTax + costs.insurance + costs.maintenance + costs.hoa + pmi;
 

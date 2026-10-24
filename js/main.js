@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var MONEY_IDS = ['home-price', 'down-amt', 'insurance', 'hoa', 'rent', 'other-salt', 'other-itemized', 'magi'];
+  var MONEY_IDS = ['home-price', 'down-amt', 'insurance', 'hoa', 'rent', 'income', 'other-salt', 'other-itemized'];
   var COLORS = {
     'Principal & interest': '#1f4b82',
     'Property tax': '#3f6f54',
@@ -105,11 +105,15 @@
     $('home-app').value = place.rate.toFixed(2);
   }
 
-  function applyInsurance() {
-    var place = HomeMarkets.place(marketCode(), $('city').value);
-    if (!place || !(place.ins > 0)) return;
-    var price = Math.max(0, readNum('home-price'));
-    setMoney('insurance', price * place.ins / HomeMarkets.DWELLING);
+  function cityName() {
+    var sel = $('city');
+    var opt = sel.selectedOptions[0];
+    return opt && sel.value ? opt.textContent : '';
+  }
+
+  function applyStateTax() {
+    var bill = TaxRules.saltBill(marketCode(), $('filing').value, Math.max(0, readNum('income')), cityName());
+    setMoney('other-salt', bill);
   }
 
   function syncPctFromAmt() {
@@ -123,7 +127,6 @@
   }
 
   function readInputs() {
-    var magiRaw = $('magi').value.trim();
     return {
       price: Math.max(0, readNum('home-price')),
       downPayment: Math.max(0, readNum('down-amt')),
@@ -144,12 +147,11 @@
       inflation: readNum('inflation') / 100,
       rentMonth: Math.max(0, readNum('rent')),
       filingStatus: $('filing').value,
-      federalRate: readNum('federal-rate') / 100,
-      stateRate: readNum('state-rate') / 100,
-      ltcgRate: readNum('ltcg') / 100,
       otherSalt: Math.max(0, readNum('other-salt')),
       otherItemized: Math.max(0, readNum('other-itemized')),
-      magi: magiRaw ? Math.max(0, readNum('magi')) : null
+      income: Math.max(0, readNum('income')),
+      stateCode: marketCode(),
+      cityName: cityName()
     };
   }
 
@@ -221,7 +223,7 @@
       ['Housing deductions so far this year', money(first.ytdHousing, 2)],
       ['Standard deduction', money(first.standardDeduction)],
       ['Federal tax saved this month', money(first.federalSavings, 2)],
-      ['State tax saved  = deductible interest × state rate', money(first.stateSavings, 2)],
+      ['State tax saved this month', money(first.stateSavings, 2)],
       ['Owner cash this month  O', money(first.ownerOutlay, 2)],
       ['Rent this month  R', money(first.rent, 2)],
       ['Added to the renter portfolio  O − R', money(first.renterDeposit, 2)],
@@ -256,6 +258,42 @@
 
   function filingLabel(status) {
     return status === 'single' ? 'Single' : 'Married filing jointly';
+  }
+
+  function rateText(rate) {
+    var pct = rate * 100;
+    var digits = Math.abs(pct * 10 - Math.round(pct * 10)) < 0.05 ? 1 : 2;
+    return formatNumber(pct, digits);
+  }
+
+  function taxCopy(input) {
+    var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
+    var place = HomeMarkets.place(input.stateCode, '');
+    var where = input.cityName || (place ? place.state.name : 'this state');
+    var federal = rateText(profile.federalMarginal);
+    var stateRate = rateText(profile.stateMarginal);
+    var expected = profile.stateTax;
+    var overridden = Math.abs(input.otherSalt - expected) > 1;
+    var lead;
+    if (input.stateCode === 'US') {
+      lead = 'The national average is not a state, so no state income tax is applied.';
+    } else if (input.stateCode === 'WA') {
+      lead = 'Washington has no wage tax, and its capital-gains tax does not apply to a home sale.';
+    } else if (profile.stateTax < 1 && profile.stateMarginal < 0.0005) {
+      lead = where + ' has no income tax.';
+    } else {
+      lead = 'The state bracket on a dollar of deductible interest is ' + stateRate + '%. State and local income tax is about ' + money(expected) + ' a year.';
+    }
+    var who = input.filingStatus === 'single' ? 'A single filer' : 'A joint return';
+    var hint = who + ' at ' + money(input.income) + ' is in the ' + federal + '% federal bracket. ' + lead;
+    hint += ' Brackets stay at 2026 levels, and this income does not rise with inflation.';
+    return {
+      summary: 'Tax rules · ' + money(input.income) + ' · ' + filingLabel(input.filingStatus) + ' · ' + federal + '% federal · ' + stateRate + '% state',
+      hint: hint,
+      override: overridden
+        ? 'Using your ' + money(input.otherSalt) + ' state-tax figure instead of the ' + money(expected) + ' estimate. Change income, filing status, or the state to put the estimate back.'
+        : ''
+    };
   }
 
   function insuranceNote(price) {
@@ -323,7 +361,10 @@
     }
     $('stat-note').textContent = note;
 
-    $('tax-summary').textContent = 'Tax rules · ' + filingLabel(input.filingStatus) + ' · ' + formatNumber(input.federalRate * 100, 0) + '% federal · ' + formatNumber(input.stateRate * 100, 1) + '% state';
+    var taxes = taxCopy(input);
+    $('tax-summary').textContent = taxes.summary;
+    $('income-hint').textContent = taxes.hint;
+    $('tax-readout').textContent = taxes.override;
 
     var place = HomeMarkets.place(marketCode(), $('city').value);
     var typed = input.homeAppreciation * 100;
@@ -358,9 +399,13 @@
       fillCities();
       applyAppreciation();
       applyInsurance();
+      applyStateTax();
     } else if (id === 'city') {
       applyAppreciation();
       applyInsurance();
+      applyStateTax();
+    } else if (id === 'income' || id === 'filing') {
+      applyStateTax();
     } else if (id === 'home-price' || id === 'down-pct') {
       syncDownFromPct();
       if (id === 'home-price') applyInsurance();
@@ -395,5 +440,6 @@
   fillCities();
   applyAppreciation();
   applyInsurance();
+  applyStateTax();
   refresh();
 })();

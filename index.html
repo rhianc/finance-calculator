@@ -66,6 +66,22 @@
         </select>
       </div>
       <div class="field">
+        <label for="income">Household income</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="income" inputmode="decimal" autocomplete="off" value="250,000">
+          <span class="unit">/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="filing">Filing status</label>
+        <select id="filing" class="bare">
+          <option value="mfj" selected>Married filing jointly</option>
+          <option value="single">Single</option>
+        </select>
+      </div>
+      <p class="hint span-2" id="income-hint"></p>
+      <div class="field">
         <label for="home-app">Home appreciation, nominal</label>
         <div class="control">
           <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
@@ -198,35 +214,7 @@
       <summary id="tax-summary">Tax rules</summary>
       <div class="fields" style="margin-top:0.8rem;">
         <div class="field">
-          <label for="filing">Filing status</label>
-          <select id="filing" class="bare">
-            <option value="mfj" selected>Married filing jointly</option>
-            <option value="single">Single</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="federal-rate">Federal marginal rate</label>
-          <div class="control">
-            <input id="federal-rate" type="number" min="0" max="37" step="1" value="24" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="state-rate">State marginal rate</label>
-          <div class="control">
-            <input id="state-rate" type="number" min="0" max="15" step="0.1" value="9.3" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="ltcg">Long-term gains rate</label>
-          <div class="control">
-            <input id="ltcg" type="number" min="0" max="30" step="0.1" value="15" inputmode="decimal">
-            <span class="unit">%</span>
-          </div>
-        </div>
-        <div class="field">
-          <label for="other-salt">State income tax you already pay</label>
+          <label for="other-salt">State and local income tax</label>
           <div class="control">
             <span class="unit prefix">$</span>
             <input id="other-salt" inputmode="decimal" autocomplete="off" value="0">
@@ -241,15 +229,9 @@
             <span class="unit">/yr</span>
           </div>
         </div>
-        <div class="field span-2">
-          <label for="magi">MAGI, if you want the SALT phaseout</label>
-          <div class="control">
-            <span class="unit prefix">$</span>
-            <input id="magi" inputmode="decimal" autocomplete="off" placeholder="Blank uses the full $40,400 cap">
-          </div>
-        </div>
       </div>
-      <p class="hint">Federal savings count only the housing deductions that beat the 2026 standard deduction ($16,100 single, $32,200 joint) after the deductions you would have anyway. Mortgage interest is deductible on up to $750,000 of the loan. Property tax shares the SALT cap with the state income tax you enter. State savings are your state rate times deductible mortgage interest, which assumes your state allows that deduction. Set the state rate to 0 where there is no income tax. Add 3.8 to the long-term rate if the net investment income tax applies.</p>
+      <p class="hint" id="tax-readout"></p>
+      <p class="hint">The income above is wages, and it is also the MAGI used for the SALT cap. Federal tax uses the 2026 ordinary brackets, not one flat rate. A dollar of housing deduction saves whatever bracket it falls in, and only once itemizing beats the standard deduction ($16,100 single, $32,200 joint). Mortgage interest is deductible on up to $750,000 of the loan. Property tax shares the SALT cap with the state and local income tax. That cap is $40,400 in 2026, rises 1% a year through 2029, and returns to $10,000 in 2030. Above $505,000 of income it shrinks by 30 cents per dollar, and it does not fall below $10,000. State tax on the interest assumes the state allows the deduction. The sale is taxed on top of this income: 0%, 15%, or 20% federally, then the 3.8% net investment income tax when income including the gain is over $250,000 joint or $200,000 single, then state tax on the gain.</p>
     </details>
     <p class="fine">The price axis is about $1.2 million tall and is centered on the black curve at 30 years, or at the end of the comparison if that is sooner. It stays at or above $0 and widens when that is what it takes to include the price entered above. This map is only valid if the renter invests, every month, the difference between that month's cost of owning and that month's rent. The cost of owning is principal, interest, property tax, insurance, maintenance, HOA, and PMI. The down payment and buyer closing costs are invested at the start. When rent is higher, the extra is withdrawn from that portfolio.</p>
   </section>
@@ -332,8 +314,8 @@
 
     <h3>If you sold that month</h3>
     <div class="math">\[ \mathrm{Gain}_t = \max\left(0,\ H_t(1-c_s) - H_0(1+c_b)\right) \]</div>
-    <div class="math">\[ G_t = \max\left(0,\ \mathrm{Gain}_t - X_t\right) \times (\text{federal gain rate} + \text{state rate}) \]</div>
-    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for single filers and $500,000 for a joint return. Before 12 months the federal piece uses your ordinary federal rate. After 12 months it uses the long-term rate you entered.</p>
+    <div class="math">\[ G_t = \text{tax on }\max(0,\ \mathrm{Gain}_t - X_t)\text{, stacked on top of household income} \]</div>
+    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for single filers and $500,000 for a joint return. Before 12 months the federal piece is ordinary income. After 12 months it is long-term gain: 0%, 15%, and 20% in the 2026 bands, with wages filling the bands from the bottom. The 3.8% net investment income tax applies to the taxable gain once income including that gain is over $250,000 joint or $200,000 single. State tax is the extra tax from adding the gain on top of wages.</p>
     <div class="math">\[ L_t = H_t(1-c_s) - B_t - G_t \]</div>
     <div class="math">\[
       W^H_t = \frac{L_t + T_t}{(1+i)^{t/12}},\qquad
@@ -346,11 +328,11 @@
     <div class="math">\[
       \text{Deductible interest}_t = \text{Interest}_t \times \min\left(1,\ \frac{750{,}000}{B_{t-1}}\right)
     \]</div>
-    <p>Property tax and the state income tax you enter share the 2026 SALT cap of $40,400. Above $505,000 of MAGI the cap shrinks by 30 cents per dollar and does not fall below $10,000. The federal benefit is only the extra itemizing the house creates:</p>
+    <p>Property tax and state income tax share the SALT cap. In 2026 that cap is $40,400. It rises 1% a year through 2029 and returns to $10,000 in 2030. Above $505,000 of income, growing the same way, the cap shrinks by 30 cents per dollar and does not fall below $10,000. The federal benefit is the tax on the renter's taxable income minus the tax on the owner's:</p>
     <div class="math">\[
-      \tau^{\mathrm{fed}} = \left[\max(0,\ I_{\mathrm{own}} - \mathrm{Std}) - \max(0,\ I_{\mathrm{rent}} - \mathrm{Std})\right] \times \text{federal rate}
+      \tau^{\mathrm{fed}} = \mathrm{Tax}(TI_{\mathrm{rent}}) - \mathrm{Tax}(TI_{\mathrm{own}})
     \]</div>
-    <p>\(I_{\mathrm{own}}\) includes deductible interest and the property tax that still fits under the cap. \(I_{\mathrm{rent}}\) is your other itemized deductions only. \(\mathrm{Std}\) is $16,100 or $32,200. The year's federal savings are recognized month by month as the running total crosses the standard deduction, so early months in the year can show $0 federally. State savings each month are deductible interest times your state rate.</p>
+    <p>\(TI_{\mathrm{rent}}\) subtracts the standard deduction, or other itemized deductions if those are larger. \(TI_{\mathrm{own}}\) also subtracts deductible interest and the property tax that still fits under the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule. The year's savings are recognized month by month as the running total crosses the standard deduction, so early months can show $0 federally. State savings are the state tax without the mortgage-interest deduction, minus the state tax with it.</p>
 
     <h3>Property tax over time</h3>
     <p>\(\rho\) is the rate you entered. In California mode the assessed value grows with inflation, and never by more than 2% a year. In market mode the bill tracks appreciation, so the effective rate stays constant.</p>
@@ -374,9 +356,12 @@
     <ul class="left-out">
       <li>Extra principal payments, refinancing, and adjustable rates.</li>
       <li>Deducting PMI, and FHA loans that keep a premium for the life of the loan.</li>
-      <li>The 3.8% net investment income tax, unless you fold it into the long-term gains rate.</li>
+      <li>The 3.8% net investment income tax is included. So is the SALT cap's return to $10,000 in 2030.</li>
+      <li>Income and the 2026 brackets are not inflated, so the marginal rate does not drift. A raise is not modeled.</li>
+      <li>Dependents, the alternative minimum tax, and New York's tax-benefit recapture.</li>
+      <li>Local income tax is a statewide average of the wage tax, except New York City, which uses its own brackets, and Philadelphia, which uses the resident wage tax. Those wage taxes are not applied to the home sale.</li>
+      <li>Payroll taxes, including California disability insurance. Alabama, Missouri, and Oregon let filers deduct some federal income tax; that deduction is not included.</li>
       <li>A partial home-sale exclusion, depreciation from a rental period, and improvements added to basis.</li>
-      <li>The SALT cap's return to $10,000 in 2030. Entered MAGI does phase the cap down today.</li>
       <li>Lumpy repairs, special assessments, and the chance that returns bounce around instead of arriving in a straight line.</li>
     </ul>
     </details>
@@ -384,11 +369,12 @@
 </main>
 
 <footer class="wrap">
-  <p>Estimates for a home you live in. Federal dollar amounts are for tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 163(h), and 164(b)(7)). Statewide property-tax percentages are approximate effective rates. Appreciation presets are the FHFA purchase-only index, compounded from 1991 Q1 to 2026 Q2. Insurance presets are Insurify averages for $300,000 of dwelling coverage as of October 2026, scaled to the price, and they leave out flood. Neither is a quote. This is not tax or investment advice.</p>
+  <p>Estimates for a home you live in. Federal brackets, the standard deduction, and the long-term gain bands are tax year 2026 (IRS Rev. Proc. 2025-32; IRC §§121, 1411, 163(h), and 164(b)(7)). State income tax follows the Tax Foundation's January 2026 brackets for the selected state, for two adults and no dependents. Statewide property-tax percentages are approximate effective rates. Appreciation presets are the FHFA purchase-only index, compounded from 1991 Q1 to 2026 Q2. Insurance presets are Insurify averages for $300,000 of dwelling coverage as of October 2026, scaled to the price, and they leave out flood. Neither is a quote. This is not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="js/taxes.js"></script>
 <script src="js/model.js"></script>
 <script src="js/markets.js"></script>
 <script src="js/charts.js"></script>
