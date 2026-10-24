@@ -130,10 +130,36 @@
     sel.value = found ? prev : '';
   }
 
+  function isAuto(id) {
+    var el = $(id);
+    return !el || el.value !== 'custom';
+  }
+
+  function showCustom(fieldId, on) {
+    var field = $(fieldId);
+    if (!field) return;
+    if (on) field.removeAttribute('hidden');
+    else field.setAttribute('hidden', '');
+  }
+
+  function syncModeVisibility() {
+    showCustom('home-app-field', !isAuto('home-app-mode'));
+    showCustom('salt-field', !isAuto('salt-mode'));
+    showCustom('down-field', !isAuto('down-mode'));
+    showCustom('tax-rate-field', !isAuto('tax-rate-mode'));
+    showCustom('insurance-field', !isAuto('insurance-mode'));
+  }
+
+  function autoOption(id) {
+    return $(id).querySelector('option[value="auto"]');
+  }
+
   function applyAppreciation() {
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place) return;
-    $('home-app').value = place.rate.toFixed(2);
+    var name = place.kind === 'city' ? place.city.name : place.state.name;
+    autoOption('home-app-mode').textContent = name + ' history, ' + place.rate.toFixed(2) + '%';
+    if (isAuto('home-app-mode')) $('home-app').value = place.rate.toFixed(2);
   }
 
   function cityName() {
@@ -144,14 +170,38 @@
 
   function applyStateTax() {
     var bill = TaxRules.saltBill(marketCode(), $('filing').value, Math.max(0, readNum('income')), cityName());
-    setMoney('other-salt', bill);
+    autoOption('salt-mode').textContent = 'Estimated, ' + money(bill);
+    if (isAuto('salt-mode')) setMoney('other-salt', bill);
   }
 
   function applyInsurance() {
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place || !(place.ins > 0)) return;
     var price = Math.max(0, readNum('home-price'));
-    setMoney('insurance', price * place.ins / HomeMarkets.DWELLING);
+    var annual = price * place.ins / HomeMarkets.DWELLING;
+    autoOption('insurance-mode').textContent = 'Insurify, ' + money(annual);
+    if (isAuto('insurance-mode')) setMoney('insurance', annual);
+  }
+
+  function applyPropertyTax() {
+    var opt = $('state').selectedOptions[0];
+    var preset = opt && opt.getAttribute('data-rate');
+    var growth = opt && opt.getAttribute('data-growth');
+    if (preset) {
+      autoOption('tax-rate-mode').textContent = 'State preset, ' + preset + '%';
+      if (isAuto('tax-rate-mode')) $('tax-rate').value = preset;
+    } else {
+      autoOption('tax-rate-mode').textContent = 'No state preset';
+    }
+    if (growth) autoOption('tax-growth').setAttribute('data-growth', growth);
+  }
+
+  function applyDown() {
+    var price = readNum('home-price');
+    var pct = Math.min(100, Math.max(0, readNum('down-pct')));
+    var amt = price * pct / 100;
+    autoOption('down-mode').textContent = 'From the percent, ' + money(amt);
+    if (isAuto('down-mode')) setMoney('down-amt', amt);
   }
 
   function syncPctFromAmt() {
@@ -172,7 +222,11 @@
       years: readNum('loan-years'),
       horizonYears: readNum('horizon'),
       propertyTaxRate: readNum('tax-rate') / 100,
-      taxGrowth: $('tax-growth').value,
+      taxGrowth: (function () {
+        var sel = $('tax-growth');
+        if (sel.value !== 'auto') return sel.value;
+        return autoOption('tax-growth').getAttribute('data-growth') || 'market';
+      })(),
       insuranceYear: Math.max(0, readNum('insurance')),
       maintenanceRate: readNum('maintenance') / 100,
       hoaMonth: Math.max(0, readNum('hoa')),
@@ -328,19 +382,18 @@
     return {
       summary: 'Tax rules · ' + money(input.income) + ' · ' + filingLabel(input.filingStatus) + ' · ' + federal + '% federal · ' + stateRate + '% on interest',
       hint: hint,
-      override: overridden
-        ? 'Using your ' + money(input.otherSalt) + ' state-tax figure instead of the ' + money(expected) + ' estimate. Change income, filing status, or the state to put the estimate back.'
-        : ''
+      override: isAuto('salt-mode')
+        ? ''
+        : 'Custom state tax. Choose the estimate in the menu to use it again.'
     };
   }
 
   function insuranceNote(price) {
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place || !(place.ins > 0)) return '';
-    var expected = price * place.ins / HomeMarkets.DWELLING;
     var where = place.code === 'US' ? 'the U.S.' : (place.insFrom === 'city' ? place.city.name : place.state.name);
-    if (Math.abs(readNum('insurance') - expected) > 1) {
-      return 'Using your insurance premium instead of the ' + money(expected) + ' Insurify average for ' + where + ' at this price. Change the state, city, or price to put that average back.';
+    if (!isAuto('insurance-mode')) {
+      return 'Custom premium. Choose Insurify in the menu to use the average again.';
     }
     var scope = place.insFrom === 'city' || place.code === 'US' ? '' : ' statewide';
     return 'Insurance is the Insurify average for ' + where + scope + ', ' + money(place.ins) + ' a year on $300,000 of dwelling coverage, scaled to this price. A $1,000 deductible. Flood is not included.';
@@ -352,12 +405,12 @@
     var maint = price * input.maintenanceRate;
     $('tax-hint').textContent = {
       prop13: 'Assessed value starts at the purchase price and rises with inflation, capped at 2% a year. A new California bill is often about 1.1% to 1.3% after local bonds. The 0.71% statewide figure is lower because longtime owners are taxed on old assessments.',
-      market: 'The bill grows with the home value, so this effective rate stays constant. States that were already on the list keep their previous presets. The others use the Census ACS 2024 effective rate on owner-occupied homes. Edit the rate to match the parcel.',
+      market: 'The bill grows with the home value, so this effective rate stays constant. States that were already on the list keep their previous presets. The others use the Census ACS 2024 effective rate on owner-occupied homes. Choose Custom to match the parcel.',
       inflation: 'The bill grows with inflation and does not follow home appreciation.'
     }[input.taxGrowth];
     var stateOpt = $('state').selectedOptions[0];
     if (stateOpt && !stateOpt.getAttribute('data-rate')) {
-      $('tax-hint').textContent = 'No property-tax preset for this place, so the rate above is whatever you last entered. Edit it to match the parcel.';
+      $('tax-hint').textContent = 'No property-tax preset for this place. Choose Custom and enter the parcel rate.';
     }
     $('cost-hint').textContent = 'About ' + money(maint) + ' a year of maintenance at this price, before inflation. ' + insuranceNote(input.price);
 
@@ -407,7 +460,9 @@
     var place = HomeMarkets.place(marketCode(), $('city').value);
     var typed = input.homeAppreciation * 100;
     var matched = place && Math.abs(typed - place.rate) < 0.005;
-    if (!place) {
+    if (!isAuto('home-app-mode')) {
+      $('app-hint').textContent = 'Custom rate. Choose the place history in the menu to use it again.';
+    } else if (!place) {
       $('app-hint').textContent = '';
     } else if (matched && place.kind === 'city') {
       $('app-hint').textContent = place.city.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. ' + place.state.name + ' statewide was ' + place.state.rate.toFixed(2) + '%. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.';
@@ -415,9 +470,6 @@
       var cityCount = HomeMarkets.cities(place.code).length;
       var cityNote = cityCount ? ' Pick a city to use that metro instead.' : ' None of the FHFA top-100 metros are based in this state.';
       $('app-hint').textContent = place.state.name + ' compounded at ' + place.rate.toFixed(2) + '% a year from 1991 Q1 to 2026 Q2. FHFA purchase-only index, nominal. This includes the bust and the 2020–22 spike, and it is not a forecast.' + cityNote;
-    } else {
-      var label = place.kind === 'city' ? place.city.name : place.state.name;
-      $('app-hint').textContent = 'Using ' + formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '. Change the state or city to put that rate back.';
     }
 
     renderYears(result.points);
@@ -431,25 +483,41 @@
     var id = event.target.id;
     if (MONEY_IDS.indexOf(id) !== -1 && event.type === 'input') formatMoneyLive(event.target);
     if (id === 'state') {
-      var opt = event.target.selectedOptions[0];
-      var preset = opt.getAttribute('data-rate');
-      if (preset) $('tax-rate').value = preset;
-      $('tax-growth').value = opt.getAttribute('data-growth');
       fillCities();
       applyAppreciation();
       applyInsurance();
       applyStateTax();
+      applyPropertyTax();
     } else if (id === 'city') {
       applyAppreciation();
       applyInsurance();
       applyStateTax();
     } else if (id === 'income' || id === 'filing') {
       applyStateTax();
-    } else if (id === 'home-price' || id === 'down-pct') {
-      syncDownFromPct();
-      if (id === 'home-price') applyInsurance();
+    } else if (id === 'down-pct') {
+      applyDown();
+    } else if (id === 'home-price') {
+      if (!isAuto('down-mode')) syncPctFromAmt();
+      applyDown();
+      applyInsurance();
     } else if (id === 'down-amt') {
       syncPctFromAmt();
+      applyDown();
+    } else if (id === 'home-app-mode') {
+      applyAppreciation();
+      syncModeVisibility();
+    } else if (id === 'salt-mode') {
+      applyStateTax();
+      syncModeVisibility();
+    } else if (id === 'insurance-mode') {
+      applyInsurance();
+      syncModeVisibility();
+    } else if (id === 'tax-rate-mode') {
+      applyPropertyTax();
+      syncModeVisibility();
+    } else if (id === 'down-mode') {
+      applyDown();
+      syncModeVisibility();
     }
     refresh();
   }
@@ -481,6 +549,9 @@
     try { applyAppreciation(); } catch (err) { console.error(err); }
     try { applyInsurance(); } catch (err) { console.error(err); }
     try { applyStateTax(); } catch (err) { console.error(err); }
+    try { applyPropertyTax(); } catch (err) { console.error(err); }
+    try { applyDown(); } catch (err) { console.error(err); }
+    syncModeVisibility();
     refresh();
   }
 
