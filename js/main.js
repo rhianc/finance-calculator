@@ -282,6 +282,7 @@
 
   function renderYears(points) {
     var body = $('year-body');
+    if (!body) return;
     body.replaceChildren();
     var last = points[points.length - 1].month;
     var marks = [0, 60, 120, 180, 240, 300, 360];
