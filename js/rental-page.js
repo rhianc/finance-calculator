@@ -328,7 +328,7 @@
             backgroundColor: HOUSE,
             borderWidth: 2,
             pointRadius: 0,
-            tension: 0.15
+            tension: 0
           },
           {
             label: 'Stocks',
@@ -337,7 +337,7 @@
             backgroundColor: STOCK,
             borderWidth: 2,
             pointRadius: 0,
-            tension: 0.15
+            tension: 0
           }
         ]
       },
@@ -360,7 +360,7 @@
           y: {
             ticks: {
               maxTicksLimit: 6,
-              callback: function (v) { return money(v); }
+              callback: function (v) { return compactMoney(v); }
             }
           }
         }
@@ -373,7 +373,8 @@
     var abs = Math.abs(n);
     if (abs >= 1000000) {
       var millions = abs / 1000000;
-      return sign + '$' + (millions >= 10 ? millions.toFixed(0) : millions.toFixed(1)) + 'M';
+      var whole = Math.abs(millions - Math.round(millions)) < 0.05 || millions >= 10;
+      return sign + '$' + (whole ? String(Math.round(millions)) : millions.toFixed(1)) + 'M';
     }
     if (abs >= 1000) return sign + '$' + Math.round(abs / 1000) + 'k';
     return sign + '$' + Math.round(abs);
@@ -390,19 +391,15 @@
     var half = 600000;
     var low = Math.max(0, center - half);
     var high = center + half;
-    var step = fast ? 200000 : 50000;
-    var prices = [];
+    var step = 50000;
+    var prices = [Math.round(low)];
     var p;
-    for (p = Math.max(step, Math.ceil(low / step) * step); p <= high + 1; p += step) prices.push(p);
+    var start = Math.ceil((low + 1) / step) * step;
+    var end = Math.floor((high - 1) / step) * step;
+    for (p = start; p <= end + 1; p += step) prices.push(Math.round(p));
+    if (Math.round(high) - prices[prices.length - 1] > 1) prices.push(Math.round(high));
     if (prices.length < 2) prices = [step, step * 2];
-    if (fast) {
-      if (prices[0] > low + 1) prices.unshift(low);
-      if (prices[prices.length - 1] < high - 1) prices.push(high);
-      var span = prices.length > 1 ? prices[1] - prices[0] : step;
-      prices.unshift(prices[0] - span);
-      prices.push(prices[prices.length - 1] + span);
-    }
-    var stride = fast ? 12 : 1;
+    var stride = 6;
     var years = [];
     var month;
     for (month = 0; month <= horizon; month += stride) years.push(month / 12);
@@ -424,12 +421,12 @@
     var n = (maxAbs / 4) / nice;
     var zStep = n < 1.5 ? nice : n < 3.5 ? 2 * nice : n < 7.5 ? 5 * nice : 10 * nice;
     var freshExtent = Math.max(1, Math.ceil(maxAbs / zStep)) * zStep;
-    var priceKey = Math.round((input.price || 0) / 5000) * 5000;
-    if (lockedScale.price !== priceKey || !(lockedScale.zExtent > 0)) {
-      lockedScale.price = priceKey;
+    if (!(lockedScale.zExtent > 0) || freshExtent > lockedScale.zExtent * 1.35 || freshExtent < lockedScale.zExtent * 0.5) {
       lockedScale.zExtent = freshExtent;
+      lockedScale.step = zStep;
     }
     var zExtent = lockedScale.zExtent;
+    zStep = lockedScale.step || zStep;
     var series = [];
     var t;
     for (t = 0; t < years.length; t++) {
@@ -477,7 +474,10 @@
         tickfont: { size: 10, color: dark ? '#b7aba2' : '#6b625b' },
         ticks: ''
       },
-      hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Rental − stocks %{z:$,.0f}<extra></extra>',
+      hovertext: z.map(function (row) {
+        return row.map(function (gap) { return 'Rental − stocks ' + compactMoney(gap); });
+      }),
+      hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>%{hovertext}<extra></extra>',
       showscale: true
     }];
     var ink = dark ? '#f3f0e8' : '#1c1b17';
@@ -539,7 +539,10 @@
       var lastPoint = mine.points[mine.points.length - 1];
       var gap = lastPoint.rentalReal - lastPoint.stockReal;
       var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
-      var who = gap > 0 ? 'House ' : gap < 0 ? 'Stocks ' : '';
+      var who = gap > 0 ? 'House ahead ' : gap < 0 ? 'Stocks ahead ' : '';
+      var ySpan = (high - low) / 1000;
+      var yNorm = ySpan > 0 ? (input.price - low) / (high - low) : 0.5;
+      var above = yNorm < 0.78;
       tag = {
         x: years[years.length - 1],
         y: input.price / 1000,
@@ -548,11 +551,12 @@
         text: compactMoney(input.price) + ' · ' + (gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap))),
         showarrow: false,
         xanchor: 'right',
-        yanchor: 'bottom',
-        xshift: -4,
-        yshift: 2,
+        yanchor: above ? 'bottom' : 'top',
+        xshift: -6,
+        yshift: above ? 8 : -8,
         font: { size: 11, color: tone },
-        bgcolor: 'rgba(0,0,0,0)'
+        bgcolor: card,
+        borderpad: 3
       };
       data.push({
         type: 'scatter',
@@ -568,10 +572,13 @@
     }
     try {
       Plotly.react(el, data, {
-        margin: { t: 28, r: 44, b: 36, l: 48 },
+        width: el.clientWidth || undefined,
+        height: el.clientHeight || undefined,
+        uirevision: 'crossover',
+        margin: { t: 36, r: 54, b: 42, l: 54 },
         xaxis: { title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [0, years[years.length - 1]], dtick: years[years.length - 1] > 20 ? 5 : 2, zeroline: false, automargin: false },
         yaxis: { title: { text: 'Home price ($k)', font: { size: 11, color: muted }, standoff: 2 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [yBottom, yTop], automargin: false },
-        legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11, color: ink }, bgcolor: 'rgba(0,0,0,0)', itemwidth: 24 },
+        legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11, color: ink }, bgcolor: 'rgba(0,0,0,0)' },
         hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
         annotations: tag ? [tag] : [],
         paper_bgcolor: 'rgba(0,0,0,0)',
@@ -713,7 +720,7 @@
     else if (el.id === 'rent') out.textContent = money(val, 0);
     else if (el.id === 'loan-rate') {
       var rate = Math.round(val * 100) / 100;
-      out.textContent = String(rate).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + '%';
+      out.textContent = (Math.round(val * 10) / 10).toFixed(1) + '%';
     } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
   }
 

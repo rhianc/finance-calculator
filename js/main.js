@@ -258,24 +258,24 @@
     if (!first) return;
     var rText = first.r.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
     var lines = [
-      ['Loan  P = price − down payment', money(first.loan)],
-      ['Monthly rate  r = ' + (result.input.annualRate * 100).toFixed(2) + '% / 12', rText],
-      ['Payments  N', String(first.n)],
-      [first.r === 0 ? 'Payment  M = P / N' : 'Payment  M = P × [r(1+r)^N] / [(1+r)^N − 1]', money(first.payment, 2)],
-      ['Interest  = P × r', money(first.interest, 2)],
-      ['Principal  = M − interest', money(first.principal, 2)],
+      ['Loan, price minus down payment', money(first.loan)],
+      ['Monthly rate, ' + (result.input.annualRate * 100).toFixed(2) + '% / 12', rText],
+      ['Payments', String(first.n)],
+      [first.r === 0 ? 'Payment, loan divided by the number of payments' : 'Payment, standard fixed-rate formula', money(first.payment, 2)],
+      ['Interest, balance times the monthly rate', money(first.interest, 2)],
+      ['Principal, payment minus interest', money(first.principal, 2)],
       ['Property tax this month', money(first.propertyTax, 2)],
-      ['Insurance  = annual premium / 12', money(first.insurance, 2)],
-      ['Maintenance  = price × rate / 12', money(first.maintenance, 2)],
-      ['Deductible interest  = interest × min(1, ' + money(first.debtCap) + ' / balance)', money(first.deductibleInterest, 2)],
+      ['Insurance, annual premium divided by 12', money(first.insurance, 2)],
+      ['Maintenance, price times the rate, divided by 12', money(first.maintenance, 2)],
+      ['Deductible interest, interest times min(1, ' + money(first.debtCap) + ' / balance)', money(first.deductibleInterest, 2)],
       ['Housing deductions so far this year', money(first.ytdHousing, 2)],
       ['Standard deduction', money(first.standardDeduction)],
       ['Federal tax saved this month', money(first.federalSavings, 2)],
       ['State tax saved this month', money(first.stateSavings, 2)],
-      ['Owner cash this month  O', money(first.ownerOutlay, 2)],
-      ['Rent this month  R', money(first.rent, 2)],
-      ['Added to the renter portfolio  O − R', money(first.renterDeposit, 2)],
-      ['Added to the owner tax portfolio  τ', money(first.savings, 2)]
+      ['Owner cash this month', money(first.ownerOutlay, 2)],
+      ['Rent this month', money(first.rent, 2)],
+      ['Added to the renter portfolio, owner cash minus rent', money(first.renterDeposit, 2)],
+      ['Added to the owner tax portfolio', money(first.savings, 2)]
     ];
     lines.forEach(function (line) { host.appendChild(step(line[0], line[1])); });
   }
@@ -365,11 +365,7 @@
 
   function refresh(fast) {
     var input = readInputs();
-    if (fast) {
-      scheduleCrossover(input);
-      return;
-    }
-    $('tax-hint').textContent = {
+    if (!fast) $('tax-hint').textContent = {
       prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',
       market: 'Grows with the home value. Edit the rate to match the parcel.',
       inflation: 'Grows with inflation, not the home value.'
@@ -439,6 +435,8 @@
       $('app-hint').textContent = formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '.';
     }
 
+    FinanceCharts.renderLines($('wealthChart'), result.points);
+    FinanceCharts.renderPie($('pieChart'), slices);
     if (fast) {
       scheduleCrossover(input);
       return;
@@ -446,8 +444,6 @@
 
     renderYears(result.points);
     renderWorked(result);
-    FinanceCharts.renderPie($('pieChart'), slices);
-    FinanceCharts.renderLines($('wealthChart'), result.points);
     crossJob = null;
     FinanceCharts.renderCrossover(input);
   }
@@ -483,8 +479,7 @@
     if (el.id === 'home-price') out.textContent = knobPrice(val);
     else if (el.id === 'rent') out.textContent = money(val, 0);
     else if (el.id === 'loan-rate') {
-      var rate = Math.round(val * 100) / 100;
-      out.textContent = String(rate).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + '%';
+      out.textContent = (Math.round(val * 10) / 10).toFixed(1) + '%';
     } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
   }
 

@@ -32,18 +32,32 @@
 
   function renderPie(canvas, slices) {
     chartTheme();
-    destroy(pieChart);
-    pieChart = null;
-    if (!canvas || typeof Chart === 'undefined' || !slices.length) return;
+    if (!canvas || typeof Chart === 'undefined' || !slices.length) {
+      destroy(pieChart);
+      pieChart = null;
+      return;
+    }
+    var labels = slices.map(function (slice) { return slice.label; });
+    var values = slices.map(function (slice) { return slice.value; });
+    var colors = slices.map(function (slice) { return slice.color; });
+    var border = chartDark ? '#1c1916' : '#fffdf8';
+    if (pieChart) {
+      pieChart.data.labels = labels;
+      pieChart.data.datasets[0].data = values;
+      pieChart.data.datasets[0].backgroundColor = colors;
+      pieChart.data.datasets[0].borderColor = border;
+      pieChart.update('none');
+      return;
+    }
     pieChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
-        labels: slices.map(function (slice) { return slice.label; }),
+        labels: labels,
         datasets: [{
-          data: slices.map(function (slice) { return slice.value; }),
-          backgroundColor: slices.map(function (slice) { return slice.color; }),
+          data: values,
+          backgroundColor: colors,
           borderWidth: 2,
-          borderColor: chartDark ? '#1c1916' : '#fffdf8'
+          borderColor: border
         }]
       },
       options: {
@@ -65,17 +79,66 @@
     });
   }
 
+  // Hold the wealth axis until the lines no longer fit, so a small edit
+  // does not restack the ticks and shove the plot sideways.
+  var lineScale = { min: 0, max: 1, step: 1, unit: 'd', ready: false };
+
+  function fitLineScale(points) {
+    var min = Infinity;
+    var max = -Infinity;
+    var i;
+    for (i = 0; i < points.length; i++) {
+      var house = points[i].houseReal;
+      var rent = points[i].rentReal;
+      if (house < min) min = house;
+      if (rent < min) min = rent;
+      if (house > max) max = house;
+      if (rent > max) max = rent;
+    }
+    if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+    var span = Math.max(max - min, 1);
+    var lo = min >= 0 ? Math.max(0, min - span * 0.06) : min - span * 0.06;
+    var hi = max + span * 0.08;
+    var step = niceStep(Math.max(hi - lo, 1));
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    if (hi <= lo) hi = lo + step;
+    var unit = Math.max(Math.abs(lo), Math.abs(hi)) >= 1000000 ? 'm' : (Math.max(Math.abs(lo), Math.abs(hi)) >= 1000 ? 'k' : 'd');
+    if (lineScale.ready && min >= lineScale.min && max <= lineScale.max && span > (lineScale.max - lineScale.min) * 0.62 && unit === lineScale.unit) {
+      return lineScale;
+    }
+    lineScale = { min: lo, max: hi, step: step, unit: unit, ready: true };
+    return lineScale;
+  }
+
+  function formatAxisTick(value) {
+    var sign = value < 0 ? '−' : '';
+    var abs = Math.abs(value);
+    if (abs < lineScale.step * 0.01) return '$0';
+    if (lineScale.unit === 'm') {
+      var millions = abs / 1000000;
+      var digits = lineScale.step < 1000000 ? 1 : 0;
+      return sign + '$' + millions.toFixed(digits) + 'M';
+    }
+    if (lineScale.unit === 'k') return sign + '$' + Math.round(abs / 1000) + 'k';
+    return sign + '$' + Math.round(abs).toLocaleString('en-US');
+  }
+
   function renderLines(canvas, points) {
     if (!canvas || typeof Chart === 'undefined') return;
     chartTheme();
     var house = points.map(function (point) { return { x: point.month / 12, y: point.houseReal }; });
     var rent = points.map(function (point) { return { x: point.month / 12, y: point.rentReal }; });
     var last = points.length ? points[points.length - 1].month / 12 : 0;
+    var scale = fitLineScale(points);
     if (lineChart) {
       lineChart.data.datasets[0].data = house;
       lineChart.data.datasets[1].data = rent;
       lineChart.options.scales.x.max = last;
-      lineChart.update();
+      lineChart.options.scales.y.min = scale.min;
+      lineChart.options.scales.y.max = scale.max;
+      lineChart.options.scales.y.ticks.stepSize = scale.step;
+      lineChart.update('none');
       return;
     }
     lineChart = new Chart(canvas, {
@@ -89,7 +152,7 @@
             backgroundColor: 'rgba(31, 75, 130, 0.08)',
             borderWidth: 2,
             pointRadius: 0,
-            tension: 0.15,
+            tension: 0,
             fill: false
           },
           {
@@ -99,7 +162,7 @@
             backgroundColor: 'rgba(166, 91, 43, 0.08)',
             borderWidth: 2,
             pointRadius: 0,
-            tension: 0.15,
+            tension: 0,
             fill: false
           }
         ]
@@ -138,17 +201,14 @@
             grid: { color: chartDark ? 'rgba(243, 240, 232, 0.08)' : 'rgba(28, 27, 23, 0.06)' }
           },
           y: {
+            min: scale.min,
+            max: scale.max,
             title: { display: true, text: "Today's dollars", font: { family: 'system-ui, sans-serif', size: 12 } },
             ticks: {
+              stepSize: scale.step,
               maxTicksLimit: 7,
               font: { family: 'system-ui, sans-serif', size: 11 },
-              callback: function (value) {
-                var sign = value < 0 ? '−' : '';
-                var abs = Math.abs(value);
-                if (abs >= 1000000) return sign + '$' + (abs / 1000000).toFixed(abs >= 10000000 ? 0 : 1) + 'M';
-                if (abs >= 1000) return sign + '$' + Math.round(abs / 1000) + 'k';
-                return sign + '$' + Math.round(abs);
-              }
+              callback: function (value) { return formatAxisTick(value); }
             },
             grid: { color: chartDark ? 'rgba(243, 240, 232, 0.08)' : 'rgba(28, 27, 23, 0.06)' }
           }
@@ -225,7 +285,7 @@
   // and the down payment move the colors inside a scale that stays put.
   var PRICE_HALF = 600000;
   var PRICE_PAD = 50000;
-  var lockedScale = { price: null, zExtent: null };
+  var lockedScale = { zExtent: null, step: null };
 
   function gapAtMonth(spec, price, month) {
     var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, price));
@@ -267,26 +327,17 @@
     return best;
   }
 
+  // A fixed $1.2M window pinned to the price. It slides with the price
+  // once that price clears $600k, and it does not snap to a $50k grid.
   function priceWindow(center, price) {
-    if (!(center > 0)) center = price > 0 ? price : PRICE_HALF;
-    var half = PRICE_HALF;
-    if (price > 0) half = Math.max(half, Math.abs(price - center) + PRICE_PAD);
-    var low = center - half;
-    var high = center + half;
-    if (low > 0) {
-      half = Math.ceil(half / PRICE_PAD) * PRICE_PAD;
-      low = center - half;
-      high = center + half;
-    }
+    var anchor = price > 0 ? price : (center > 0 ? center : 800000);
+    var low = anchor - PRICE_HALF;
+    var high = anchor + PRICE_HALF;
     if (low < 0) {
       low = 0;
-      high = Math.ceil(high / PRICE_PAD) * PRICE_PAD;
+      high = PRICE_HALF * 2;
     }
-    if (price > 0 && high < price + PRICE_PAD) {
-      high = Math.ceil((price + PRICE_PAD) / PRICE_PAD) * PRICE_PAD;
-    }
-    if (high <= low) high = low + PRICE_HALF * 2;
-    return { low: low, high: high, center: center };
+    return { low: low, high: high, center: anchor };
   }
 
   function coverAxis(prices, low, high) {
@@ -299,16 +350,14 @@
     return rows;
   }
 
-  function priceGrid(low, high, minStep) {
-    var start = Math.max(PRICE_PAD, low);
-    start = Math.ceil(start / PRICE_PAD) * PRICE_PAD;
-    var end = Math.floor(high / PRICE_PAD) * PRICE_PAD;
-    if (end <= start) end = start + PRICE_PAD;
-    var step = (end - start) / PRICE_PAD > 48 ? 100000 : PRICE_PAD;
-    if (minStep && step < minStep) step = minStep;
-    var prices = [];
+  function priceGrid(low, high) {
+    var step = PRICE_PAD;
+    var prices = [Math.round(low)];
+    var start = Math.ceil((low + 1) / step) * step;
+    var end = Math.floor((high - 1) / step) * step;
     var p;
-    for (p = start; p <= end + step * 0.01; p += step) prices.push(Math.round(p));
+    for (p = start; p <= end + 1; p += step) prices.push(Math.round(p));
+    if (Math.round(high) - prices[prices.length - 1] > 1) prices.push(Math.round(high));
     return prices;
   }
 
@@ -317,7 +366,8 @@
     var abs = Math.abs(n);
     if (abs >= 1000000) {
       var millions = abs / 1000000;
-      return sign + '$' + (millions >= 10 ? millions.toFixed(0) : millions.toFixed(1)) + 'M';
+      var whole = Math.abs(millions - Math.round(millions)) < 0.05 || millions >= 10;
+      return sign + '$' + (whole ? String(Math.round(millions)) : millions.toFixed(1)) + 'M';
     }
     if (abs >= 1000) return sign + '$' + Math.round(abs / 1000) + 'k';
     return sign + '$' + Math.round(abs);
@@ -361,9 +411,9 @@
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
     var yWindow = priceWindow(spec.price > 0 ? spec.price : 800000, spec.price);
-    var prices = priceGrid(yWindow.low, yWindow.high, fast ? 200000 : 0);
-    if (fast) prices = coverAxis(prices, yWindow.low, yWindow.high);
-    var stride = fast ? 12 : 1;
+    // Same grid while dragging and after release, so the tie line does not jump.
+    var prices = priceGrid(yWindow.low, yWindow.high);
+    var stride = 6;
     var years = [];
     var month;
     for (month = 0; month <= horizon; month += stride) years.push(month / 12);
@@ -387,12 +437,12 @@
     var step = niceStep(maxAbs);
     var levels = Math.max(1, Math.ceil(maxAbs / step));
     var freshExtent = levels * step;
-    var priceKey = Math.round((spec.price || 0) / 5000) * 5000;
-    if (lockedScale.price !== priceKey || !(lockedScale.zExtent > 0)) {
-      lockedScale.price = priceKey;
+    if (!(lockedScale.zExtent > 0) || freshExtent > lockedScale.zExtent * 1.35 || freshExtent < lockedScale.zExtent * 0.5) {
       lockedScale.zExtent = freshExtent;
+      lockedScale.step = step;
     }
     var zExtent = lockedScale.zExtent;
+    step = lockedScale.step;
     var pricesK = prices.map(function (price) { return price / 1000; });
 
     var series = [];
@@ -456,7 +506,10 @@
         tickfont: { size: 10, color: dark ? '#b7aba2' : '#6b625b' },
         ticks: ''
       },
-      hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Buy − rent %{z:$,.0f}<extra></extra>',
+      hovertext: z.map(function (row) {
+        return row.map(function (gap) { return 'Buy − rent ' + compactMoney(gap); });
+      }),
+      hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>%{hovertext}<extra></extra>',
       showscale: true
     }];
 
@@ -505,20 +558,26 @@
       var last = mine.points[mine.points.length - 1];
       var gap = last.houseReal - last.rentReal;
       var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
-      var who = gap > 0 ? 'Buy ' : gap < 0 ? 'Rent ' : '';
+      var who = gap > 0 ? 'Buy ahead ' : gap < 0 ? 'Rent ahead ' : '';
+      var ySpan = yTop - yBottom;
+      var yNorm = ySpan > 0 ? (spec.price / 1000 - yBottom) / ySpan : 0.5;
+      var above = yNorm < 0.78;
+      var narrow = (el.clientWidth || 800) < 560;
+      var outcome = gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap));
       tag = {
         x: years[years.length - 1],
         y: spec.price / 1000,
         xref: 'x',
         yref: 'y',
-        text: compactMoney(spec.price) + ' · ' + (gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap))),
+        text: narrow ? outcome : compactMoney(spec.price) + ' · ' + outcome,
         showarrow: false,
         xanchor: 'right',
-        yanchor: 'bottom',
-        xshift: -4,
-        yshift: 2,
+        yanchor: above ? 'bottom' : 'top',
+        xshift: -6,
+        yshift: above ? 8 : -8,
         font: { size: 11, color: tone },
-        bgcolor: 'rgba(0,0,0,0)'
+        bgcolor: card,
+        borderpad: 3
       };
       data.push({
         type: 'scatter',
@@ -526,7 +585,7 @@
         x: [years[years.length - 1]],
         y: [spec.price / 1000],
         marker: { size: 8, color: tone, line: { color: card, width: 2 } },
-        cliponaxis: false,
+        cliponaxis: true,
         name: 'At the end',
         showlegend: false,
         hovertemplate: 'Year %{x:.0f}<br>' + (gap >= 0 ? 'Buying' : 'Renting') + ' ahead<extra></extra>'
@@ -548,7 +607,10 @@
     var muted = dark ? '#b7aba2' : '#6b625b';
     var grid = dark ? '#3c342e' : '#e4dcd0';
     var layout = {
-      margin: { t: 28, r: 44, b: 36, l: 48 },
+      width: el.clientWidth || undefined,
+      height: el.clientHeight || undefined,
+      uirevision: 'crossover',
+      margin: { t: 36, r: 54, b: 42, l: 54 },
       xaxis: {
         title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 },
         tickfont: { color: muted },
@@ -574,8 +636,7 @@
         x: 0,
         xanchor: 'left',
         font: { size: 11, color: ink },
-        bgcolor: 'rgba(0,0,0,0)',
-        itemwidth: 24
+        bgcolor: 'rgba(0,0,0,0)'
       },
       hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
       annotations: tag ? [tag] : [],

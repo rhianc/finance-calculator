@@ -46,6 +46,7 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   line-height: 1.5;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -53,6 +54,8 @@ body {
 
 .wrap {
   width: min(820px, calc(100% - 2rem));
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -119,6 +122,10 @@ h3 {
   letter-spacing: -0.02em;
 }
 
+.lede, .section-lead, .plot-note, .fine, .hint, .sub {
+  overflow-wrap: break-word;
+}
+
 .lede, .section-lead {
   color: var(--muted);
   max-width: 38rem;
@@ -133,6 +140,7 @@ h3 {
   grid-template-columns: minmax(0, 1fr);
   gap: 0.85rem;
   padding: 0.7rem 0 2.75rem;
+  min-width: 0;
 }
 
 .grid {
@@ -148,6 +156,8 @@ h3 {
   border-radius: 18px;
   box-shadow: var(--shadow);
   padding: 1rem 0.95rem 1.1rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .fields {
@@ -165,7 +175,8 @@ h3 {
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0;
-  white-space: nowrap;
+  line-height: 1.25;
+  min-height: 2.4em;
 }
 
 .control {
@@ -334,9 +345,18 @@ select.bare:focus {
 
 .crossover {
   width: 100%;
+  max-width: 100%;
   height: 300px;
   min-width: 0;
   margin: 0;
+  overflow: hidden;
+}
+
+.crossover .js-plotly-plot,
+.crossover .plot-container,
+.crossover .svg-container {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .stick-scope { min-width: 0; }
@@ -394,11 +414,14 @@ select.bare:focus {
 }
 
 .slider-row output {
+  display: block;
+  min-width: 4.75rem;
   color: var(--ink);
   font-size: 0.95rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
+  text-align: center;
 }
 
 .vrange {
@@ -651,7 +674,11 @@ footer a { color: var(--house); }
   .meta, .step { grid-template-columns: minmax(0, 1fr); }
   .step .val { text-align: left; }
   header.wrap { padding-top: 0.7rem; }
-  .crossover { height: 265px; }
+  .crossover { height: 280px; }
+  .fields { grid-template-columns: minmax(0, 1fr); }
+  .span-2 { grid-column: auto; }
+  .field label { min-height: 0; }
+  .slider-row output { min-width: 0; font-size: 0.88rem; }
   .stage {
     position: sticky;
     top: 0;

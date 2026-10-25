@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=29">
+<link rel="stylesheet" href="css/styles.css?v=31">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -34,7 +34,6 @@
   </section>
 
   <section class="card" aria-label="What you can move">
-    <p class="fine" id="stat-note" hidden></p>
     <div class="sliders">
       <div class="slider">
         <div class="slider-row">
@@ -74,6 +73,7 @@
       </div>
     </div>
     <p class="fine">The renter invests whatever owning would have cost that month. Everything else stays put.</p>
+    <p class="fine" id="stat-note" hidden></p>
     <button type="button" class="textbtn" id="copy-link">Copy link</button>
 
     <div class="fields">
@@ -232,8 +232,8 @@
           <div class="field">
             <label for="down-amt">Down payment amount</label>
             <div class="control">
+              <span class="unit prefix">$</span>
               <input id="down-amt" inputmode="decimal" autocomplete="off" value="100,000">
-              <span class="unit">$</span>
             </div>
           </div>
           <p class="hint span-2" id="app-hint"></p>
@@ -376,8 +376,8 @@
 <script src="js/taxes.js?v=9"></script>
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=14"></script>
-<script src="js/charts.js?v=26"></script>
-<script src="js/main.js?v=23"></script>
+<script src="js/charts.js?v=28"></script>
+<script src="js/main.js?v=24"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
