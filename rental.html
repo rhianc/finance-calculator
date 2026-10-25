@@ -38,10 +38,10 @@
       <div class="slider">
         <div class="slider-row">
           <label for="rent">Rent</label>
-          <output for="rent" id="rent-out">$3,650</output>
+          <output for="rent" id="rent-out">$1,944</output>
         </div>
-        <div class="vrange">
-          <input id="rent" type="range" min="500" max="5000" step="25" value="3650">
+        <div class="vrange" title="Follows the price and the local yield">
+          <input id="rent" type="range" min="0" max="8000" step="1" value="1944" disabled>
         </div>
       </div>
       <div class="slider">
@@ -345,7 +345,7 @@
 <script src="js/taxes.js?v=11"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/rental-model.js?v=14"></script>
-<script src="js/rental-page.js?v=38"></script>
+<script src="js/rental-page.js?v=39"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

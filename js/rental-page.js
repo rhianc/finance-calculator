@@ -655,11 +655,8 @@
 
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (place && place.grossYield > 0 && $('rent-hint')) {
-      var expected = RentalModel.marketRent(place.grossYield, place.yieldAnchor, input.price);
       var rentWhere = place.kind === 'city' ? place.city.name : place.state.name;
-      $('rent-hint').textContent = Math.abs(input.rentMonth - expected) > 5
-        ? 'Using your rent. It still rises with the price.'
-        : (place.grossYield * 100).toFixed(1) + '% gross yield in ' + rentWhere + ', on a median ' + money(place.yieldAnchor) + ' home.';
+      $('rent-hint').textContent = (place.grossYield * 100).toFixed(1) + '% gross yield in ' + rentWhere + ', on a median ' + money(place.yieldAnchor) + ' home.';
     }
     var typed = input.homeAppreciation * 100;
     if (!place) $('app-hint').textContent = '';
@@ -756,7 +753,6 @@
 
   var SHARE = [
     { key: 'p', id: 'home-price', def: 500000 },
-    { key: 'rent', id: 'rent', def: 3650 },
     { key: 'down', id: 'down-pct', def: 20 },
     { key: 'rate', id: 'loan-rate', def: 6.5 },
     { key: 'inc', id: 'income', def: 300000 },
@@ -805,7 +801,6 @@
       if ($('city').value !== q.get('city')) $('city').value = '';
     }
     if (q.has('p')) setRange('home-price', parseNum(q.get('p')));
-    if (q.has('rent')) setRange('rent', parseNum(q.get('rent')));
     if (q.has('down')) setRange('down-pct', parseNum(q.get('down')));
     if (q.has('rate')) setRange('loan-rate', parseNum(q.get('rate')));
     if (q.has('inc')) setMoney('income', parseNum(q.get('inc')));
@@ -830,7 +825,12 @@
       applyRent();
     } else if (id === 'down-pct' || id === 'home-price') {
       syncDownFromPct();
-      if (id === 'home-price') applyInsurance();
+      if (id === 'home-price') {
+        applyInsurance();
+        applyRent();
+      }
+    } else if (id === 'rent') {
+      applyRent();
     } else if (id === 'down-amt') {
       syncPctFromAmt();
     }
@@ -852,7 +852,7 @@
   function bindKnobs() {
     document.querySelectorAll('.vrange').forEach(function (box) {
       var el = box.querySelector('input[type="range"]');
-      if (!el) return;
+      if (!el || el.id === 'rent') return;
       function valueFromY(clientY) {
         var rect = box.getBoundingClientRect();
         var pad = 14;
@@ -900,6 +900,7 @@
     try { applyInsurance(); } catch (err) { console.error(err); }
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
+    try { applyRent(); } catch (err) { console.error(err); }
     paintSliders();
     bindKnobs();
     refresh();
