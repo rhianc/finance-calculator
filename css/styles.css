@@ -403,60 +403,46 @@ select.bare:focus {
 
 .vrange {
   position: relative;
-  width: 36px;
+  width: 100%;
   height: 151px;
   margin-top: 0.2rem;
+  touch-action: none;
+  --fill: 0;
+}
+
+.vrange::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 99px;
+  transform: translateX(-50%);
+  background: linear-gradient(to top, var(--ink) calc(var(--fill) * 100%), var(--soft) calc(var(--fill) * 100%));
+}
+
+.vrange::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+  top: calc(14px + (100% - 28px) * (1 - var(--fill)));
+  transform: translate(-50%, -50%);
 }
 
 .slider input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
   position: absolute;
-  width: 151px;
-  height: 32px;
+  width: 1px;
+  height: 1px;
   margin: 0;
-  top: 60px;
-  left: -58px;
-  background: transparent;
-  transform: rotate(-90deg);
-  transform-origin: center center;
-  touch-action: none;
-  --fill: 0%;
-}
-
-.slider input[type="range"]:focus { outline: none; }
-
-.slider input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 99px;
-  background: linear-gradient(to right, var(--ink) var(--fill), var(--soft) var(--fill));
-}
-
-.slider input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 28px;
-  height: 28px;
-  margin-top: -12px;
-  border-radius: 50%;
-  background: var(--ink);
-  border: 3px solid var(--card);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-}
-
-.slider input[type="range"]::-moz-range-track {
-  height: 4px;
-  border: 0;
-  border-radius: 99px;
-  background: linear-gradient(to right, var(--ink) var(--fill), var(--soft) var(--fill));
-}
-
-.slider input[type="range"]::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border: 3px solid var(--card);
-  border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .textbtn {

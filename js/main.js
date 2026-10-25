@@ -475,8 +475,9 @@
     var min = parseFloat(el.min);
     var max = parseFloat(el.max);
     var val = parseFloat(el.value);
-    var pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
-    el.style.setProperty('--fill', pct + '%');
+    var pct = max > min ? (val - min) / (max - min) : 0;
+    var box = el.closest ? el.closest('.vrange') : null;
+    if (box) box.style.setProperty('--fill', String(pct));
     var out = $(el.id + '-out');
     if (!out) return;
     if (el.id === 'home-price') out.textContent = knobPrice(val);
@@ -627,6 +628,50 @@
     FinanceCharts.resizeScale();
   });
 
+  function bindKnobs() {
+    document.querySelectorAll('.vrange').forEach(function (box) {
+      var el = box.querySelector('input[type="range"]');
+      if (!el) return;
+      function valueFromY(clientY) {
+        var rect = box.getBoundingClientRect();
+        var pad = 14;
+        var span = Math.max(1, rect.height - pad * 2);
+        var t = (rect.bottom - pad - clientY) / span;
+        if (t < 0) t = 0;
+        if (t > 1) t = 1;
+        var min = parseFloat(el.min);
+        var max = parseFloat(el.max);
+        var step = parseFloat(el.step) || 1;
+        var raw = min + t * (max - min);
+        var v = min + Math.round((raw - min) / step) * step;
+        if (v < min) v = min;
+        if (v > max) v = max;
+        return Math.round(v * 1000) / 1000;
+      }
+      function setFromEvent(event, commit) {
+        var v = valueFromY(event.clientY);
+        if (String(v) !== el.value) {
+          el.value = String(v);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (commit) el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      box.addEventListener('pointerdown', function (event) {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        box.setPointerCapture(event.pointerId);
+        setFromEvent(event, false);
+      });
+      box.addEventListener('pointermove', function (event) {
+        if (!box.hasPointerCapture(event.pointerId)) return;
+        setFromEvent(event, false);
+      });
+      box.addEventListener('pointerup', function (event) {
+        if (!box.hasPointerCapture(event.pointerId)) return;
+        setFromEvent(event, true);
+      });
+    });
+  }
+
   function boot() {
     buildStates();
     applyQuery();
@@ -636,6 +681,7 @@
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     paintSliders();
+    bindKnobs();
     refresh();
     writeQuery();
   }
