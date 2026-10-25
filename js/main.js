@@ -384,11 +384,13 @@
 
     var last = result.points[result.points.length - 1];
     var gap = last.houseReal - last.rentReal;
+    var years = Math.round(last.month / 12);
+    var surplus = $('stat-gap');
+    surplus.textContent = gap === 0
+      ? 'Even at ' + years + (years === 1 ? ' year' : ' years')
+      : (gap > 0 ? 'Buying' : 'Renting') + ' surplus ' + money(Math.abs(gap));
+    surplus.className = 'surplus' + (gap > 0 ? ' pos' : gap < 0 ? ' neg' : '');
     var cross = result.totals.crossoverMonth;
-    $('stat-cross').textContent = cross == null ? 'Not within ' + Math.round(last.month / 12) + ' years' : (cross === 0 ? 'From the start' : formatDuration(cross));
-    $('stat-gap').textContent = (gap >= 0 ? 'Buying +' : 'Renting +') + money(Math.abs(gap));
-    $('stat-gap').className = 'v ' + (gap >= 0 ? 'pos' : 'neg');
-    $('stat-end').textContent = money(last.houseReal);
     var note = '';
     if (cross != null && !result.totals.endsAhead) {
       note = 'Buying leads at ' + formatDuration(cross) + ', then falls behind.';
@@ -397,6 +399,7 @@
       note += (note ? ' ' : '') + 'Rent is $0, so the whole cost of owning is invested.';
     }
     $('stat-note').textContent = note;
+    $('stat-note').hidden = !note;
 
     var taxes = taxCopy(input);
     $('income-hint').textContent = taxes.hint;

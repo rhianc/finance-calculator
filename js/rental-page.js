@@ -554,14 +554,17 @@
 
     var last = result.points[result.points.length - 1];
     var gap = last.rentalReal - last.stockReal;
+    var years = Math.round(last.month / 12);
+    var surplus = $('stat-gap');
+    surplus.textContent = gap === 0
+      ? 'Even at ' + years + (years === 1 ? ' year' : ' years')
+      : (gap > 0 ? 'Rental' : 'Stocks') + ' surplus ' + money(Math.abs(gap));
+    surplus.className = 'surplus' + (gap > 0 ? ' pos' : gap < 0 ? ' neg' : '');
     var cross = result.totals.crossoverMonth;
-    $('stat-cross').textContent = cross == null ? 'Not within ' + Math.round(last.month / 12) + ' years' : (cross === 0 ? 'From the start' : formatDuration(cross));
-    $('stat-gap').textContent = (gap >= 0 ? 'Rental +' : 'Stocks +') + money(Math.abs(gap));
-    $('stat-gap').className = 'v ' + (gap >= 0 ? 'pos' : 'neg');
-    $('stat-end').textContent = money(last.rentalReal);
     var note = '';
     if (cross != null && !result.totals.endsAhead) note = 'The rental leads at ' + formatDuration(cross) + ', then falls behind.';
     $('stat-note').textContent = note;
+    $('stat-note').hidden = !note;
 
     var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
     var filing = input.filingStatus === 'single' ? 'single' : 'joint';

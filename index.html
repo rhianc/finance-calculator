@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=13">
+<link rel="stylesheet" href="css/styles.css?v=14">
 <style>
 @media (prefers-color-scheme: dark) {
   :root {
@@ -48,21 +48,8 @@
     <h2 id="cross-heading">Crossover</h2>
     <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
     <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
-    <div class="stats" aria-live="polite">
-      <div class="stat">
-        <div class="k" id="stat-cross-k">Buying pulls ahead</div>
-        <div class="v" id="stat-cross">—</div>
-      </div>
-      <div class="stat">
-        <div class="k">Gap at the horizon</div>
-        <div class="v" id="stat-gap">—</div>
-      </div>
-      <div class="stat">
-        <div class="k" id="stat-end-k">Buy, if sold</div>
-        <div class="v" id="stat-end">—</div>
-      </div>
-    </div>
-    <p class="fine" id="stat-note"></p>
+    <p class="surplus" id="stat-gap" aria-live="polite">—</p>
+    <p class="fine" id="stat-note" hidden></p>
     <div class="fields">
       <div class="field">
         <label for="home-price">Home price</label>
@@ -403,7 +390,7 @@
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/charts.js?v=13"></script>
-<script src="js/main.js?v=13"></script>
+<script src="js/main.js?v=14"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

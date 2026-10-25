@@ -261,13 +261,13 @@ select.bare:focus {
   margin-top: 0.9rem;
 }
 
-.meta .k, .stat .k, table th {
+.meta .k, table th {
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-.meta .v, .stat .v {
+.meta .v {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   font-size: 1.05rem;
@@ -293,20 +293,13 @@ select.bare:focus {
   margin: 0.2rem 0 0.4rem;
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin: 0.3rem 0 0.9rem;
+.surplus {
+  margin: 0.05rem 0 0.45rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  font-size: 1.15rem;
+  line-height: 1.3;
 }
-
-.stat {
-  background: var(--soft);
-  border-radius: 12px;
-  padding: 0.75rem 0.8rem 0.85rem;
-}
-
-.stat .v { font-size: 1.28rem; line-height: 1.2; margin-top: 0.15rem; }
 
 .fine {
   margin: 0.2rem 0 0.8rem;
@@ -472,7 +465,7 @@ footer a { color: var(--house); }
 .neg { color: var(--rent); }
 
 @media (max-width: 900px) {
-  .grid, .stats { grid-template-columns: minmax(0, 1fr); }
+  .grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 640px) {
