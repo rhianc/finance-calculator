@@ -521,8 +521,8 @@
         x: [0, years[years.length - 1]],
         y: [typical / 1000, typical / 1000],
         line: { color: dark ? '#e6c98a' : '#8a6a32', width: 2, dash: 'dot' },
-        name: 'Avg',
-        hovertemplate: 'Typical home this year<br>$%{y:.0f}k<extra></extra>'
+        name: 'Median',
+        hovertemplate: 'Median home this year<br>$%{y:.0f}k<extra></extra>'
       });
     }
     if (input.price > 0) {
@@ -647,7 +647,7 @@
       var rentWhere = place.kind === 'city' ? place.city.name : place.state.name;
       $('rent-hint').textContent = Math.abs(input.rentMonth - expected) > 5
         ? 'Using your rent. It still rises with the price.'
-        : (place.grossYield * 100).toFixed(1) + '% gross yield in ' + rentWhere + ', on a typical ' + money(place.yieldAnchor) + ' home.';
+        : (place.grossYield * 100).toFixed(1) + '% gross yield in ' + rentWhere + ', on a median ' + money(place.yieldAnchor) + ' home.';
     }
     var typed = input.homeAppreciation * 100;
     if (!place) $('app-hint').textContent = '';

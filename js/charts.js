@@ -487,8 +487,8 @@
         x: [0, years[years.length - 1]],
         y: [typical / 1000, typical / 1000],
         line: { color: dark ? '#e6c98a' : '#8a6a32', width: 2, dash: 'dot' },
-        name: 'Avg',
-        hovertemplate: 'Typical home this year<br>$%{y:.0f}k<extra></extra>'
+        name: 'Median',
+        hovertemplate: 'Median home this year<br>$%{y:.0f}k<extra></extra>'
       });
     }
     if (spec.price > 0) {
