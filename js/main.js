@@ -533,6 +533,7 @@
       if (!same && String(raw) !== '') params.set(item.key, item.text ? raw : String(raw));
     });
     var next = params.toString();
+    if (next) next = 'share=1&' + next;
     var url = location.pathname + (next ? '?' + next : '') + location.hash;
     if (url !== location.pathname + location.search + location.hash) history.replaceState(null, '', url);
     document.querySelectorAll('.pages a').forEach(function (a) {
@@ -550,11 +551,13 @@
 
   function applyQuery() {
     var q = new URLSearchParams(location.search);
-    if (q.has('st')) {
+    var shared = q.get('share') === '1';
+    if (shared && q.has('st')) {
       $('state').value = q.get('st');
       if (!$('state').value) $('state').value = 'CA';
     }
     fillCities();
+    if (!shared) return q;
     if (q.has('city')) {
       $('city').value = q.get('city');
       if ($('city').value !== q.get('city')) $('city').value = '';
@@ -593,19 +596,14 @@
     }
     if (slider && event.type === 'input') {
       refresh(true);
-      scheduleQuery();
       return;
     }
     if (slider && event.type === 'change') {
       clearTimeout(sharpenTimer);
-      sharpenTimer = setTimeout(function () {
-        refresh();
-        writeQuery();
-      }, 80);
+      sharpenTimer = setTimeout(function () { refresh(); }, 80);
       return;
     }
     refresh();
-    writeQuery();
   }
 
   document.body.addEventListener('input', onEdit);
