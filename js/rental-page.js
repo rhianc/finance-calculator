@@ -813,12 +813,9 @@
 
   function boot() {
     buildStates();
-    var q = applyQuery();
+    applyQuery();
     try { applyAppreciation(); } catch (err) { console.error(err); }
     try { applyInsurance(); } catch (err) { console.error(err); }
-    if (!(q.get('share') === '1' && q.has('rent'))) {
-      try { applyRent(); } catch (err) { console.error(err); }
-    }
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     paintSliders();
