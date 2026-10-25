@@ -344,7 +344,16 @@ select.bare:focus {
 .stage {
   position: relative;
   z-index: 5;
-  padding: 0.45rem 0.55rem;
+  padding: 0.35rem 0.55rem 0.4rem;
+}
+
+.plot-name {
+  margin: 0 0 0.1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
 }
 
 .sliders {
