@@ -221,11 +221,11 @@
     if (scaleChart) scaleChart.resize();
   }
 
-  // About $1.2M of prices, centered on the year-30 breakeven. The floor stays
-  // at $0, and the entered price stays inside, so a cheap breakeven sits a
-  // little below the middle rather than sending the axis negative.
+  // The price axis follows the price you entered, not the tie. Rent, rate,
+  // and the down payment move the colors inside a scale that stays put.
   var PRICE_HALF = 600000;
   var PRICE_PAD = 50000;
+  var lockedScale = { price: null, zExtent: null };
 
   function gapAtMonth(spec, price, month) {
     var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, price));
@@ -334,9 +334,7 @@
     var dark = isDark();
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
-    var focusMonth = Math.min(horizon, 30 * 12);
-    var evenPrice = fast ? (spec.price > 0 ? spec.price : 800000) : breakevenAt(spec, focusMonth);
-    var yWindow = priceWindow(evenPrice, spec.price);
+    var yWindow = priceWindow(spec.price > 0 ? spec.price : 800000, spec.price);
     var prices = priceGrid(yWindow.low, yWindow.high, fast ? 100000 : 0);
     var years = [];
     var month;
@@ -359,7 +357,13 @@
 
     var step = niceStep(maxAbs);
     var levels = Math.max(1, Math.ceil(maxAbs / step));
-    var zExtent = levels * step;
+    var freshExtent = levels * step;
+    var priceKey = Math.round((spec.price || 0) / 5000) * 5000;
+    if (lockedScale.price !== priceKey || !(lockedScale.zExtent > 0)) {
+      lockedScale.price = priceKey;
+      lockedScale.zExtent = freshExtent;
+    }
+    var zExtent = lockedScale.zExtent;
     var pricesK = prices.map(function (price) { return price / 1000; });
 
     var series = [];

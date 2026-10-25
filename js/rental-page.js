@@ -378,38 +378,15 @@
     return sign + '$' + Math.round(abs);
   }
 
+  var lockedScale = { price: null, zExtent: null };
+
   function renderCrossover(input, fast) {
     var el = $('crossoverChart');
     if (!el || typeof Plotly === 'undefined') return;
     var dark = isDark();
     var horizon = Math.round(input.horizonYears * 12);
     var center = input.price || 500000;
-    if (!fast) {
-      var focus = Math.min(horizon, 30 * 12);
-      function gapAt(price) {
-        var result = RentalModel.project(RentalModel.atPrice(input, price));
-        var point = result.points[Math.min(focus, result.points.length - 1)];
-        return point.rentalReal - point.stockReal;
-      }
-      var lo = 50000;
-      var hi = 1500000;
-      var glo = gapAt(lo);
-      var ghi = gapAt(hi);
-      if (glo > 0 && ghi < 0) {
-        var a = lo;
-        var b = hi;
-        var ga = glo;
-        for (var k = 0; k < 16; k++) {
-          var mid = (a + b) / 2;
-          var g = gapAt(mid);
-          if ((g > 0) === (ga > 0)) { a = mid; ga = g; }
-          else b = mid;
-        }
-        center = (a + b) / 2;
-      }
-    }
     var half = 600000;
-    if (input.price > 0) half = Math.max(half, Math.abs(input.price - center) + 50000);
     var low = Math.max(0, center - half);
     var high = center + half;
     var step = fast ? 100000 : 50000;
@@ -437,7 +414,13 @@
     var nice = maxAbs > 0 ? Math.pow(10, Math.floor(Math.log10(maxAbs / 4))) : 1;
     var n = (maxAbs / 4) / nice;
     var zStep = n < 1.5 ? nice : n < 3.5 ? 2 * nice : n < 7.5 ? 5 * nice : 10 * nice;
-    var zExtent = Math.max(1, Math.ceil(maxAbs / zStep)) * zStep;
+    var freshExtent = Math.max(1, Math.ceil(maxAbs / zStep)) * zStep;
+    var priceKey = Math.round((input.price || 0) / 5000) * 5000;
+    if (lockedScale.price !== priceKey || !(lockedScale.zExtent > 0)) {
+      lockedScale.price = priceKey;
+      lockedScale.zExtent = freshExtent;
+    }
+    var zExtent = lockedScale.zExtent;
     var series = [];
     var t;
     for (t = 0; t < years.length; t++) {
