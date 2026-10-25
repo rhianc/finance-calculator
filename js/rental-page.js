@@ -266,10 +266,11 @@
       if (!point) return;
       var gap = point.rentalReal - point.stockReal;
       var tr = document.createElement('tr');
-      [(month / 12).toString(), money(point.rentalReal), money(point.stockReal), money(gap)].forEach(function (text, index) {
+      var surplus = gap === 0 ? 'Even' : (gap > 0 ? 'Rental ' : 'Stocks ') + money(Math.abs(gap));
+      [(month / 12).toString(), surplus].forEach(function (text, index) {
         var td = document.createElement('td');
         td.textContent = text;
-        if (index === 3) td.className = gap >= 0 ? 'pos' : 'neg';
+        if (index === 1 && gap !== 0) td.className = gap > 0 ? 'pos' : 'neg';
         tr.appendChild(td);
       });
       body.appendChild(tr);
@@ -568,10 +569,7 @@
 
     var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
     var filing = input.filingStatus === 'single' ? 'single' : 'joint';
-    $('income-hint').textContent = rateText(profile.federalMarginal) + '% federal, ' + filing + '. '
-      + (allowance > 0
-        ? 'Up to ' + money(allowance) + ' of losses can offset wages.'
-        : 'The $25,000 loss allowance is phased out.');
+    $('income-hint').textContent = rateText(profile.federalMarginal) + '% federal, ' + filing + '.';
 
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (place && place.grossYield > 0 && $('rent-hint')) {

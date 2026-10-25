@@ -266,10 +266,6 @@
         <div class="v" id="res-interest">—</div>
       </div>
       <div>
-        <div class="k">Tax savings, first year</div>
-        <div class="v" id="res-tax-year">—</div>
-      </div>
-      <div>
         <div class="k">PMI</div>
         <div class="v" id="res-pmi">—</div>
       </div>
@@ -279,14 +275,14 @@
 
   <section class="card" aria-labelledby="path-heading">
     <h2 id="path-heading">This home</h2>
-    <p class="section-lead">This price, if you sold, against renting and investing the difference.</p>
+    <p class="section-lead">Who is ahead if you sold, in today's dollars.</p>
     <div class="chart-box tall">
       <canvas id="wealthChart" aria-label="Buy versus rent net worth in today's dollars"></canvas>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Year</th><th>Buy, if sold</th><th>Rent & invest</th><th>Buy − rent</th></tr>
+          <tr><th>Year</th><th>Surplus</th></tr>
         </thead>
         <tbody id="year-body"></tbody>
       </table>
@@ -390,7 +386,7 @@
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/charts.js?v=13"></script>
-<script src="js/main.js?v=14"></script>
+<script src="js/main.js?v=15"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

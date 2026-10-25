@@ -293,10 +293,11 @@
       if (!point) return;
       var gap = point.houseReal - point.rentReal;
       var tr = document.createElement('tr');
-      [ (month / 12).toString(), money(point.houseReal), money(point.rentReal), money(gap) ].forEach(function (text, index) {
+      var surplus = gap === 0 ? 'Even' : (gap > 0 ? 'Buying ' : 'Renting ') + money(Math.abs(gap));
+      [ (month / 12).toString(), surplus ].forEach(function (text, index) {
         var td = document.createElement('td');
         td.textContent = text;
-        if (index === 3) td.className = gap >= 0 ? 'pos' : 'neg';
+        if (index === 1 && gap !== 0) td.className = gap > 0 ? 'pos' : 'neg';
         tr.appendChild(td);
       });
       body.appendChild(tr);
@@ -370,7 +371,6 @@
     var slices = renderBreakdown(first);
     $('res-loan').textContent = money(first.loan);
     $('res-interest').textContent = money(result.totals.interest);
-    $('res-tax-year').textContent = money(result.totals.firstYearSavings);
     if (result.totals.pmiMonths === 0) {
       $('res-pmi').textContent = 'None';
     } else if (result.totals.pmiStopMonth) {
