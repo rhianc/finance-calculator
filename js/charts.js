@@ -532,7 +532,7 @@
         automargin: false
       },
       yaxis: {
-        title: { text: 'Price ($k)', font: { size: 11, color: muted }, standoff: 2 },
+        title: { text: 'Home price ($k)', font: { size: 11, color: muted }, standoff: 2 },
         tickfont: { color: muted },
         gridcolor: grid,
         linecolor: grid,
