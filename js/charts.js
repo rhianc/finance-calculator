@@ -289,6 +289,16 @@
     return { low: low, high: high, center: center };
   }
 
+  function coverAxis(prices, low, high) {
+    var rows = prices.slice();
+    if (!rows.length || rows[0] > low + 1) rows.unshift(low);
+    if (!rows.length || rows[rows.length - 1] < high - 1) rows.push(high);
+    var step = rows.length > 1 ? rows[1] - rows[0] : PRICE_PAD;
+    rows.unshift(rows[0] - step);
+    rows.push(rows[rows.length - 1] + step);
+    return rows;
+  }
+
   function priceGrid(low, high, minStep) {
     var start = Math.max(PRICE_PAD, low);
     start = Math.ceil(start / PRICE_PAD) * PRICE_PAD;
@@ -336,6 +346,7 @@
     var horizon = Math.round(spec.horizonYears * 12);
     var yWindow = priceWindow(spec.price > 0 ? spec.price : 800000, spec.price);
     var prices = priceGrid(yWindow.low, yWindow.high, fast ? 200000 : 0);
+    if (fast) prices = coverAxis(prices, yWindow.low, yWindow.high);
     var stride = fast ? 12 : 1;
     var years = [];
     var month;
@@ -346,7 +357,7 @@
     var i;
     var t;
     for (i = 0; i < prices.length; i++) {
-      var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, prices[i]));
+      var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, Math.max(prices[i], 1000)));
       var row = [];
       for (t = 0; t < years.length; t++) {
         var point = result.points[Math.min(Math.round(years[t] * 12), result.points.length - 1)];

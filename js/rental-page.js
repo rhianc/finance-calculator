@@ -394,13 +394,20 @@
     var p;
     for (p = Math.max(step, Math.ceil(low / step) * step); p <= high + 1; p += step) prices.push(p);
     if (prices.length < 2) prices = [step, step * 2];
+    if (fast) {
+      if (prices[0] > low + 1) prices.unshift(low);
+      if (prices[prices.length - 1] < high - 1) prices.push(high);
+      var span = prices.length > 1 ? prices[1] - prices[0] : step;
+      prices.unshift(prices[0] - span);
+      prices.push(prices[prices.length - 1] + span);
+    }
     var stride = fast ? 12 : 1;
     var years = [];
     var month;
     for (month = 0; month <= horizon; month += stride) years.push(month / 12);
     var z = [];
     var maxAbs = 0;
-    var results = prices.map(function (price) { return RentalModel.project(RentalModel.atPrice(input, price)); });
+    var results = prices.map(function (price) { return RentalModel.project(RentalModel.atPrice(input, Math.max(price, 1000))); });
     results.forEach(function (result) {
       var row = [];
       var t;
@@ -518,8 +525,8 @@
         hovertemplate: 'Year %{x:.0f}<br>' + (gap >= 0 ? 'Rental' : 'Stocks') + ' ahead<extra></extra>'
       });
     }
-    var yTop = Math.max.apply(null, prices) / 1000;
-    var yBottom = Math.min.apply(null, prices) / 1000;
+    var yTop = high / 1000;
+    var yBottom = low / 1000;
     try {
       Plotly.react(el, data, {
         margin: { t: 28, r: 44, b: 36, l: 48 },
