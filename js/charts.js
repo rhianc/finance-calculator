@@ -221,52 +221,11 @@
     if (scaleChart) scaleChart.resize();
   }
 
-  // Window follows the even line and the price you entered, with a little
-  // room on either side. It does not keep a fixed span.
-  function trackedPrices(spec, horizon) {
-    var marks = [];
-    var cuts = 6;
-    var i;
-    for (i = 0; i <= cuts; i++) {
-      var even = breakevenAt(spec, Math.round(horizon * i / cuts));
-      if (even > 0) marks.push(even);
-    }
-    if (spec.price > 0) marks.push(spec.price);
-    var low;
-    var high;
-    if (!marks.length) {
-      var mid = spec.price > 0 ? spec.price : 500000;
-      low = mid * 0.6;
-      high = mid * 1.5;
-    } else {
-      var lo = Math.min.apply(null, marks);
-      var hi = Math.max.apply(null, marks);
-      var span = hi - lo;
-      if (span < lo * 0.22) span = lo * 0.22;
-      if (span < 80000) span = 80000;
-      var pad = span * 0.18;
-      low = lo - pad;
-      high = hi + pad;
-    }
-    if (low < 0) low = 0;
-    if (high <= low) high = low + 80000;
-    return { low: low, high: high };
-  }
-
-  function priceGrid(low, high) {
-    var span = Math.max(high - low, 1);
-    var rough = span / 24;
-    var pow = Math.pow(10, Math.floor(Math.log10(rough)));
-    var n = rough / pow;
-    var step = (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * pow;
-    var start = Math.max(step, Math.ceil(low / step) * step);
-    var end = Math.floor(high / step) * step;
-    if (end <= start) end = start + step;
-    var prices = [];
-    var p;
-    for (p = start; p <= end + step * 0.01; p += step) prices.push(Math.round(p));
-    return prices;
-  }
+  // About $1.2M of prices, centered on the year-30 breakeven. The floor stays
+  // at $0, and the entered price stays inside, so a cheap breakeven sits a
+  // little below the middle rather than sending the axis negative.
+  var PRICE_HALF = 600000;
+  var PRICE_PAD = 50000;
 
   function gapAtMonth(spec, price, month) {
     var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, price));
@@ -308,6 +267,40 @@
     return best;
   }
 
+  function priceWindow(center, price) {
+    if (!(center > 0)) center = price > 0 ? price : PRICE_HALF;
+    var half = PRICE_HALF;
+    if (price > 0) half = Math.max(half, Math.abs(price - center) + PRICE_PAD);
+    var low = center - half;
+    var high = center + half;
+    if (low > 0) {
+      half = Math.ceil(half / PRICE_PAD) * PRICE_PAD;
+      low = center - half;
+      high = center + half;
+    }
+    if (low < 0) {
+      low = 0;
+      high = Math.ceil(high / PRICE_PAD) * PRICE_PAD;
+    }
+    if (price > 0 && high < price + PRICE_PAD) {
+      high = Math.ceil((price + PRICE_PAD) / PRICE_PAD) * PRICE_PAD;
+    }
+    if (high <= low) high = low + PRICE_HALF * 2;
+    return { low: low, high: high, center: center };
+  }
+
+  function priceGrid(low, high) {
+    var start = Math.max(PRICE_PAD, low);
+    start = Math.ceil(start / PRICE_PAD) * PRICE_PAD;
+    var end = Math.floor(high / PRICE_PAD) * PRICE_PAD;
+    if (end <= start) end = start + PRICE_PAD;
+    var step = (end - start) / PRICE_PAD > 48 ? 100000 : PRICE_PAD;
+    var prices = [];
+    var p;
+    for (p = start; p <= end + step * 0.01; p += step) prices.push(Math.round(p));
+    return prices;
+  }
+
   function compactMoney(n) {
     var sign = n < 0 ? '−' : '';
     var abs = Math.abs(n);
@@ -340,7 +333,9 @@
     var dark = isDark();
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
-    var yWindow = trackedPrices(spec, horizon);
+    var focusMonth = Math.min(horizon, 30 * 12);
+    var evenPrice = breakevenAt(spec, focusMonth);
+    var yWindow = priceWindow(evenPrice, spec.price);
     var prices = priceGrid(yWindow.low, yWindow.high);
     var years = [];
     var month;
@@ -362,8 +357,8 @@
     }
 
     var step = niceStep(maxAbs);
-    var zExtent = maxAbs > 0 ? maxAbs : 1;
-    if (step > zExtent) step = zExtent;
+    var levels = Math.max(1, Math.ceil(maxAbs / step));
+    var zExtent = levels * step;
     var pricesK = prices.map(function (price) { return price / 1000; });
 
     var series = [];

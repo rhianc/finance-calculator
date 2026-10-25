@@ -382,67 +382,38 @@
     if (!el || typeof Plotly === 'undefined') return;
     var dark = isDark();
     var horizon = Math.round(input.horizonYears * 12);
-    function gapAtMonth(price, month) {
+    var focus = Math.min(horizon, 30 * 12);
+    function gapAt(price) {
       var result = RentalModel.project(RentalModel.atPrice(input, price));
-      var point = result.points[Math.min(month, result.points.length - 1)];
+      var point = result.points[Math.min(focus, result.points.length - 1)];
       return point.rentalReal - point.stockReal;
     }
-    function evenAt(month) {
-      var samples = [];
-      var price;
-      for (price = 50000; price <= 4000000; price += 250000) {
-        samples.push({ price: price, gap: gapAtMonth(price, month) });
+    var lo = 50000;
+    var hi = 1500000;
+    var glo = gapAt(lo);
+    var ghi = gapAt(hi);
+    var center = input.price || 500000;
+    if (glo > 0 && ghi < 0) {
+      var a = lo;
+      var b = hi;
+      var ga = glo;
+      for (var k = 0; k < 16; k++) {
+        var mid = (a + b) / 2;
+        var g = gapAt(mid);
+        if ((g > 0) === (ga > 0)) { a = mid; ga = g; }
+        else b = mid;
       }
-      var i;
-      for (i = 0; i < samples.length - 1; i++) {
-        var g0 = samples[i].gap;
-        var g1 = samples[i + 1].gap;
-        if (!((g0 <= 0 && g1 > 0) || (g0 >= 0 && g1 < 0))) continue;
-        var a = samples[i].price;
-        var b = samples[i + 1].price;
-        var ga = g0;
-        var k;
-        for (k = 0; k < 14; k++) {
-          var mid = (a + b) / 2;
-          var g = gapAtMonth(mid, month);
-          if ((g > 0) === (ga > 0)) { a = mid; ga = g; }
-          else b = mid;
-        }
-        return (a + b) / 2;
-      }
-      return null;
+      center = (a + b) / 2;
     }
-    var marks = [];
-    [0, Math.round(horizon / 2), horizon].forEach(function (month) {
-      var even = evenAt(month);
-      if (even > 0) marks.push(even);
-    });
-    if (input.price > 0) marks.push(input.price);
-    var low;
-    var high;
-    if (!marks.length) {
-      var mid = input.price > 0 ? input.price : 500000;
-      low = mid * 0.6;
-      high = mid * 1.5;
-    } else {
-      var loMark = Math.min.apply(null, marks);
-      var hiMark = Math.max.apply(null, marks);
-      var span = hiMark - loMark;
-      if (span < loMark * 0.22) span = loMark * 0.22;
-      if (span < 80000) span = 80000;
-      var pad = span * 0.18;
-      low = loMark - pad;
-      high = hiMark + pad;
-    }
-    if (low < 0) low = 0;
-    var rough = Math.max(high - low, 1) / 24;
-    var pow = Math.pow(10, Math.floor(Math.log10(rough)));
-    var unit = rough / pow;
-    var step = (unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10) * pow;
+    var half = 600000;
+    if (input.price > 0) half = Math.max(half, Math.abs(input.price - center) + 50000);
+    var low = Math.max(0, center - half);
+    var high = center + half;
+    var step = 50000;
     var prices = [];
     var p;
-    for (p = Math.max(step, Math.ceil(low / step) * step); p <= high + step * 0.01; p += step) prices.push(Math.round(p));
-    if (prices.length < 2) prices = [Math.round(step), Math.round(step * 2)];
+    for (p = Math.max(step, Math.ceil(low / step) * step); p <= high + 1; p += step) prices.push(p);
+    if (prices.length < 2) prices = [step, step * 2];
     var years = [];
     var month;
     for (month = 0; month <= horizon; month++) years.push(month / 12);
@@ -460,11 +431,10 @@
       }
       z.push(row);
     });
-    var zExtent = maxAbs > 0 ? maxAbs : 1;
     var nice = maxAbs > 0 ? Math.pow(10, Math.floor(Math.log10(maxAbs / 4))) : 1;
     var n = (maxAbs / 4) / nice;
     var zStep = n < 1.5 ? nice : n < 3.5 ? 2 * nice : n < 7.5 ? 5 * nice : 10 * nice;
-    if (!(zStep > 0) || zStep > zExtent) zStep = zExtent;
+    var zExtent = Math.max(1, Math.ceil(maxAbs / zStep)) * zStep;
     var series = [];
     var t;
     for (t = 0; t < years.length; t++) {
