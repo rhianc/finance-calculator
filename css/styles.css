@@ -1,34 +1,34 @@
-/* Instrument Serif + Instrument Sans. The number leads; everything else stays quiet. */
+/* System type. The surplus leads; the rest stays plain. */
 :root {
   color-scheme: light dark;
-  --paper: #f4f1ea;
-  --card: #fcfbf8;
-  --ink: #1c1b17;
-  --muted: #6e695f;
-  --line: rgba(28, 27, 23, 0.1);
-  --house: #8a6a3b;
-  --rent: #9a5432;
-  --good: #2d6a4f;
-  --soft: #efece4;
-  --field: #f7f5f0;
-  --shadow: 0 1px 0 rgba(28, 27, 23, 0.04);
-  --serif: "Instrument Serif", "Iowan Old Style", Palatino, Georgia, serif;
-  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --paper: #f3efe6;
+  --card: #fffdf8;
+  --ink: #1f1a17;
+  --muted: #6b625b;
+  --line: #e4dcd0;
+  --house: #1f4b82;
+  --rent: #a65b2b;
+  --good: #1f6b45;
+  --soft: #f7f3eb;
+  --field: #fff;
+  --shadow: 0 1px 2px rgba(31, 26, 23, 0.04);
+  --serif: "Iowan Old Style", Palatino, Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --paper: #0e0e0c;
-    --card: #171714;
-    --ink: #f3f0e8;
-    --muted: #9c968c;
-    --line: rgba(243, 240, 232, 0.1);
-    --house: #e4d3b0;
-    --rent: #e3b197;
-    --good: #b7d3b0;
-    --soft: #201f1b;
-    --field: #121210;
+    --paper: #141210;
+    --card: #1c1916;
+    --ink: #f4efe8;
+    --muted: #b7aba2;
+    --line: #3c342e;
+    --house: #9ec0ef;
+    --rent: #e2a888;
+    --good: #8dcea8;
+    --soft: #2c2723;
+    --field: #171411;
     --shadow: none;
   }
 }
@@ -47,7 +47,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-::selection { background: rgba(138, 106, 59, 0.28); }
+::selection { background: rgba(31, 75, 130, 0.18); }
 
 .wrap {
   width: min(820px, calc(100% - 2rem));
@@ -85,32 +85,29 @@ header.wrap { padding: 1.35rem 0 0.2rem; }
 }
 
 .eyebrow {
-  margin: 0 0 0.35rem;
-  color: var(--house);
-  font-size: 0.72rem;
+  margin: 0 0 0.3rem;
+  color: var(--muted);
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 h1, h2, h3 { line-height: 1.15; }
 
 h1 {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.7rem;
   font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(2rem, 7.2vw, 2.7rem);
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  font-size: clamp(1.85rem, 6vw, 2.35rem);
+  letter-spacing: -0.02em;
 }
 
 h2 {
-  margin: 0 0 0.85rem;
-  font-family: var(--sans);
-  font-size: 0.72rem;
+  margin: 0 0 0.55rem;
+  font-family: var(--serif);
+  font-size: 1.28rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 h3 {
@@ -179,7 +176,7 @@ h3 {
 
 .control:focus-within {
   border-color: var(--house);
-  box-shadow: 0 0 0 3px rgba(138, 106, 59, 0.18);
+  box-shadow: 0 0 0 3px rgba(31, 75, 130, 0.16);
 }
 
 .control input,
@@ -223,7 +220,7 @@ select.bare {
 
 select.bare:focus {
   border-color: var(--house);
-  box-shadow: 0 0 0 3px rgba(138, 106, 59, 0.18);
+  box-shadow: 0 0 0 3px rgba(31, 75, 130, 0.16);
 }
 
 .hint {
@@ -236,21 +233,19 @@ select.bare:focus {
 
 .group-label {
   margin: 1rem 0 0.55rem;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
 .big {
   margin: 0.1rem 0 0;
   font-family: var(--serif);
-  font-size: clamp(2.4rem, 8vw, 3.15rem);
-  font-weight: 400;
-  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 7vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  line-height: 0.95;
+  line-height: 1;
 }
 
 .sub {
@@ -293,10 +288,8 @@ select.bare:focus {
 
 .meta .k, table th {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .meta .v {
@@ -335,18 +328,16 @@ select.bare:focus {
 
 .surplus-k {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .surplus-v {
   font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(3.1rem, 14vw, 4.8rem);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  font-size: clamp(2.15rem, 8vw, 2.85rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
