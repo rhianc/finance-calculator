@@ -347,38 +347,63 @@ select.bare:focus {
   padding: 0.45rem 0.55rem;
 }
 
-.sliders { display: grid; gap: 0.15rem; }
+.sliders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.2rem;
+}
 
-.slider { padding: 0.35rem 0 0.45rem; }
+.slider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+}
 
 .slider-row {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  margin-bottom: 0.05rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  width: 100%;
+  margin: 0;
+  text-align: center;
 }
 
 .slider-row label {
-  font-size: 0.95rem;
-  font-weight: 550;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .slider-row output {
   color: var(--ink);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.vrange {
+  position: relative;
+  width: 36px;
+  height: 116px;
+  margin-top: 0.2rem;
 }
 
 .slider input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  display: block;
-  width: 100%;
+  position: absolute;
+  width: 116px;
   height: 32px;
   margin: 0;
+  top: 42px;
+  left: -40px;
   background: transparent;
+  transform: rotate(-90deg);
+  transform-origin: center center;
   touch-action: none;
   --fill: 0%;
 }
@@ -633,7 +658,7 @@ footer a { color: var(--house); }
   }
   .card { border-radius: 16px; padding: 0.9rem 0.8rem 1rem; }
   .stage.card { padding: 0.35rem 0.45rem; }
-  .fields { gap: 0.6rem 0.5rem; }
+  .section-lead { margin: 0 0 0.35rem; }
   .control, select.bare { min-height: 2.75rem; }
 }
 

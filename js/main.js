@@ -478,11 +478,21 @@
     el.style.setProperty('--fill', pct + '%');
     var out = $(el.id + '-out');
     if (!out) return;
-    if (el.id === 'home-price' || el.id === 'rent') out.textContent = money(val, 0);
+    if (el.id === 'home-price') out.textContent = knobPrice(val);
+    else if (el.id === 'rent') out.textContent = money(val, 0);
     else if (el.id === 'loan-rate') {
       var rate = Math.round(val * 100) / 100;
       out.textContent = String(rate).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + '%';
     } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
+  }
+
+  function knobPrice(n) {
+    var v = Math.round(n);
+    if (v >= 1000000) {
+      var m = Math.round(v / 100000) / 10;
+      return '$' + (m === Math.round(m) ? String(Math.round(m)) : m.toFixed(1)) + 'M';
+    }
+    return '$' + Math.round(v / 1000) + 'k';
   }
 
   function paintSliders() {
