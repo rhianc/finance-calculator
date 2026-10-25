@@ -522,7 +522,7 @@
     var layout = {
       margin: { t: 28, r: 44, b: 36, l: 48 },
       xaxis: {
-        title: { text: 'Years', font: { size: 11, color: muted }, standoff: 4 },
+        title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 },
         tickfont: { color: muted },
         gridcolor: grid,
         linecolor: grid,
