@@ -515,6 +515,24 @@
         name: 'Yours',
         hovertemplate: 'This rental, $%{y:.0f}k<extra></extra>'
       });
+      var mine = RentalModel.project(input);
+      var lastPoint = mine.points[mine.points.length - 1];
+      var gap = lastPoint.rentalReal - lastPoint.stockReal;
+      var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
+      data.push({
+        type: 'scatter',
+        mode: 'markers+text',
+        x: [years[years.length - 1]],
+        y: [input.price / 1000],
+        text: [gap === 0 ? 'Even' : compactMoney(gap)],
+        textposition: 'middle left',
+        textfont: { size: 13, color: tone },
+        marker: { size: 9, color: tone, line: { color: card, width: 2 } },
+        cliponaxis: false,
+        name: 'At the end',
+        showlegend: false,
+        hovertemplate: 'Year %{x:.0f}<br>' + (gap >= 0 ? 'Rental' : 'Stocks') + ' ahead<extra></extra>'
+      });
     }
     var yTop = Math.max.apply(null, prices) / 1000;
     var yBottom = Math.min.apply(null, prices) / 1000;
@@ -571,8 +589,9 @@
     var last = result.points[result.points.length - 1];
     var gap = last.rentalReal - last.stockReal;
     var years = Math.round(last.month / 12);
-    paintSurplus(
-      $('stat-gap'),
+    var gapEl = $('stat-gap');
+    if (gapEl) paintSurplus(
+      gapEl,
       gap === 0 ? 'Even' : (gap > 0 ? 'Rental surplus' : 'Stocks surplus'),
       gap === 0 ? ('At ' + years + (years === 1 ? ' year' : ' years')) : money(Math.abs(gap)),
       gap > 0 ? 'pos' : gap < 0 ? 'neg' : ''

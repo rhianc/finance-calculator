@@ -398,8 +398,9 @@
     var last = result.points[result.points.length - 1];
     var gap = last.houseReal - last.rentReal;
     var years = Math.round(last.month / 12);
-    paintSurplus(
-      $('stat-gap'),
+    var gapEl = $('stat-gap');
+    if (gapEl) paintSurplus(
+      gapEl,
       gap === 0 ? 'Even' : (gap > 0 ? 'Buying surplus' : 'Renting surplus'),
       gap === 0 ? ('At ' + years + (years === 1 ? ' year' : ' years')) : money(Math.abs(gap)),
       gap > 0 ? 'pos' : gap < 0 ? 'neg' : ''

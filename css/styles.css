@@ -346,10 +346,6 @@ select.bare:focus {
 
 .stage h2 { margin-bottom: 0.35rem; }
 
-.stage .surplus { margin-top: 0.15rem; }
-
-.stage .surplus-v { font-size: clamp(1.85rem, 7vw, 2.45rem); }
-
 .sliders { display: grid; gap: 0.15rem; }
 
 .slider { padding: 0.35rem 0 0.45rem; }

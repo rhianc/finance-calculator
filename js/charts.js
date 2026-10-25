@@ -456,6 +456,23 @@
         hovertemplate: 'This home, $%{y:.0f}k<extra></extra>'
       });
       var mine = root.FinanceModel.project(spec);
+      var last = mine.points[mine.points.length - 1];
+      var gap = last.houseReal - last.rentReal;
+      var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
+      data.push({
+        type: 'scatter',
+        mode: 'markers+text',
+        x: [years[years.length - 1]],
+        y: [spec.price / 1000],
+        text: [gap === 0 ? 'Even' : compactMoney(gap)],
+        textposition: 'middle left',
+        textfont: { size: 13, color: tone },
+        marker: { size: 9, color: tone, line: { color: card, width: 2 } },
+        cliponaxis: false,
+        name: 'At the end',
+        showlegend: false,
+        hovertemplate: 'Year %{x:.0f}<br>' + (gap >= 0 ? 'Buying' : 'Renting') + ' ahead<extra></extra>'
+      });
       if (mine.totals.crossoverMonth != null) {
         data.push({
           type: 'scatter',
