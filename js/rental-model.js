@@ -6,6 +6,8 @@
   // The $25,000 active-participation allowance phases out from $100,000 to $150,000 of income
   // and is not doubled on a joint return. Real estate professional status is not modeled.
   var DEP_MONTHS = 27.5 * 12;
+  // Rent rises with price, but a more expensive house yields a little less.
+  var RENT_ELASTICITY = 0.85;
 
   function finite(value, fallback) {
     return typeof value === 'number' && isFinite(value) ? value : fallback;
@@ -344,19 +346,29 @@
     };
   }
 
+  function marketRent(yieldRate, anchor, price) {
+    if (!(price > 0) || !(yieldRate > 0)) return 0;
+    var base = anchor > 0 ? anchor : price;
+    return (base * yieldRate / 12) * Math.pow(price / base, RENT_ELASTICITY);
+  }
+
+  function scaledRent(rent, fromPrice, toPrice) {
+    if (!(toPrice > 0) || !(fromPrice > 0) || !(rent > 0)) return 0;
+    return rent * Math.pow(toPrice / fromPrice, RENT_ELASTICITY);
+  }
+
   function atPrice(input, price) {
     var spec = normalize(input);
     var next = price > 0 ? price : 0;
-    var ratio = spec.price > 0 ? next / spec.price : 1;
     return normalize({
       price: next,
-      downPayment: spec.downPayment * ratio,
+      downPayment: spec.price > 0 ? spec.downPayment * next / spec.price : spec.downPayment,
       annualRate: spec.annualRate,
       years: spec.years,
       horizonYears: spec.horizonYears,
       propertyTaxRate: spec.propertyTaxRate,
       taxGrowth: spec.taxGrowth,
-      insuranceYear: spec.insuranceYear * ratio,
+      insuranceYear: spec.price > 0 ? spec.insuranceYear * next / spec.price : spec.insuranceYear,
       maintenanceRate: spec.maintenanceRate,
       hoaMonth: spec.hoaMonth,
       pmiRate: spec.pmiRate,
@@ -366,7 +378,7 @@
       stockReturn: spec.stockReturn,
       investmentDrag: spec.investmentDrag,
       inflation: spec.inflation,
-      rentMonth: spec.rentMonth,
+      rentMonth: scaledRent(spec.rentMonth, spec.price, next),
       vacancyRate: spec.vacancyRate,
       managementRate: spec.managementRate,
       landFraction: spec.landFraction,
@@ -381,6 +393,9 @@
     normalize: normalize,
     project: project,
     atPrice: atPrice,
+    marketRent: marketRent,
+    scaledRent: scaledRent,
+    RENT_ELASTICITY: RENT_ELASTICITY,
     mortgagePayment: mortgagePayment,
     passiveAllowance: passiveAllowance
   };

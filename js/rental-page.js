@@ -148,6 +148,13 @@
     setMoney('insurance', Math.max(0, readNum('home-price')) * place.ins / HomeMarkets.DWELLING);
   }
 
+  function applyRent() {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place || !(place.grossYield > 0)) return;
+    var price = Math.max(0, readNum('home-price'));
+    setMoney('rent', RentalModel.marketRent(place.grossYield, place.yieldAnchor, price));
+  }
+
   function applyPropertyTax() {
     var opt = $('state').selectedOptions[0];
     if (!opt) return;
@@ -564,6 +571,13 @@
         : 'The $25,000 loss allowance is phased out.');
 
     var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (place && place.grossYield > 0 && $('rent-hint')) {
+      var expected = RentalModel.marketRent(place.grossYield, place.yieldAnchor, input.price);
+      var rentWhere = place.kind === 'city' ? place.city.name : place.state.name;
+      $('rent-hint').textContent = Math.abs(input.rentMonth - expected) > 5
+        ? 'Using your rent. It still rises with the price.'
+        : (place.grossYield * 100).toFixed(1) + '% gross yield in ' + rentWhere + ', on a typical ' + money(place.yieldAnchor) + ' home.';
+    }
     var typed = input.homeAppreciation * 100;
     if (!place) $('app-hint').textContent = '';
     else if (Math.abs(typed - place.rate) < 0.005 && place.kind === 'city') {
@@ -598,12 +612,17 @@
       applyAppreciation();
       applyInsurance();
       applyPropertyTax();
+      applyRent();
     } else if (id === 'city') {
       applyAppreciation();
       applyInsurance();
+      applyRent();
     } else if (id === 'down-pct' || id === 'home-price') {
       syncDownFromPct();
-      if (id === 'home-price') applyInsurance();
+      if (id === 'home-price') {
+        applyInsurance();
+        applyRent();
+      }
     } else if (id === 'down-amt') {
       syncPctFromAmt();
     }
@@ -618,6 +637,7 @@
     fillCities();
     try { applyAppreciation(); } catch (err) { console.error(err); }
     try { applyInsurance(); } catch (err) { console.error(err); }
+    try { applyRent(); } catch (err) { console.error(err); }
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     refresh();

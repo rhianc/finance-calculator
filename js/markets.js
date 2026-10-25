@@ -308,6 +308,138 @@
     US: [{ id: 'US', label: 'U.S. median', rate: 1.02, growth: 'market' }],
   };
 
+  // Gross yield (annual rent / value) at a typical price. Zillow ZHVI and ZORI, May 2026.
+  // A house priced away from that typical value does not keep the same yield:
+  // the rental page raises rent with price^0.85.
+  var RENT = {
+    US: { y: 0.0632, anchor: 370320 },
+    AK: { y: 0.055, anchor: 380000 },
+    AL: { y: 0.0662, anchor: 262556 },
+    AR: { y: 0.0647, anchor: 231039 },
+    AZ: { y: 0.0490, anchor: 396000 },
+    CA: { y: 0.0440, anchor: 740000 },
+    CO: { y: 0.0432, anchor: 515000 },
+    CT: { y: 0.0520, anchor: 450000 },
+    DC: { y: 0.0497, anchor: 583013 },
+    DE: { y: 0.055, anchor: 400000 },
+    FL: { y: 0.0630, anchor: 400000 },
+    GA: { y: 0.0577, anchor: 382938 },
+    HI: { y: 0.0420, anchor: 851163 },
+    IA: { y: 0.0524, anchor: 296070 },
+    ID: { y: 0.0444, anchor: 496288 },
+    IL: { y: 0.0768, anchor: 353998 },
+    IN: { y: 0.0630, anchor: 295921 },
+    KS: { y: 0.0564, anchor: 329641 },
+    KY: { y: 0.0587, anchor: 283232 },
+    LA: { y: 0.0680, anchor: 250000 },
+    MA: { y: 0.0519, anchor: 741868 },
+    MD: { y: 0.0567, anchor: 405877 },
+    ME: { y: 0.050, anchor: 400000 },
+    MI: { y: 0.0605, anchor: 314000 },
+    MN: { y: 0.0524, anchor: 393774 },
+    MO: { y: 0.0597, anchor: 303000 },
+    MS: { y: 0.0829, anchor: 215622 },
+    MT: { y: 0.048, anchor: 450000 },
+    NC: { y: 0.0500, anchor: 414000 },
+    ND: { y: 0.060, anchor: 280000 },
+    NE: { y: 0.0558, anchor: 310337 },
+    NH: { y: 0.048, anchor: 480000 },
+    NJ: { y: 0.052, anchor: 550000 },
+    NM: { y: 0.0511, anchor: 352894 },
+    NV: { y: 0.0484, anchor: 430650 },
+    NY: { y: 0.0550, anchor: 500000 },
+    OH: { y: 0.0617, anchor: 299000 },
+    OK: { y: 0.0680, anchor: 246872 },
+    OR: { y: 0.0391, anchor: 552022 },
+    PA: { y: 0.0650, anchor: 310000 },
+    RI: { y: 0.0494, anchor: 524867 },
+    SC: { y: 0.0620, anchor: 320000 },
+    SD: { y: 0.060, anchor: 300000 },
+    TN: { y: 0.0587, anchor: 352000 },
+    TX: { y: 0.0580, anchor: 340000 },
+    UT: { y: 0.0370, anchor: 550000 },
+    VA: { y: 0.0530, anchor: 420000 },
+    VT: { y: 0.050, anchor: 380000 },
+    WA: { y: 0.0400, anchor: 600000 },
+    WI: { y: 0.0473, anchor: 390238 },
+    WV: { y: 0.070, anchor: 180000 },
+    WY: { y: 0.052, anchor: 360000 }
+  };
+
+  var CITY_RENT = {
+    '13820': { y: 0.0662, anchor: 262556 },
+    '30780': { y: 0.0647, anchor: 231039 },
+    '38060': { y: 0.0466, anchor: 448352 },
+    '46060': { y: 0.0514, anchor: 343580 },
+    '12540': { y: 0.0589, anchor: 364264 },
+    '23420': { y: 0.0591, anchor: 409749 },
+    '40140': { y: 0.0516, anchor: 585378 },
+    '31084': { y: 0.0360, anchor: 968608 },
+    '40900': { y: 0.0470, anchor: 582707 },
+    '41740': { y: 0.0374, anchor: 946365 },
+    '41884': { y: 0.0340, anchor: 1149215 },
+    '41940': { y: 0.0270, anchor: 1610466 },
+    '44700': { y: 0.0546, anchor: 531785 },
+    '17820': { y: 0.0464, anchor: 457300 },
+    '19740': { y: 0.0400, anchor: 573221 },
+    '25540': { y: 0.0592, anchor: 400167 },
+    '47764': { y: 0.0497, anchor: 583013 },
+    '33124': { y: 0.0680, anchor: 475622 },
+    '27260': { y: 0.0578, anchor: 352994 },
+    '29460': { y: 0.0742, anchor: 298822 },
+    '36740': { y: 0.0612, anchor: 387733 },
+    '45294': { y: 0.0671, anchor: 360738 },
+    '12054': { y: 0.0577, anchor: 382938 },
+    '14260': { y: 0.0444, anchor: 496288 },
+    '19780': { y: 0.0524, anchor: 296070 },
+    '16984': { y: 0.0768, anchor: 353998 },
+    '26900': { y: 0.0630, anchor: 295921 },
+    '28140': { y: 0.0564, anchor: 329641 },
+    '31140': { y: 0.0587, anchor: 283232 },
+    '35380': { y: 0.0733, anchor: 264891 },
+    '14454': { y: 0.0519, anchor: 741868 },
+    '49340': { y: 0.0543, anchor: 482611 },
+    '12580': { y: 0.0567, anchor: 405877 },
+    '19804': { y: 0.0669, anchor: 269080 },
+    '24340': { y: 0.0541, anchor: 359923 },
+    '33460': { y: 0.0524, anchor: 393774 },
+    '41180': { y: 0.0629, anchor: 276878 },
+    '16740': { y: 0.0535, anchor: 390321 },
+    '39580': { y: 0.0464, anchor: 438364 },
+    '36540': { y: 0.0558, anchor: 310337 },
+    '29820': { y: 0.0484, anchor: 430650 },
+    '10580': { y: 0.0544, anchor: 370533 },
+    '15380': { y: 0.0601, anchor: 288316 },
+    '35614': { y: 0.0578, anchor: 727625 },
+    '17140': { y: 0.0607, anchor: 311270 },
+    '17410': { y: 0.0695, anchor: 252210 },
+    '18140': { y: 0.0548, anchor: 333537 },
+    '36420': { y: 0.0680, anchor: 246872 },
+    '38900': { y: 0.0391, anchor: 552022 },
+    '37964': { y: 0.0588, anchor: 390463 },
+    '38300': { y: 0.0776, anchor: 235539 },
+    '39300': { y: 0.0494, anchor: 524867 },
+    '17900': { y: 0.0724, anchor: 257718 },
+    '24860': { y: 0.0588, anchor: 315285 },
+    '32820': { y: 0.0700, anchor: 247229 },
+    '34980': { y: 0.0473, anchor: 455958 },
+    '12420': { y: 0.0458, anchor: 428524 },
+    '19124': { y: 0.0549, anchor: 366823 },
+    '21340': { y: 0.0783, anchor: 232910 },
+    '26420': { y: 0.0638, anchor: 308306 },
+    '41700': { y: 0.0601, anchor: 280297 },
+    '41620': { y: 0.0346, anchor: 568656 },
+    '40060': { y: 0.0532, anchor: 397705 },
+    '47260': { y: 0.0598, anchor: 373678 },
+    '42644': { y: 0.0357, anchor: 750279 },
+    '33340': { y: 0.0473, anchor: 390238 }
+  };
+
+  function rentBasis(code, cityId) {
+    if (cityId && CITY_RENT[cityId]) return CITY_RENT[cityId];
+    return RENT[code] || RENT.US;
+  }
+
   function options() {
     var list = TAX.CA.slice();
     var codes = Object.keys(STATES).filter(function (code) { return code !== 'CA' && code !== 'US'; });
@@ -329,6 +461,7 @@
     if (!state) return null;
     var list = CITIES[code] || [];
     var i;
+    var rent = rentBasis(code, cityId);
     if (cityId) {
       for (i = 0; i < list.length; i++) {
         if (list[i].id === cityId) {
@@ -337,6 +470,8 @@
             rate: list[i].rate,
             ins: list[i].ins || state.ins,
             insFrom: list[i].ins ? 'city' : 'state',
+            grossYield: rent.y,
+            yieldAnchor: rent.anchor,
             city: list[i],
             state: state,
             code: code
@@ -344,7 +479,18 @@
         }
       }
     }
-    return { kind: 'state', rate: state.rate, ins: state.ins, insFrom: 'state', city: null, state: state, code: code };
+    rent = RENT[code] || RENT.US;
+    return {
+      kind: 'state',
+      rate: state.rate,
+      ins: state.ins,
+      insFrom: 'state',
+      grossYield: rent.y,
+      yieldAnchor: rent.anchor,
+      city: null,
+      state: state,
+      code: code
+    };
   }
 
   root.HomeMarkets = {

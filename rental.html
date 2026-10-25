@@ -47,7 +47,7 @@
   <section class="card" aria-labelledby="cross-heading">
     <h2 id="cross-heading">Crossover</h2>
     <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of a rental versus stocks by purchase price and year"></div>
-    <p class="section-lead">Green is the rental ahead if you sold. Black is where it ties stocks. Rent stays fixed as the price changes.</p>
+    <p class="section-lead">Green is the rental ahead if you sold. Rent follows this market, and rises a little less than the price.</p>
     <div class="stats" aria-live="polite">
       <div class="stat">
         <div class="k">Rental pulls ahead</div>
@@ -119,6 +119,7 @@
         </div>
       </div>
       <p class="hint span-2" id="income-hint"></p>
+      <p class="hint span-2" id="rent-hint"></p>
 
       <details class="span-2 fold">
         <summary>Typical assumptions</summary>
@@ -324,7 +325,7 @@
       \]</div>
 
       <h3>Cash flow</h3>
-      <p>Collected rent is the asking rent times \(1-v\), where \(v\) is vacancy. Management is a share of collected rent. Depreciation is the building basis divided by 27.5 years. It does not leave the bank, but it does change the tax.</p>
+      <p>Collected rent is the asking rent times \(1-v\), where \(v\) is vacancy. The asking rent starts from the local gross yield and moves with price to the power of 0.85. Management is a share of collected rent. Depreciation is the building basis divided by 27.5 years. It does not leave the bank, but it does change the tax.</p>
       <div class="math">\[
         \mathrm{CF} = \text{collected} - \text{operating costs} - M - \text{income tax}
       \]</div>
@@ -358,15 +359,15 @@
 </main>
 
 <footer class="wrap">
-  <p>For a rental, not a home you live in. Brackets are tax year 2026. Depreciation is 27.5 years. The loss allowance is the federal active-participation limit. Appreciation is FHFA, 1991–2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
+  <p>For a rental, not a home you live in. Brackets are tax year 2026. Depreciation is 27.5 years. The loss allowance is the federal active-participation limit. Appreciation is FHFA, 1991–2026. Rent follows Zillow's typical rent and home value as of May 2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script src="js/taxes.js?v=11"></script>
-<script src="js/markets.js?v=11"></script>
-<script src="js/rental-model.js?v=11"></script>
-<script src="js/rental-page.js?v=13"></script>
+<script src="js/markets.js?v=14"></script>
+<script src="js/rental-model.js?v=14"></script>
+<script src="js/rental-page.js?v=14"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
