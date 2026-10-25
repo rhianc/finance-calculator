@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=18">
+<link rel="stylesheet" href="css/styles.css?v=19">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -29,58 +29,60 @@
   <section class="card" aria-labelledby="cross-heading">
     <div class="fields">
       <div class="field">
-        <label for="home-price">Home price</label>
+        <label for="home-price">Price</label>
         <div class="control">
+          <span class="unit prefix">$</span>
           <input id="home-price" inputmode="decimal" autocomplete="off" value="500,000">
-          <span class="unit">$</span>
         </div>
       </div>
       <div class="field">
-        <label for="rent">Rent for a comparable home</label>
+        <label for="rent">Rent</label>
         <div class="control">
+          <span class="unit prefix">$</span>
           <input id="rent" inputmode="decimal" autocomplete="off" value="3,650">
-          <span class="unit">$/mo</span>
+          <span class="unit">/mo</span>
         </div>
       </div>
       <div class="field">
-        <label for="state">State</label>
-        <select id="state" class="bare">
-          <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="city">City</label>
-        <select id="city" class="bare">
-          <option value="">Statewide</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="income">Household income</label>
-        <div class="control">
-          <input id="income" inputmode="decimal" autocomplete="off" value="300,000">
-          <span class="unit">$/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="filing">Filing status</label>
-        <select id="filing" class="bare">
-          <option value="mfj" selected>Married filing jointly</option>
-          <option value="single">Single</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="down-pct">Down payment</label>
+        <label for="down-pct">Down</label>
         <div class="control">
           <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
           <span class="unit">%</span>
         </div>
       </div>
       <div class="field">
-        <label for="loan-rate">Interest rate</label>
+        <label for="loan-rate">Rate</label>
         <div class="control">
           <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
-          <span class="unit">%/yr</span>
+          <span class="unit">%</span>
         </div>
+      </div>
+      <div class="field">
+        <label for="income">Income</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="income" inputmode="decimal" autocomplete="off" value="300,000">
+          <span class="unit">/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="filing">Filing</label>
+        <select id="filing" class="bare">
+          <option value="mfj" selected>Joint</option>
+          <option value="single">Single</option>
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="state">State</label>
+        <select id="state" class="bare">
+          <option value="CA" data-rate="1.10" data-growth="prop13" selected>California, new purchase</option>
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="city">City</label>
+        <select id="city" class="bare">
+          <option value="">Statewide</option>
+        </select>
       </div>
       <p class="hint span-2" id="income-hint"></p>
 

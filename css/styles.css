@@ -14,22 +14,24 @@
   --shadow: 0 1px 2px rgba(31, 26, 23, 0.04);
   --serif: "Iowan Old Style", Palatino, Georgia, serif;
   --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%236b625b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --paper: #141210;
-    --card: #1c1916;
-    --ink: #f4efe8;
-    --muted: #b7aba2;
-    --line: #3c342e;
+    --paper: #0d0d0c;
+    --card: #181816;
+    --ink: #f7f4ef;
+    --muted: #a39b92;
+    --line: rgba(247, 244, 239, 0.1);
     --house: #9ec0ef;
     --rent: #e2a888;
     --good: #8dcea8;
-    --soft: #2c2723;
-    --field: #171411;
+    --soft: #22211e;
+    --field: #262420;
     --shadow: none;
+    --chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23a39b92' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   }
 }
 
@@ -54,12 +56,12 @@ body {
   margin: 0 auto;
 }
 
-header.wrap { padding: 1.35rem 0 0.2rem; }
+header.wrap { padding: 0.85rem 0 0; }
 
 .pages {
   display: inline-flex;
   gap: 0.15rem;
-  margin: 0 0 1.35rem;
+  margin: 0 0 0.95rem;
   padding: 0.22rem;
   background: var(--soft);
   border-radius: 999px;
@@ -80,8 +82,7 @@ header.wrap { padding: 1.35rem 0 0.2rem; }
 
 .pages a[aria-current="page"] {
   color: var(--ink);
-  background: var(--card);
-  box-shadow: var(--shadow);
+  background: var(--field);
 }
 
 .eyebrow {
@@ -94,10 +95,10 @@ header.wrap { padding: 1.35rem 0 0.2rem; }
 h1, h2, h3 { line-height: 1.15; }
 
 h1 {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.35rem;
   font-family: var(--serif);
   font-weight: 600;
-  font-size: clamp(1.85rem, 6vw, 2.35rem);
+  font-size: clamp(1.75rem, 6vw, 2.2rem);
   letter-spacing: -0.02em;
 }
 
@@ -123,7 +124,7 @@ h3 {
   max-width: 38rem;
 }
 
-.lede { margin: 0.35rem 0 0; font-size: 1rem; }
+.lede { margin: 0; font-size: 0.95rem; line-height: 1.35; }
 
 .section-lead { margin: 0.25rem 0 0.55rem; font-size: 0.92rem; }
 
@@ -131,7 +132,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.85rem;
-  padding: 0.85rem 0 2.75rem;
+  padding: 0.7rem 0 2.75rem;
 }
 
 .grid {
@@ -144,9 +145,9 @@ h3 {
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
-  padding: 1.2rem 1.15rem 1.3rem;
+  padding: 1rem 0.95rem 1.1rem;
 }
 
 .fields {
@@ -159,11 +160,12 @@ h3 {
 
 .field label {
   display: block;
-  margin-bottom: 0.38rem;
+  margin-bottom: 0.28rem;
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .control {
@@ -171,8 +173,8 @@ h3 {
   align-items: center;
   background: var(--field);
   border: 1px solid transparent;
-  border-radius: 14px;
-  min-height: 3rem;
+  border-radius: 12px;
+  min-height: 2.75rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -192,6 +194,7 @@ select.bare {
   color: inherit;
   font: inherit;
   font-size: 16px;
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
   min-width: 0;
 }
@@ -202,22 +205,37 @@ select.bare:focus { outline: none; }
 
 .control .unit {
   flex: 0 0 auto;
-  padding: 0 0.85rem 0 0.2rem;
+  padding: 0 0.7rem 0 0.15rem;
   color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1;
   white-space: nowrap;
 }
 
+.control .unit.prefix {
+  padding: 0 0.15rem 0 0.75rem;
+  color: var(--muted);
+}
+
 .control input { padding-right: 0.2rem; }
 
+.control .unit.prefix + input { padding-left: 0.2rem; }
+
 select.bare {
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid transparent;
-  border-radius: 14px;
-  background: var(--field);
-  min-height: 3rem;
+  border-radius: 12px;
+  background-color: var(--field);
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.7rem;
+  min-height: 2.75rem;
+  padding-right: 1.9rem;
+  text-overflow: ellipsis;
 }
 
 select.bare:focus {
@@ -513,9 +531,9 @@ footer a { color: var(--house); }
   .wrap { width: min(820px, calc(100% - 1.5rem)); }
   .meta, .step { grid-template-columns: minmax(0, 1fr); }
   .step .val { text-align: left; }
-  header.wrap { padding-top: 1.05rem; }
+  header.wrap { padding-top: 0.7rem; }
   .crossover { height: 440px; }
-  .card { border-radius: 18px; padding: 1.05rem 0.95rem 1.15rem; }
+  .card { border-radius: 16px; padding: 0.9rem 0.8rem 1rem; }
   .fields { gap: 0.6rem 0.5rem; }
   .control, select.bare { min-height: 2.75rem; }
 }
