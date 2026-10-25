@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Rent it out?</title>
-<link rel="stylesheet" href="css/styles.css?v=27">
+<link rel="stylesheet" href="css/styles.css?v=28">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -29,11 +29,11 @@
   <div class="stick-scope">
   <section class="stage card" aria-label="Where the rental and stocks tie, by price and year">
     <p class="plot-name">Rental vs stocks net worth</p>
+    <p class="plot-note">Each point is a price and a year. Green means the rental has more if you sold. The line is the tie.</p>
     <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of a rental versus stocks by purchase price and year"></div>
   </section>
 
   <section class="card" aria-label="What you can move">
-    <p class="section-lead">Green is the rental ahead if you sold. The line is the tie.</p>
     <p class="fine" id="stat-note" hidden></p>
     <div class="sliders">
       <div class="slider">

@@ -348,12 +348,19 @@ select.bare:focus {
 }
 
 .plot-name {
-  margin: 0 0 0.1rem;
+  margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
   color: var(--ink);
+}
+
+.plot-note {
+  margin: 0.1rem 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
 }
 
 .sliders {
