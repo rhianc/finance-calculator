@@ -624,7 +624,7 @@ footer a { color: var(--house); }
   .meta, .step { grid-template-columns: minmax(0, 1fr); }
   .step .val { text-align: left; }
   header.wrap { padding-top: 0.7rem; }
-  .crossover { height: 168px; }
+  .crossover { height: 204px; }
   .stage {
     position: sticky;
     top: 0;
