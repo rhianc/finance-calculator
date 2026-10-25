@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=16">
+<link rel="stylesheet" href="css/styles.css?v=17">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -22,15 +22,11 @@
   </nav>
   <p class="eyebrow">Primary residence</p>
   <h1>Buy or rent?</h1>
-  <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
-  <p class="fine" id="stat-note" hidden></p>
+  <p class="lede">Compare buying a home with renting it and investing the difference.</p>
 </header>
 
 <main class="wrap stack">
   <section class="card" aria-labelledby="cross-heading">
-    <h2 id="cross-heading">By price and year</h2>
-    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
-    <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
     <div class="fields">
       <div class="field">
         <label for="home-price">Home price</label>
@@ -226,6 +222,11 @@
         </div>
       </details>
     </div>
+    <h2 id="cross-heading">By price and year</h2>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
+    <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
+    <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
+    <p class="fine" id="stat-note" hidden></p>
     <p class="fine">The renter is assumed to invest whatever owning would have cost that month.</p>
   </section>
 

@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Rent it out?</title>
-<link rel="stylesheet" href="css/styles.css?v=16">
+<link rel="stylesheet" href="css/styles.css?v=17">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -22,15 +22,11 @@
   </nav>
   <p class="eyebrow">Rental property</p>
   <h1>Rent it out?</h1>
-  <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
-  <p class="fine" id="stat-note" hidden></p>
+  <p class="lede">Compare a rental property with putting the same cash in stocks.</p>
 </header>
 
 <main class="wrap stack">
   <section class="card" aria-labelledby="cross-heading">
-    <h2 id="cross-heading">By price and year</h2>
-    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of a rental versus stocks by purchase price and year"></div>
-    <p class="section-lead">Green is the rental ahead if you sold. Rent follows this market, and rises a little less than the price.</p>
     <div class="fields">
       <div class="field">
         <label for="home-price">Purchase price</label>
@@ -233,6 +229,11 @@
         </div>
       </details>
     </div>
+    <h2 id="cross-heading">By price and year</h2>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of a rental versus stocks by purchase price and year"></div>
+    <p class="section-lead">Green is the rental ahead if you sold. Rent follows this market, and rises a little less than the price.</p>
+    <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
+    <p class="fine" id="stat-note" hidden></p>
     <p class="fine">The stock account starts with the down payment and closing costs. Any cash the rental needs after that is invested there too. Cash the rental pays out is invested beside the house.</p>
   </section>
 
