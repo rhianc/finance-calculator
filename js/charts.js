@@ -462,6 +462,7 @@
 
     var yTop = yWindow.high / 1000;
     var yBottom = yWindow.low / 1000;
+    var tag = null;
     if (spec.price > 0) {
       data.push({
         type: 'scatter',
@@ -476,15 +477,27 @@
       var last = mine.points[mine.points.length - 1];
       var gap = last.houseReal - last.rentReal;
       var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
+      var who = gap > 0 ? 'Buy ' : gap < 0 ? 'Rent ' : '';
+      tag = {
+        x: years[years.length - 1],
+        y: spec.price / 1000,
+        xref: 'x',
+        yref: 'y',
+        text: compactMoney(spec.price) + ' · ' + (gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap))),
+        showarrow: false,
+        xanchor: 'right',
+        yanchor: 'bottom',
+        xshift: -4,
+        yshift: 2,
+        font: { size: 11, color: tone },
+        bgcolor: 'rgba(0,0,0,0)'
+      };
       data.push({
         type: 'scatter',
-        mode: 'markers+text',
+        mode: 'markers',
         x: [years[years.length - 1]],
         y: [spec.price / 1000],
-        text: [gap === 0 ? 'Even' : compactMoney(gap)],
-        textposition: 'middle left',
-        textfont: { size: 13, color: tone },
-        marker: { size: 9, color: tone, line: { color: card, width: 2 } },
+        marker: { size: 8, color: tone, line: { color: card, width: 2 } },
         cliponaxis: false,
         name: 'At the end',
         showlegend: false,
@@ -537,6 +550,7 @@
         itemwidth: 24
       },
       hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
+      annotations: tag ? [tag] : [],
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12, color: ink }

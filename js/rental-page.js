@@ -496,6 +496,9 @@
         hovertemplate: 'Even at year %{x:.1f}<br>$%{y:.0f}k<extra></extra>'
       });
     });
+    var yTop = high / 1000;
+    var yBottom = low / 1000;
+    var tag = null;
     if (input.price > 0) {
       data.push({
         type: 'scatter',
@@ -510,23 +513,33 @@
       var lastPoint = mine.points[mine.points.length - 1];
       var gap = lastPoint.rentalReal - lastPoint.stockReal;
       var tone = gap > 0 ? (dark ? '#8dcea8' : '#1f6b45') : gap < 0 ? (dark ? '#e2a888' : '#a65b2b') : ink;
+      var who = gap > 0 ? 'House ' : gap < 0 ? 'Stocks ' : '';
+      tag = {
+        x: years[years.length - 1],
+        y: input.price / 1000,
+        xref: 'x',
+        yref: 'y',
+        text: compactMoney(input.price) + ' · ' + (gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap))),
+        showarrow: false,
+        xanchor: 'right',
+        yanchor: 'bottom',
+        xshift: -4,
+        yshift: 2,
+        font: { size: 11, color: tone },
+        bgcolor: 'rgba(0,0,0,0)'
+      };
       data.push({
         type: 'scatter',
-        mode: 'markers+text',
+        mode: 'markers',
         x: [years[years.length - 1]],
         y: [input.price / 1000],
-        text: [gap === 0 ? 'Even' : compactMoney(gap)],
-        textposition: 'middle left',
-        textfont: { size: 13, color: tone },
-        marker: { size: 9, color: tone, line: { color: card, width: 2 } },
+        marker: { size: 8, color: tone, line: { color: card, width: 2 } },
         cliponaxis: false,
         name: 'At the end',
         showlegend: false,
         hovertemplate: 'Year %{x:.0f}<br>' + (gap >= 0 ? 'Rental' : 'Stocks') + ' ahead<extra></extra>'
       });
     }
-    var yTop = high / 1000;
-    var yBottom = low / 1000;
     try {
       Plotly.react(el, data, {
         margin: { t: 28, r: 44, b: 36, l: 48 },
@@ -534,6 +547,7 @@
         yaxis: { title: { text: 'Price ($k)', font: { size: 11, color: muted }, standoff: 2 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [yBottom, yTop], automargin: false },
         legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11, color: ink }, bgcolor: 'rgba(0,0,0,0)', itemwidth: 24 },
         hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
+        annotations: tag ? [tag] : [],
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', size: 12, color: ink }
