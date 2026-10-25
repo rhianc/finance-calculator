@@ -388,7 +388,7 @@ select.bare:focus {
 .vrange {
   position: relative;
   width: 36px;
-  height: 116px;
+  height: 151px;
   margin-top: 0.2rem;
 }
 
@@ -396,11 +396,11 @@ select.bare:focus {
   -webkit-appearance: none;
   appearance: none;
   position: absolute;
-  width: 116px;
+  width: 151px;
   height: 32px;
   margin: 0;
-  top: 42px;
-  left: -40px;
+  top: 60px;
+  left: -58px;
   background: transparent;
   transform: rotate(-90deg);
   transform-origin: center center;
