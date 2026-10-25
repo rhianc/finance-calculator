@@ -364,6 +364,7 @@
   }
 
   function refresh(fast) {
+    if (window.RedfinLink) RedfinLink.paint();
     var input = readInputs();
     if (!fast) $('tax-hint').textContent = {
       prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',

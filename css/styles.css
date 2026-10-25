@@ -473,6 +473,13 @@ select.bare:focus {
   pointer-events: none;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.15rem;
+  align-items: baseline;
+}
+
 .textbtn {
   margin: 0.55rem 0 0;
   padding: 0.35rem 0;
@@ -482,6 +489,7 @@ select.bare:focus {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 550;
+  text-decoration: none;
 }
 
 .card > .fields { margin-top: 1.15rem; }

@@ -608,6 +608,7 @@
   }
 
   function refresh(fast) {
+    if (window.RedfinLink) RedfinLink.paint();
     var input = readInputs();
     if (fast) {
       scheduleCrossover(input);
