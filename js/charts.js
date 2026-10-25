@@ -334,6 +334,22 @@
     return 10 * pow;
   }
 
+  function typicalPrice(spec) {
+    var markets = root.HomeMarkets;
+    if (!markets || !spec) return 0;
+    var code = spec.stateCode || 'CA';
+    var id = '';
+    var list = markets.cities(code) || [];
+    var i;
+    if (spec.cityName) {
+      for (i = 0; i < list.length; i++) {
+        if (list[i].name === spec.cityName) { id = list[i].id; break; }
+      }
+    }
+    var place = markets.place(code, id);
+    return place && place.yieldAnchor > 0 ? place.yieldAnchor : 0;
+  }
+
   function renderCrossover(input, fast) {
     var el = document.getElementById('crossoverChart');
     if (!el || !root.FinanceModel) return;
@@ -463,6 +479,18 @@
     var yTop = yWindow.high / 1000;
     var yBottom = yWindow.low / 1000;
     var tag = null;
+    var typical = typicalPrice(spec);
+    if (typical > 0) {
+      data.push({
+        type: 'scatter',
+        mode: 'lines',
+        x: [0, years[years.length - 1]],
+        y: [typical / 1000, typical / 1000],
+        line: { color: dark ? '#e6c98a' : '#8a6a32', width: 2, dash: 'dot' },
+        name: 'Avg',
+        hovertemplate: 'Typical home this year<br>$%{y:.0f}k<extra></extra>'
+      });
+    }
     if (spec.price > 0) {
       data.push({
         type: 'scatter',
