@@ -359,7 +359,12 @@ select.bare:focus {
   max-width: 100% !important;
 }
 
-.stick-scope { min-width: 0; }
+.stick-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
 
 .stage {
   position: relative;
@@ -683,7 +688,8 @@ footer a { color: var(--house); }
     position: sticky;
     top: 0;
     padding: 0.35rem 0.45rem;
-    box-shadow: 0 10px 0 0 var(--paper);
+    /* Fill only the gap under the stuck chart, not the knobs. */
+    box-shadow: 0 0.75rem 0 0 var(--paper);
   }
   .card { border-radius: 16px; padding: 0.9rem 0.8rem 1rem; }
   .stage.card { padding: 0.35rem 0.45rem; }

@@ -466,8 +466,13 @@
       line: { width: 0.6, color: dark ? 'rgba(244, 239, 232, 0.16)' : 'rgba(31, 26, 23, 0.18)' },
       colorbar: {
         thickness: 8,
+        thicknessmode: 'pixels',
         len: 1,
         outlinewidth: 0,
+        x: 1.02,
+        xanchor: 'left',
+        xref: 'paper',
+        xpad: 4,
         tickmode: 'array',
         tickvals: [-zExtent, 0, zExtent],
         ticktext: [-zExtent, 0, zExtent].map(compactMoney),
@@ -575,8 +580,8 @@
         width: el.clientWidth || undefined,
         height: el.clientHeight || undefined,
         uirevision: 'crossover',
-        margin: { t: 36, r: 54, b: 42, l: 54 },
-        xaxis: { title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [0, years[years.length - 1]], dtick: years[years.length - 1] > 20 ? 5 : 2, zeroline: false, automargin: false },
+        margin: { t: 36, r: 78, b: 42, l: 54, autoexpand: false },
+        xaxis: { domain: [0, 1], title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [0, years[years.length - 1]], dtick: years[years.length - 1] > 20 ? 5 : 2, zeroline: false, automargin: false },
         yaxis: { title: { text: 'Home price ($k)', font: { size: 11, color: muted }, standoff: 2 }, tickfont: { color: muted }, gridcolor: grid, linecolor: grid, range: [yBottom, yTop], automargin: false },
         legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, x: 0, xanchor: 'left', font: { size: 11, color: ink }, bgcolor: 'rgba(0,0,0,0)' },
         hoverlabel: { bgcolor: card, bordercolor: grid, font: { color: ink } },
@@ -922,6 +927,30 @@
       refresh();
     });
   }
+
+  function tooltipOpen(chart) {
+    return !!(chart && chart.tooltip && chart.tooltip.getActiveElements && chart.tooltip.getActiveElements().length);
+  }
+
+  document.addEventListener('pointerdown', function (event) {
+    var target = event.target;
+    if (window.Plotly && Plotly.Fx && Plotly.Fx.unhover) {
+      var plots = document.querySelectorAll('.js-plotly-plot');
+      var i;
+      for (i = 0; i < plots.length; i++) {
+        if (plots[i].contains(target)) continue;
+        try { Plotly.Fx.unhover(plots[i]); } catch (err) {}
+        var layer = plots[i].querySelector('.hoverlayer');
+        if (layer) layer.replaceChildren();
+      }
+    }
+    [pieChart, lineChart].forEach(function (chart) {
+      if (!tooltipOpen(chart) || !chart.canvas || chart.canvas.contains(target)) return;
+      chart.setActiveElements([]);
+      chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+      chart.update('none');
+    });
+  }, true);
 
   boot();
 })();
