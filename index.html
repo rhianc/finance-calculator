@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=19">
+<link rel="stylesheet" href="css/styles.css?v=20">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -26,37 +26,49 @@
 </header>
 
 <main class="wrap stack">
-  <section class="card" aria-labelledby="cross-heading">
+  <section class="stage card" aria-labelledby="cross-heading">
+    <h2 id="cross-heading">Where it flips</h2>
+    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
+    <p class="section-lead">Green is buying ahead if you sold. The line is the tie.</p>
+    <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
+    <p class="fine" id="stat-note" hidden></p>
+  </section>
+
+  <section class="card" aria-label="What you can move">
+    <div class="sliders">
+      <div class="slider">
+        <div class="slider-row">
+          <label for="rent">Rent</label>
+          <output for="rent" id="rent-out">$3,650</output>
+        </div>
+        <input id="rent" type="range" min="500" max="20000" step="25" value="3650">
+      </div>
+      <div class="slider">
+        <div class="slider-row">
+          <label for="loan-rate">Rate</label>
+          <output for="loan-rate" id="loan-rate-out">6.5%</output>
+        </div>
+        <input id="loan-rate" type="range" min="2" max="12" step="0.05" value="6.5">
+      </div>
+      <div class="slider">
+        <div class="slider-row">
+          <label for="home-price">Price</label>
+          <output for="home-price" id="home-price-out">$500,000</output>
+        </div>
+        <input id="home-price" type="range" min="100000" max="3000000" step="5000" value="500000">
+      </div>
+      <div class="slider">
+        <div class="slider-row">
+          <label for="down-pct">Down</label>
+          <output for="down-pct" id="down-pct-out">20%</output>
+        </div>
+        <input id="down-pct" type="range" min="0" max="100" step="1" value="20">
+      </div>
+    </div>
+    <p class="fine">The renter invests whatever owning would have cost that month. Everything else stays put.</p>
+    <button type="button" class="textbtn" id="copy-link">Copy link</button>
+
     <div class="fields">
-      <div class="field">
-        <label for="home-price">Price</label>
-        <div class="control">
-          <span class="unit prefix">$</span>
-          <input id="home-price" inputmode="decimal" autocomplete="off" value="500,000">
-        </div>
-      </div>
-      <div class="field">
-        <label for="rent">Rent</label>
-        <div class="control">
-          <span class="unit prefix">$</span>
-          <input id="rent" inputmode="decimal" autocomplete="off" value="3,650">
-          <span class="unit">/mo</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="down-pct">Down</label>
-        <div class="control">
-          <input id="down-pct" type="number" min="0" max="100" step="0.1" value="20" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="loan-rate">Rate</label>
-        <div class="control">
-          <input id="loan-rate" type="number" min="0" max="25" step="0.05" value="6.5" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-      </div>
       <div class="field">
         <label for="income">Income</label>
         <div class="control">
@@ -224,12 +236,6 @@
         </div>
       </details>
     </div>
-    <h2 id="cross-heading">By price and year</h2>
-    <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
-    <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
-    <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
-    <p class="fine" id="stat-note" hidden></p>
-    <p class="fine">The renter is assumed to invest whatever owning would have cost that month.</p>
   </section>
 
   <section class="card" aria-labelledby="pay-heading">
@@ -369,8 +375,8 @@
 <script src="js/taxes.js?v=9"></script>
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=14"></script>
-<script src="js/charts.js?v=16"></script>
-<script src="js/main.js?v=16"></script>
+<script src="js/charts.js?v=17"></script>
+<script src="js/main.js?v=17"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

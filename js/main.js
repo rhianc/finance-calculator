@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var MONEY_IDS = ['home-price', 'down-amt', 'insurance', 'hoa', 'rent', 'income', 'other-salt', 'other-itemized'];
+  var MONEY_IDS = ['down-amt', 'insurance', 'hoa', 'income', 'other-salt', 'other-itemized'];
   var COLORS = {
     'Principal & interest': '#c4a574',
     'Property tax': '#7d9a86',
@@ -170,7 +170,8 @@
       down = price;
       setMoney('down-amt', down);
     }
-    $('down-pct').value = price > 0 ? formatNumber(down / price * 100, 1) : '0';
+    $('down-pct').value = price > 0 ? String(Math.round(down / price * 100)) : '0';
+    paintSlider($('down-pct'));
   }
 
   function readInputs() {
@@ -361,7 +362,7 @@
     el.replaceChildren(k, v);
   }
 
-  function refresh() {
+  function refresh(fast) {
     var input = readInputs();
     $('tax-hint').textContent = {
       prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',
@@ -432,16 +433,128 @@
       $('app-hint').textContent = formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '.';
     }
 
+    if (fast) {
+      scheduleCrossover(input);
+      return;
+    }
+
     renderYears(result.points);
     renderWorked(result);
     FinanceCharts.renderPie($('pieChart'), slices);
     FinanceCharts.renderLines($('wealthChart'), result.points);
+    crossJob = null;
     FinanceCharts.renderCrossover(input);
+  }
+
+  var crossJob = null;
+  var crossBusy = false;
+  function scheduleCrossover(input) {
+    crossJob = input;
+    if (crossBusy) return;
+    crossBusy = true;
+    requestAnimationFrame(function draw() {
+      var job = crossJob;
+      crossJob = null;
+      if (job) {
+        try { FinanceCharts.renderCrossover(job, true); } catch (err) {}
+      }
+      if (crossJob) requestAnimationFrame(draw);
+      else crossBusy = false;
+    });
+  }
+
+  function paintSlider(el) {
+    if (!el || el.type !== 'range') return;
+    var min = parseFloat(el.min);
+    var max = parseFloat(el.max);
+    var val = parseFloat(el.value);
+    var pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    el.style.setProperty('--fill', pct + '%');
+    var out = $(el.id + '-out');
+    if (!out) return;
+    if (el.id === 'home-price' || el.id === 'rent') out.textContent = money(val, 0);
+    else if (el.id === 'loan-rate') {
+      var rate = Math.round(val * 100) / 100;
+      out.textContent = String(rate).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + '%';
+    } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
+  }
+
+  function paintSliders() {
+    ['rent', 'loan-rate', 'home-price', 'down-pct'].forEach(function (id) { paintSlider($(id)); });
+  }
+
+  function setRange(id, n) {
+    var el = $(id);
+    if (!el) return;
+    var min = parseFloat(el.min);
+    var max = parseFloat(el.max);
+    var step = parseFloat(el.step) || 1;
+    var v = Math.min(max, Math.max(min, n));
+    v = min + Math.round((v - min) / step) * step;
+    el.value = String(Math.round(v * 1000) / 1000);
+    paintSlider(el);
+  }
+
+  var SHARE = [
+    { key: 'p', id: 'home-price', def: 500000 },
+    { key: 'rent', id: 'rent', def: 3650 },
+    { key: 'down', id: 'down-pct', def: 20 },
+    { key: 'rate', id: 'loan-rate', def: 6.5 },
+    { key: 'inc', id: 'income', def: 300000 },
+    { key: 'file', id: 'filing', def: 'mfj', text: true },
+    { key: 'st', id: 'state', def: 'CA', text: true },
+    { key: 'city', id: 'city', def: '', text: true }
+  ];
+
+  function writeQuery() {
+    var params = new URLSearchParams();
+    SHARE.forEach(function (item) {
+      var el = $(item.id);
+      if (!el) return;
+      var raw = item.text ? el.value : parseNum(el.value);
+      var same = item.text ? raw === item.def : Math.abs(raw - item.def) < 0.001;
+      if (!same && String(raw) !== '') params.set(item.key, item.text ? raw : String(raw));
+    });
+    var next = params.toString();
+    var url = location.pathname + (next ? '?' + next : '') + location.hash;
+    if (url !== location.pathname + location.search + location.hash) history.replaceState(null, '', url);
+    document.querySelectorAll('.pages a').forEach(function (a) {
+      var path = a.getAttribute('href').split('?')[0];
+      a.setAttribute('href', path + (next ? '?' + next : ''));
+    });
+  }
+
+  var queryTimer = 0;
+  function scheduleQuery() {
+    clearTimeout(queryTimer);
+    queryTimer = setTimeout(writeQuery, 300);
+  }
+
+  function applyQuery() {
+    var q = new URLSearchParams(location.search);
+    if (q.has('st')) {
+      $('state').value = q.get('st');
+      if (!$('state').value) $('state').value = 'CA';
+    }
+    fillCities();
+    if (q.has('city')) {
+      $('city').value = q.get('city');
+      if ($('city').value !== q.get('city')) $('city').value = '';
+    }
+    if (q.has('p')) setRange('home-price', parseNum(q.get('p')));
+    if (q.has('rent')) setRange('rent', parseNum(q.get('rent')));
+    if (q.has('down')) setRange('down-pct', parseNum(q.get('down')));
+    if (q.has('rate')) setRange('loan-rate', parseNum(q.get('rate')));
+    if (q.has('inc')) setMoney('income', parseNum(q.get('inc')));
+    if (q.get('file') === 'single' || q.get('file') === 'mfj') $('filing').value = q.get('file');
+    return q;
   }
 
   function onEdit(event) {
     var id = event.target.id;
-    if (MONEY_IDS.indexOf(id) !== -1 && event.type === 'input') formatMoneyLive(event.target);
+    var slider = event.target.type === 'range';
+    if (!slider && MONEY_IDS.indexOf(id) !== -1 && event.type === 'input') formatMoneyLive(event.target);
+    if (slider) paintSlider(event.target);
     if (id === 'state') {
       fillCities();
       applyAppreciation();
@@ -460,7 +573,13 @@
     } else if (id === 'down-amt') {
       syncPctFromAmt();
     }
+    if (slider && event.type === 'input') {
+      refresh(true);
+      scheduleQuery();
+      return;
+    }
     refresh();
+    writeQuery();
   }
 
   document.body.addEventListener('input', onEdit);
@@ -486,13 +605,29 @@
 
   function boot() {
     buildStates();
-    fillCities();
+    applyQuery();
     try { applyAppreciation(); } catch (err) { console.error(err); }
     try { applyInsurance(); } catch (err) { console.error(err); }
     try { applyStateTax(); } catch (err) { console.error(err); }
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
+    paintSliders();
     refresh();
+    writeQuery();
+  }
+
+  var copyBtn = $('copy-link');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      writeQuery();
+      var done = function () {
+        copyBtn.textContent = 'Copied';
+        setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(location.href).then(done, done);
+      } else done();
+    });
   }
 
   if (window.matchMedia) {

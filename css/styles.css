@@ -334,10 +334,105 @@ select.bare:focus {
 
 .crossover {
   width: 100%;
-  height: 520px;
+  height: 340px;
   min-width: 0;
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.35rem;
 }
+
+.stage {
+  position: relative;
+  z-index: 5;
+}
+
+.stage h2 { margin-bottom: 0.35rem; }
+
+.stage .surplus { margin-top: 0.15rem; }
+
+.stage .surplus-v { font-size: clamp(1.85rem, 7vw, 2.45rem); }
+
+.sliders { display: grid; gap: 0.15rem; }
+
+.slider { padding: 0.35rem 0 0.45rem; }
+
+.slider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.05rem;
+}
+
+.slider-row label {
+  font-size: 0.95rem;
+  font-weight: 550;
+}
+
+.slider-row output {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  touch-action: none;
+  --fill: 0%;
+}
+
+.slider input[type="range"]:focus { outline: none; }
+
+.slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--ink) var(--fill), var(--soft) var(--fill));
+}
+
+.slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.slider input[type="range"]::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--ink) var(--fill), var(--soft) var(--fill));
+}
+
+.slider input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.textbtn {
+  margin: 0.55rem 0 0;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 550;
+}
+
+.card > .fields { margin-top: 1.15rem; }
 
 .surplus {
   display: flex;
@@ -532,7 +627,12 @@ footer a { color: var(--house); }
   .meta, .step { grid-template-columns: minmax(0, 1fr); }
   .step .val { text-align: left; }
   header.wrap { padding-top: 0.7rem; }
-  .crossover { height: 440px; }
+  .crossover { height: 220px; }
+  .stage {
+    position: sticky;
+    top: 0;
+    box-shadow: 0 16px 0 0 var(--paper);
+  }
   .card { border-radius: 16px; padding: 0.9rem 0.8rem 1rem; }
   .fields { gap: 0.6rem 0.5rem; }
   .control, select.bare { min-height: 2.75rem; }

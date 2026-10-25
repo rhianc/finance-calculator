@@ -289,12 +289,13 @@
     return { low: low, high: high, center: center };
   }
 
-  function priceGrid(low, high) {
+  function priceGrid(low, high, minStep) {
     var start = Math.max(PRICE_PAD, low);
     start = Math.ceil(start / PRICE_PAD) * PRICE_PAD;
     var end = Math.floor(high / PRICE_PAD) * PRICE_PAD;
     if (end <= start) end = start + PRICE_PAD;
     var step = (end - start) / PRICE_PAD > 48 ? 100000 : PRICE_PAD;
+    if (minStep && step < minStep) step = minStep;
     var prices = [];
     var p;
     for (p = start; p <= end + step * 0.01; p += step) prices.push(Math.round(p));
@@ -323,7 +324,7 @@
     return 10 * pow;
   }
 
-  function renderCrossover(input) {
+  function renderCrossover(input, fast) {
     var el = document.getElementById('crossoverChart');
     if (!el || !root.FinanceModel) return;
     if (typeof Plotly === 'undefined') {
@@ -334,9 +335,9 @@
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
     var focusMonth = Math.min(horizon, 30 * 12);
-    var evenPrice = breakevenAt(spec, focusMonth);
+    var evenPrice = fast ? (spec.price > 0 ? spec.price : 800000) : breakevenAt(spec, focusMonth);
     var yWindow = priceWindow(evenPrice, spec.price);
-    var prices = priceGrid(yWindow.low, yWindow.high);
+    var prices = priceGrid(yWindow.low, yWindow.high, fast ? 100000 : 0);
     var years = [];
     var month;
     for (month = 0; month <= horizon; month++) years.push(month / 12);
