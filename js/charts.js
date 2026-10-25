@@ -335,10 +335,11 @@
     var spec = root.FinanceModel.normalize(input);
     var horizon = Math.round(spec.horizonYears * 12);
     var yWindow = priceWindow(spec.price > 0 ? spec.price : 800000, spec.price);
-    var prices = priceGrid(yWindow.low, yWindow.high, fast ? 100000 : 0);
+    var prices = priceGrid(yWindow.low, yWindow.high, fast ? 200000 : 0);
+    var stride = fast ? 12 : 1;
     var years = [];
     var month;
-    for (month = 0; month <= horizon; month++) years.push(month / 12);
+    for (month = 0; month <= horizon; month += stride) years.push(month / 12);
 
     var z = [];
     var maxAbs = 0;
@@ -347,8 +348,9 @@
     for (i = 0; i < prices.length; i++) {
       var result = root.FinanceModel.project(root.FinanceModel.atPrice(spec, prices[i]));
       var row = [];
-      for (t = 0; t <= horizon; t++) {
-        var gap = result.points[t].houseReal - result.points[t].rentReal;
+      for (t = 0; t < years.length; t++) {
+        var point = result.points[Math.min(Math.round(years[t] * 12), result.points.length - 1)];
+        var gap = point.houseReal - point.rentReal;
         row.push(gap);
         if (Math.abs(gap) > maxAbs) maxAbs = Math.abs(gap);
       }

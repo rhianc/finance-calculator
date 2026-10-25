@@ -364,6 +364,10 @@
 
   function refresh(fast) {
     var input = readInputs();
+    if (fast) {
+      scheduleCrossover(input);
+      return;
+    }
     $('tax-hint').textContent = {
       prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',
       market: 'Grows with the home value. Edit the rate to match the parcel.',
@@ -453,7 +457,7 @@
     crossJob = input;
     if (crossBusy) return;
     crossBusy = true;
-    requestAnimationFrame(function draw() {
+    function draw() {
       var job = crossJob;
       crossJob = null;
       if (job) {
@@ -461,7 +465,8 @@
       }
       if (crossJob) requestAnimationFrame(draw);
       else crossBusy = false;
-    });
+    }
+    requestAnimationFrame(draw);
   }
 
   function paintSlider(el) {
@@ -526,6 +531,7 @@
   }
 
   var queryTimer = 0;
+  var sharpenTimer = 0;
   function scheduleQuery() {
     clearTimeout(queryTimer);
     queryTimer = setTimeout(writeQuery, 300);
@@ -577,6 +583,14 @@
     if (slider && event.type === 'input') {
       refresh(true);
       scheduleQuery();
+      return;
+    }
+    if (slider && event.type === 'change') {
+      clearTimeout(sharpenTimer);
+      sharpenTimer = setTimeout(function () {
+        refresh();
+        writeQuery();
+      }, 80);
       return;
     }
     refresh();

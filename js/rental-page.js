@@ -389,22 +389,23 @@
     var half = 600000;
     var low = Math.max(0, center - half);
     var high = center + half;
-    var step = fast ? 100000 : 50000;
+    var step = fast ? 200000 : 50000;
     var prices = [];
     var p;
     for (p = Math.max(step, Math.ceil(low / step) * step); p <= high + 1; p += step) prices.push(p);
     if (prices.length < 2) prices = [step, step * 2];
+    var stride = fast ? 12 : 1;
     var years = [];
     var month;
-    for (month = 0; month <= horizon; month++) years.push(month / 12);
+    for (month = 0; month <= horizon; month += stride) years.push(month / 12);
     var z = [];
     var maxAbs = 0;
     var results = prices.map(function (price) { return RentalModel.project(RentalModel.atPrice(input, price)); });
     results.forEach(function (result) {
       var row = [];
       var t;
-      for (t = 0; t <= horizon; t++) {
-        var point = result.points[Math.min(t, result.points.length - 1)];
+      for (t = 0; t < years.length; t++) {
+        var point = result.points[Math.min(Math.round(years[t] * 12), result.points.length - 1)];
         var gap = point.rentalReal - point.stockReal;
         row.push(gap);
         if (Math.abs(gap) > maxAbs) maxAbs = Math.abs(gap);
@@ -549,6 +550,10 @@
 
   function refresh(fast) {
     var input = readInputs();
+    if (fast) {
+      scheduleCrossover(input);
+      return;
+    }
     var result = RentalModel.project(input);
     var first = result.first;
     if (!first) return;
@@ -635,7 +640,7 @@
     crossJob = input;
     if (crossBusy) return;
     crossBusy = true;
-    requestAnimationFrame(function draw() {
+    function draw() {
       var job = crossJob;
       crossJob = null;
       if (job) {
@@ -643,7 +648,8 @@
       }
       if (crossJob) requestAnimationFrame(draw);
       else crossBusy = false;
-    });
+    }
+    requestAnimationFrame(draw);
   }
 
   function paintSlider(el) {
@@ -708,6 +714,7 @@
   }
 
   var queryTimer = 0;
+  var sharpenTimer = 0;
   function scheduleQuery() {
     clearTimeout(queryTimer);
     queryTimer = setTimeout(writeQuery, 300);
@@ -757,6 +764,14 @@
     if (slider && event.type === 'input') {
       refresh(true);
       scheduleQuery();
+      return;
+    }
+    if (slider && event.type === 'change') {
+      clearTimeout(sharpenTimer);
+      sharpenTimer = setTimeout(function () {
+        refresh();
+        writeQuery();
+      }, 80);
       return;
     }
     refresh();
