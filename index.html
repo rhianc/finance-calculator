@@ -5,29 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Where buying beats renting, by home price and year, then the monthly payment.">
-<meta name="theme-color" content="#f3efe6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif&display=swap" rel="stylesheet">
 <title>Buy or rent?</title>
-<link rel="stylesheet" href="css/styles.css?v=14">
-<style>
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --paper: #141210;
-    --card: #221e1b;
-    --ink: #f4efe8;
-    --muted: #b7aba2;
-    --line: #3c342e;
-    --house: #9ec0ef;
-    --rent: #e2a888;
-    --good: #8dcea8;
-    --soft: #2c2723;
-    --field: #1a1714;
-  }
-  html, body { background: #141210; color: #f4efe8; }
-}
-</style>
+<link rel="stylesheet" href="css/styles.css?v=15">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -40,16 +25,15 @@
   </nav>
   <p class="eyebrow">Primary residence</p>
   <h1>Buy or rent?</h1>
-  <p class="lede">Where buying comes out ahead of renting, by price and by year.</p>
+  <p class="surplus" id="stat-gap" aria-live="polite"><span class="surplus-k">Surplus</span><span class="surplus-v">—</span></p>
+  <p class="fine" id="stat-note" hidden></p>
 </header>
 
 <main class="wrap stack">
   <section class="card" aria-labelledby="cross-heading">
-    <h2 id="cross-heading">Crossover</h2>
+    <h2 id="cross-heading">By price and year</h2>
     <div id="crossoverChart" class="crossover" role="img" aria-label="Crossover map of buying versus renting by home price and year"></div>
     <p class="section-lead">Green is buying ahead if you sold. Black is where the two paths tie.</p>
-    <p class="surplus" id="stat-gap" aria-live="polite">—</p>
-    <p class="fine" id="stat-note" hidden></p>
     <div class="fields">
       <div class="field">
         <label for="home-price">Home price</label>
@@ -385,8 +369,8 @@
 <script src="js/taxes.js?v=9"></script>
 <script src="js/model.js?v=9"></script>
 <script src="js/markets.js?v=14"></script>
-<script src="js/charts.js?v=13"></script>
-<script src="js/main.js?v=15"></script>
+<script src="js/charts.js?v=14"></script>
+<script src="js/main.js?v=16"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

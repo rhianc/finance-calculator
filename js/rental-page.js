@@ -2,19 +2,19 @@
   'use strict';
 
   var COLORS = {
-    'Mortgage': '#1f4b82',
-    'Property tax': '#3f6f54',
-    'Insurance': '#a65b2b',
-    'Maintenance': '#6b625b',
-    'Management': '#7a5b78',
-    'Vacancy': '#8a5a44',
-    'HOA': '#9a7b4f',
-    'PMI': '#8a5a44',
-    'Cash left': '#1f6b45'
+    'Mortgage': '#c4a574',
+    'Property tax': '#7d9a86',
+    'Insurance': '#d08a62',
+    'Maintenance': '#a39e94',
+    'Management': '#8d9a93',
+    'Vacancy': '#b08968',
+    'HOA': '#cbb892',
+    'PMI': '#b08968',
+    'Cash left': '#8fbf9f'
   };
   var MONEY_IDS = ['home-price', 'rent', 'income', 'hoa', 'insurance', 'down-amt'];
-  var HOUSE = '#1f4b82';
-  var STOCK = '#a65b2b';
+  var HOUSE = '#2f6d52';
+  var STOCK = '#b56a3c';
   var pieChart = null;
   var lineChart = null;
 
@@ -284,8 +284,8 @@
     var canvas = $('pieChart');
     if (!canvas || typeof Chart === 'undefined' || !slices.length) return;
     if (typeof Chart !== 'undefined') {
-      Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
-      Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
+      Chart.defaults.color = dark ? '#9c968c' : '#6e695f';
+      Chart.defaults.borderColor = dark ? '#2a2924' : '#e4dfd4';
     }
     pieChart = new Chart(canvas, {
       type: 'doughnut',
@@ -295,7 +295,7 @@
           data: slices.map(function (s) { return s.value; }),
           backgroundColor: slices.map(function (s) { return s.color; }),
           borderWidth: 2,
-          borderColor: isDark() ? '#221e1b' : '#fffdf8'
+          borderColor: isDark() ? '#171714' : '#fcfbf8'
         }]
       },
       options: {
@@ -312,8 +312,8 @@
     var canvas = $('wealthChart');
     if (!canvas || typeof Chart === 'undefined') return;
     var dark = isDark();
-    Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
-    Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
+    Chart.defaults.color = dark ? '#9c968c' : '#6e695f';
+    Chart.defaults.borderColor = dark ? '#2a2924' : '#e4dfd4';
     if (lineChart) lineChart.destroy();
     lineChart = new Chart(canvas, {
       type: 'line',
@@ -468,7 +468,7 @@
       zmax: zExtent,
       colorscale: [
         [0, '#7f1d1d'], [0.30, '#991b1b'], [0.42, '#ef4444'], [0.48, '#fecaca'],
-        [0.50, '#fffdf8'], [0.52, '#bbf7d0'], [0.58, '#16a34a'], [0.70, '#166534'], [1, '#14532d']
+        dark ? [0.50, '#171714'] : [0.50, '#fcfbf8'], [0.52, '#bbf7d0'], [0.58, '#16a34a'], [0.70, '#166534'], [1, '#14532d']
       ],
       contours: { start: -zExtent, end: zExtent, size: zStep, coloring: 'heatmap', showlines: true },
       line: { width: 0.6, color: dark ? 'rgba(244, 239, 232, 0.16)' : 'rgba(31, 26, 23, 0.18)' },
@@ -479,17 +479,17 @@
         tickmode: 'array',
         tickvals: [-zExtent, 0, zExtent],
         ticktext: [-zExtent, 0, zExtent].map(compactMoney),
-        tickfont: { size: 10, color: dark ? '#b7aba2' : '#6b625b' },
+        tickfont: { size: 10, color: dark ? '#9c968c' : '#6e695f' },
         ticks: ''
       },
       hovertemplate: 'Year %{x:.1f}<br>Price $%{y:.0f}k<br>Rental − stocks %{z:$,.0f}<extra></extra>',
       showscale: true
     }];
-    var ink = dark ? '#f4efe8' : '#1c1917';
-    var yours = dark ? '#9ec0ef' : '#1f4b82';
-    var card = dark ? '#221e1b' : '#fffdf8';
-    var muted = dark ? '#b7aba2' : '#6b625b';
-    var grid = dark ? '#3c342e' : '#e4dcd0';
+    var ink = dark ? '#f3f0e8' : '#1c1b17';
+    var yours = dark ? '#e4d3b0' : '#8a6a3b';
+    var card = dark ? '#171714' : '#fcfbf8';
+    var muted = dark ? '#9c968c' : '#6e695f';
+    var grid = dark ? '#2a2924' : '#e4dfd4';
     series.forEach(function (line, index) {
       data.push({
         type: 'scatter',
@@ -531,6 +531,18 @@
     }
   }
 
+
+  function paintSurplus(el, label, amount, tone) {
+    el.className = 'surplus' + (tone ? ' ' + tone : '');
+    var k = document.createElement('span');
+    k.className = 'surplus-k';
+    k.textContent = label;
+    var v = document.createElement('span');
+    v.className = 'surplus-v';
+    v.textContent = amount;
+    el.replaceChildren(k, v);
+  }
+
   function refresh() {
     var input = readInputs();
     var result = RentalModel.project(input);
@@ -556,11 +568,12 @@
     var last = result.points[result.points.length - 1];
     var gap = last.rentalReal - last.stockReal;
     var years = Math.round(last.month / 12);
-    var surplus = $('stat-gap');
-    surplus.textContent = gap === 0
-      ? 'Even at ' + years + (years === 1 ? ' year' : ' years')
-      : (gap > 0 ? 'Rental' : 'Stocks') + ' surplus ' + money(Math.abs(gap));
-    surplus.className = 'surplus' + (gap > 0 ? ' pos' : gap < 0 ? ' neg' : '');
+    paintSurplus(
+      $('stat-gap'),
+      gap === 0 ? 'Even' : (gap > 0 ? 'Rental surplus' : 'Stocks surplus'),
+      gap === 0 ? ('At ' + years + (years === 1 ? ' year' : ' years')) : money(Math.abs(gap)),
+      gap > 0 ? 'pos' : gap < 0 ? 'neg' : ''
+    );
     var cross = result.totals.crossoverMonth;
     var note = '';
     if (cross != null && !result.totals.endsAhead) note = 'The rental leads at ' + formatDuration(cross) + ', then falls behind.';

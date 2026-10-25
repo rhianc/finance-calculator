@@ -3,12 +3,12 @@
 
   var MONEY_IDS = ['home-price', 'down-amt', 'insurance', 'hoa', 'rent', 'income', 'other-salt', 'other-itemized'];
   var COLORS = {
-    'Principal & interest': '#1f4b82',
-    'Property tax': '#3f6f54',
-    'Insurance': '#a65b2b',
-    'Maintenance': '#6b625b',
-    'HOA': '#7a5b78',
-    'PMI': '#8a5a44'
+    'Principal & interest': '#c4a574',
+    'Property tax': '#7d9a86',
+    'Insurance': '#d08a62',
+    'Maintenance': '#a39e94',
+    'HOA': '#8d9a93',
+    'PMI': '#b08968'
   };
 
   function $(id) { return document.getElementById(id); }
@@ -349,6 +349,18 @@
     return 'Insurify for ' + where + scope + ', scaled from ' + money(place.ins) + ' on a $300,000 home. No flood.';
   }
 
+
+  function paintSurplus(el, label, amount, tone) {
+    el.className = 'surplus' + (tone ? ' ' + tone : '');
+    var k = document.createElement('span');
+    k.className = 'surplus-k';
+    k.textContent = label;
+    var v = document.createElement('span');
+    v.className = 'surplus-v';
+    v.textContent = amount;
+    el.replaceChildren(k, v);
+  }
+
   function refresh() {
     var input = readInputs();
     $('tax-hint').textContent = {
@@ -385,11 +397,12 @@
     var last = result.points[result.points.length - 1];
     var gap = last.houseReal - last.rentReal;
     var years = Math.round(last.month / 12);
-    var surplus = $('stat-gap');
-    surplus.textContent = gap === 0
-      ? 'Even at ' + years + (years === 1 ? ' year' : ' years')
-      : (gap > 0 ? 'Buying' : 'Renting') + ' surplus ' + money(Math.abs(gap));
-    surplus.className = 'surplus' + (gap > 0 ? ' pos' : gap < 0 ? ' neg' : '');
+    paintSurplus(
+      $('stat-gap'),
+      gap === 0 ? 'Even' : (gap > 0 ? 'Buying surplus' : 'Renting surplus'),
+      gap === 0 ? ('At ' + years + (years === 1 ? ' year' : ' years')) : money(Math.abs(gap)),
+      gap > 0 ? 'pos' : gap < 0 ? 'neg' : ''
+    );
     var cross = result.totals.crossoverMonth;
     var note = '';
     if (cross != null && !result.totals.endsAhead) {

@@ -4,8 +4,8 @@
   var pieChart = null;
   var lineChart = null;
   var scaleChart = null;
-  var HOUSE = '#1f4b82';
-  var RENT = '#a65b2b';
+  var HOUSE = '#2f6d52';
+  var RENT = '#b56a3c';
   var chartDark = null;
 
   function isDark() {
@@ -15,8 +15,8 @@
   function chartTheme() {
     var dark = isDark();
     if (typeof Chart !== 'undefined') {
-      Chart.defaults.color = dark ? '#b7aba2' : '#6b625b';
-      Chart.defaults.borderColor = dark ? '#3c342e' : '#e4dcd0';
+      Chart.defaults.color = dark ? '#9c968c' : '#6e695f';
+      Chart.defaults.borderColor = dark ? '#2a2924' : '#e4dfd4';
     }
     if (chartDark !== null && chartDark !== dark) {
       if (lineChart) { lineChart.destroy(); lineChart = null; }
@@ -43,7 +43,7 @@
           data: slices.map(function (slice) { return slice.value; }),
           backgroundColor: slices.map(function (slice) { return slice.color; }),
           borderWidth: 2,
-          borderColor: chartDark ? '#221e1b' : '#fffdf8'
+          borderColor: chartDark ? '#171714' : '#fcfbf8'
         }]
       },
       options: {
@@ -135,7 +135,7 @@
             max: last,
             title: { display: true, text: 'Years', font: { family: 'system-ui, sans-serif', size: 12 } },
             ticks: { maxTicksLimit: 8, font: { family: 'system-ui, sans-serif', size: 11 } },
-            grid: { color: 'rgba(31, 26, 23, 0.06)' }
+            grid: { color: chartDark ? 'rgba(243, 240, 232, 0.08)' : 'rgba(28, 27, 23, 0.06)' }
           },
           y: {
             title: { display: true, text: "Today's dollars", font: { family: 'system-ui, sans-serif', size: 12 } },
@@ -150,7 +150,7 @@
                 return sign + '$' + Math.round(abs);
               }
             },
-            grid: { color: 'rgba(31, 26, 23, 0.06)' }
+            grid: { color: chartDark ? 'rgba(243, 240, 232, 0.08)' : 'rgba(28, 27, 23, 0.06)' }
           }
         }
       }
@@ -398,7 +398,7 @@
         [0.30, '#991b1b'],
         [0.42, '#ef4444'],
         [0.48, '#fecaca'],
-        [0.50, '#fffdf8'],
+        [0.50, dark ? '#171714' : '#fcfbf8'],
         [0.52, '#bbf7d0'],
         [0.58, '#16a34a'],
         [0.70, '#166534'],
@@ -426,9 +426,9 @@
       showscale: true
     }];
 
-    var ink = dark ? '#f4efe8' : '#1c1917';
-    var yours = dark ? '#9ec0ef' : '#1f4b82';
-    var card = dark ? '#221e1b' : '#fffdf8';
+    var ink = dark ? '#f3f0e8' : '#1c1b17';
+    var yours = dark ? '#e4d3b0' : '#8a6a3b';
+    var card = dark ? '#171714' : '#fcfbf8';
     series.forEach(function (line, index) {
       data.push({
         type: 'scatter',
@@ -469,8 +469,8 @@
       }
     }
 
-    var muted = dark ? '#b7aba2' : '#6b625b';
-    var grid = dark ? '#3c342e' : '#e4dcd0';
+    var muted = dark ? '#9c968c' : '#6e695f';
+    var grid = dark ? '#2a2924' : '#e4dfd4';
     var layout = {
       margin: { t: 28, r: 44, b: 36, l: 48 },
       xaxis: {
