@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax } from "./retirement-model.js";
+import { DEFAULTS, normalize, project, spendTax, yearSave, irsCap } from "./retirement-model.js";
 
 const STORAGE = "retire-plan-v1";
 
@@ -19,8 +19,11 @@ export function boot(root) {
       retireAge: sliderNum("retire"),
       endAge: fieldNum("end"),
       balance: fieldNum("balance-amt"),
-      annualSave: fieldNum("save"),
       annualSpend: fieldNum("spend-amt"),
+      salary: fieldNum("salary"),
+      savePct: sliderNum("savepct"),
+      raisePct: fieldNum("raise"),
+      mega: pressed("mega"),
       ssAnnual: fieldNum("ss"),
       ssAge: fieldNum("ss-age"),
       inflationPct: fieldNum("inflation"),
@@ -62,7 +65,9 @@ export function boot(root) {
     if (document.activeElement !== retire) retire.value = String(input.retireAge);
     set("end", String(input.endAge));
     setMoney("balance-amt", input.balance);
-    setMoney("save", input.annualSave);
+    setMoney("salary", input.salary);
+    set("raise", trimNum(input.raise * 100));
+    setChoice("mega", input.mega ? "1" : "0");
     setMoney("spend-amt", input.annualSpend);
     setMoney("ss", input.ssAnnual);
     set("ss-age", String(input.ssAge));
@@ -74,10 +79,13 @@ export function boot(root) {
     fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
     if (fromSlider === "balance") $("balance").value = String(input.balance);
     if (fromSlider === "spend") $("spend").value = String(input.annualSpend);
+    fitSlider("savepct", Math.round(input.savePct * 100), [40, 60, 100]);
+    if (fromSlider === "savepct") $("savepct").value = String(Math.round(input.savePct * 100));
     paintSlider($("age"), String(input.age));
     paintSlider($("retire"), String(input.retireAge));
     paintSlider($("balance"), moneyShort(input.balance));
     paintSlider($("spend"), moneyShort(input.annualSpend));
+    paintSlider($("savepct"), trimNum(Math.round(input.savePct * 100)) + "%");
   }
 
   function fitSlider(id, value, ceilings) {
@@ -122,11 +130,14 @@ export function boot(root) {
     if (document.activeElement && document.activeElement.id === "spend") {
       raw.annualSpend = parseFloat($("spend").value);
     }
+    if (document.activeElement && document.activeElement.id === "savepct") {
+      raw.savePct = parseFloat($("savepct").value);
+    }
     const input = normalize(raw);
     const editing = document.activeElement;
     const skipFormat = editing && editing.classList && editing.classList.contains("money");
     applyNormalized(input, null);
-    if (skipFormat && (editing.id === "balance-amt" || editing.id === "save" || editing.id === "spend-amt" || editing.id === "ss")) {
+    if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
       // leave the in-progress typing alone
     }
     const paths = project(input);
@@ -181,22 +192,17 @@ export function boot(root) {
       }
     });
 
-    const dead = paths.filter((p) => p.depletedAge != null);
-    let note =
-      "Each line is a cutoff, not one life. At every age it is the balance that many of the 500 histories still had. Average: half had at least this much. Below average: 3 in 4. A lot below: 9 in 10. The dotted line is retirement.";
-    if (dead.length) {
-      note +=
-        " " +
-        dead.map((p) => p.name + " is at zero by " + ageLabel(p.depletedAge)).join(". ") +
-        ".";
-    }
-    $("path-note").textContent = note;
+    $("path-note").textContent = "Dotted line is retirement.";
 
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
+    const savedNow = yearSave(input, 0, input.age + 1);
+    const want = input.salary * input.savePct;
+    const capNow = irsCap(input.age + 1, input.mega);
     $("year-now").textContent = money(input.balance);
-    $("year-add").textContent = money(input.annualSave);
+    $("year-add").textContent = money(savedNow);
     $("year-next").textContent = year ? money(year.balance) : "—";
     $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
+    $("save-note").textContent = saveSentence(input, savedNow, want, capNow);
     $("ss-hint").textContent =
       "Social Security is " +
       money(input.ssAnnual) +
@@ -351,7 +357,10 @@ export function boot(root) {
       ["retire", input.retireAge, DEFAULTS.retireAge],
       ["end", input.endAge, DEFAULTS.endAge],
       ["bal", Math.round(input.balance), DEFAULTS.balance],
-      ["save", Math.round(input.annualSave), DEFAULTS.annualSave],
+      ["sal", Math.round(input.salary), DEFAULTS.salary],
+      ["pct", Math.round(input.savePct * 100), DEFAULTS.savePct],
+      ["raise", trimNum(input.raise * 100), String(DEFAULTS.raisePct)],
+      ["mega", input.mega ? "1" : "0", "0"],
       ["spend", Math.round(input.annualSpend), DEFAULTS.annualSpend],
       ["ss", Math.round(input.ssAnnual), DEFAULTS.ssAnnual],
       ["ssage", input.ssAge, DEFAULTS.ssAge],
@@ -382,6 +391,7 @@ export function boot(root) {
     }
     if (t.id === "age" || t.id === "retire") paintSlider(t, t.value);
     if (t.id === "balance" || t.id === "spend") paintSlider(t, moneyShort(parseFloat(t.value)));
+    if (t.id === "savepct") paintSlider(t, trimNum(parseFloat(t.value)) + "%");
     schedule();
   }
 
@@ -397,9 +407,9 @@ export function boot(root) {
   root.addEventListener("change", onEdit);
   root.addEventListener("blur", onBlur, true);
   const onPick = (event) => {
-    const btn = event.target.closest("[data-account], [data-filing]");
+    const btn = event.target.closest("[data-account], [data-filing], [data-mega]");
     if (!btn || !root.contains(btn)) return;
-    const name = btn.hasAttribute("data-account") ? "account" : "filing";
+    const name = btn.hasAttribute("data-account") ? "account" : btn.hasAttribute("data-filing") ? "filing" : "mega";
     setChoice(name, btn.getAttribute("data-" + name));
     schedule();
   };
@@ -458,7 +468,10 @@ export function boot(root) {
           retireAge: q.get("retire"),
           endAge: q.get("end"),
           balance: q.get("bal"),
-          annualSave: q.get("save"),
+          salary: q.get("sal"),
+          savePct: q.get("pct"),
+          raisePct: q.get("raise"),
+          mega: q.get("mega"),
           annualSpend: q.get("spend"),
           ssAnnual: q.get("ss"),
           ssAge: q.get("ssage"),
@@ -475,7 +488,10 @@ export function boot(root) {
             retireAge: stored.retireAge,
             endAge: stored.endAge,
             balance: stored.balance,
-            annualSave: stored.annualSave,
+            salary: stored.salary,
+            savePct: stored.savePct != null ? stored.savePct * 100 : undefined,
+            raisePct: stored.raise != null ? stored.raise * 100 : undefined,
+            mega: stored.mega == null ? undefined : stored.mega ? "1" : "0",
             annualSpend: stored.annualSpend,
             ssAnnual: stored.ssAnnual,
             ssAge: stored.ssAge,
@@ -565,6 +581,27 @@ function formatMoneyLive(el) {
 
 function money(n) {
   return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+function saveSentence(input, saved, want, cap) {
+  const pct = trimNum(Math.round(input.savePct * 100));
+  let text = "This year " + money(saved) + " goes in";
+  if (want > cap + 1) {
+    text += ". " + pct + "% of pay is " + money(want) + ", so the IRS cap binds";
+  } else {
+    text += ", " + pct + "% of " + money(input.salary);
+  }
+  text +=
+    ". Pay rises " +
+    trimNum(input.raise * 100) +
+    "% a year above inflation. The cap is " +
+    money(irsCap(30, input.mega)) +
+    " until 50, " +
+    money(irsCap(55, input.mega)) +
+    " after that, and " +
+    money(irsCap(61, input.mega)) +
+    " at 60–63.";
+  return text;
 }
 
 function taxSentence(input, tax) {

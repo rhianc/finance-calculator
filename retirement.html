@@ -72,6 +72,11 @@
     background: var(--field);
   }
   #tax-note { margin-top: 0.35rem; }
+  .sliders { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stage .chart-box.tall { height: 188px; }
+  @media (max-width: 700px) {
+    .stage .chart-box.tall { height: 148px; }
+  }
 </style>
 </head>
 <body>
@@ -83,14 +88,14 @@
   </nav>
   <p class="eyebrow">Retirement</p>
   <h1>Will it last?</h1>
-  <p class="lede">A balance today, saved until you stop working, then spent until a chosen age. The lines are not three steady rates. They are the middle, the lower quarter, and the lower tenth of simulated markets, in today's dollars.</p>
+  <p class="lede">Saved while you work, then spent until a chosen age. Today's dollars.</p>
 </header>
 
 <main class="wrap stack">
   <div class="stick-scope">
   <section class="stage card" aria-label="Account balance over time">
     <p class="plot-name">Balance, today's dollars</p>
-    <p class="plot-note" id="path-note">Each line is a cutoff, not one life. At every age it is the balance that many of the 500 histories still had. The dotted line is retirement.</p>
+    <p class="plot-note" id="path-note">Dotted line is retirement. The legend is the cutoff, not one life.</p>
     <div class="chart-box tall">
       <canvas id="pathChart" aria-label="Retirement balance over time"></canvas>
     </div>
@@ -135,6 +140,15 @@
           <input id="spend" type="range" min="0" max="150000" step="1000" value="70000">
         </div>
       </div>
+      <div class="slider">
+        <div class="slider-row">
+          <label for="savepct">Save</label>
+          <output for="savepct" id="savepct-out">15%</output>
+        </div>
+        <div class="vrange">
+          <input id="savepct" type="range" min="0" max="40" step="1" value="15">
+        </div>
+      </div>
     </div>
     <div class="pill-row">
       <div class="pills" role="radiogroup" aria-label="Which account">
@@ -145,8 +159,12 @@
         <button type="button" data-filing="single" aria-pressed="true">Single</button>
         <button type="button" data-filing="joint" aria-pressed="false">Married</button>
       </div>
+      <div class="pills" role="group" aria-label="Contribution cap">
+        <button type="button" data-mega="0" aria-pressed="true">401(k) cap</button>
+        <button type="button" data-mega="1" aria-pressed="false">Mega backdoor</button>
+      </div>
     </div>
-    <p class="fine">The knob is what you live on after federal and California income tax, in today's dollars. Social Security is part of that, not extra. The lines use this plan. The figure below is the most that still lasts.</p>
+    <p class="fine" id="save-note"></p>
     <p class="fine" id="tax-note"></p>
     <div class="actions">
       <button type="button" class="textbtn" id="copy-link">Copy link</button>
@@ -161,10 +179,17 @@
         </div>
       </div>
       <div class="field">
-        <label for="save">Saving each year, while working</label>
+        <label for="salary">Pay today, before tax</label>
         <div class="control">
           <span class="unit prefix">$</span>
-          <input id="save" class="money" inputmode="decimal" autocomplete="off" value="20,000">
+          <input id="salary" class="money" inputmode="decimal" autocomplete="off" value="120,000">
+        </div>
+      </div>
+      <div class="field">
+        <label for="raise">Raises, above inflation</label>
+        <div class="control">
+          <input id="raise" type="number" min="-5" max="20" step="0.1" value="1" inputmode="decimal">
+          <span class="unit">%/yr</span>
         </div>
       </div>
       <div class="field">
@@ -263,7 +288,7 @@
     </div>
     <div class="steps" id="worked">
       <div class="step"><span class="expr">Balance today</span><span class="val" id="year-now">—</span></div>
-      <div class="step"><span class="expr">Saved over the next year</span><span class="val" id="year-add">—</span></div>
+      <div class="step"><span class="expr">Saved this year, after the cap</span><span class="val" id="year-add">—</span></div>
       <div class="step"><span class="expr">Average real return</span><span class="val" id="year-real">—</span></div>
       <div class="step"><span class="expr">Median balance in one year</span><span class="val" id="year-next">—</span></div>
     </div>
@@ -272,7 +297,8 @@
   <section class="card">
     <details class="sheet" id="formulas">
       <summary>How the lines are counted</summary>
-      <p class="section-lead">500 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. Savings and spending are spread through that year. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
+      <p class="section-lead">500 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
+      <p>Savings are a percent of pay. Pay starts at the salary you type and rises at the raise rate above inflation, so the contribution is already in today's dollars. It stops at the 2026 IRS limit for that age, which is also held flat in today's dollars: $24,500 into a 401(k), or $72,000 if the mega backdoor is on. From 50 the catch-up adds $8,000. At 60 through 63 it adds $11,250 instead. The limit cannot exceed that year's pay.</p>
       <div class="math">Target real return = (1 + nominal) / (1 + inflation) − 1.</div>
       <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. The three lines are not three rates, and none of them is one person's biography. At each age they are a cutoff: the balance that half the histories beat, that 3 in 4 beat, and that 9 in 10 beat. Joining those cutoffs makes a smooth line. A real account jumps around. Fidelity's planner reads the plan off the 9-in-10 cutoff. Their writeup draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later academic work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law. Longer blocks keep bad decades more intact.</p>
@@ -288,6 +314,6 @@
   <p>Historical stock years, not a smooth 10%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
-<script type="module" src="js/retirement.js?v=4"></script>
+<script type="module" src="js/retirement.js?v=5"></script>
 </body>
 </html>

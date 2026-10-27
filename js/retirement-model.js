@@ -6,7 +6,6 @@ export const DEFAULTS = {
   retireAge: 65,
   endAge: 90,
   balance: 50000,
-  annualSave: 20000,
   annualSpend: 70000,
   ssAnnual: 24000,
   ssAge: 67,
@@ -16,6 +15,10 @@ export const DEFAULTS = {
   badPct: 4,
   account: "traditional",
   filing: "single",
+  salary: 120000,
+  savePct: 15,
+  raisePct: 1,
+  mega: false,
 };
 
 // Tax year 2026. Held fixed because balances are already in today's dollars.
@@ -105,7 +108,11 @@ export function normalize(raw) {
     retireAge,
     endAge,
     balance: clamp(num(raw.balance, DEFAULTS.balance), 0, 50000000),
-    annualSave: clamp(num(raw.annualSave, DEFAULTS.annualSave), 0, 2000000),
+    annualSave: clamp(num(raw.annualSave, 0), 0, 2000000),
+    salary: clamp(num(raw.salary, DEFAULTS.salary), 0, 5000000),
+    savePct: clamp(num(raw.savePct, DEFAULTS.savePct), 0, 100) / 100,
+    raise: clamp(num(raw.raisePct, DEFAULTS.raisePct), -5, 20) / 100,
+    mega: raw.mega === true || raw.mega === 1 || raw.mega === "1" || raw.mega === "on",
     annualSpend: clamp(num(raw.annualSpend, DEFAULTS.annualSpend), 0, 5000000),
     ssAnnual: clamp(num(raw.ssAnnual, DEFAULTS.ssAnnual), 0, 200000),
     ssAge,
@@ -121,6 +128,27 @@ export function normalize(raw) {
 function num(v, fallback) {
   const n = typeof v === "number" ? v : parseFloat(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+// 2026 workplace limits. Inflation-indexed, so flat in today's dollars.
+// Catch-up is on top of the 415(c) annual-additions limit.
+const DEFERRAL_2026 = 24500;
+const CATCHUP_2026 = 8000;
+const SUPER_CATCHUP_2026 = 11250;
+const ANNUAL_ADDITIONS_2026 = 72000;
+
+export function irsCap(age, mega) {
+  let extra = 0;
+  if (age >= 60 && age < 64) extra = SUPER_CATCHUP_2026;
+  else if (age >= 50) extra = CATCHUP_2026;
+  return (mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + extra;
+}
+
+/** Dollars saved that year, in today's dollars, after the IRS cap. */
+export function yearSave(input, yearsWorked, ageAtYearEnd) {
+  const salary = input.salary * Math.pow(1 + input.raise, Math.max(0, yearsWorked));
+  const want = salary * input.savePct;
+  return Math.max(0, Math.min(want, irsCap(ageAtYearEnd, input.mega), salary));
 }
 
 function bracketTax(income, brackets) {
@@ -327,7 +355,6 @@ function yearRates(input, years) {
 
 function runPath(input, flow, real, stopEarly) {
   const { months, retireM, monthWithdraw, monthSurplus } = flow;
-  const saveM = input.annualSave / 12;
   let bal = input.balance;
   let nest = input.balance;
   let depletedAge = null;
@@ -338,8 +365,10 @@ function runPath(input, flow, real, stopEarly) {
     if (start > months) break;
     const r = real[y];
     const span = end - start + 1;
+    const yearsWorked = Math.max(0, Math.round((start - 1) / 12));
+    const saved = yearSave(input, yearsWorked, input.age + end / 12);
     if (end <= retireM && span === 12) {
-      bal = bal * (1 + r) + saveM * 12 * (1 + r * 0.5);
+      bal = bal * (1 + r) + saved * (1 + r * 0.5);
     } else if (start > retireM && span === 12) {
       const w = flow.yearWithdraw[y];
       const s = flow.yearSurplus[y];
@@ -360,9 +389,10 @@ function runPath(input, flow, real, stopEarly) {
       }
     } else {
       const rm = Math.pow(1 + r, 1 / 12) - 1;
+      const monthSave = saved / 12;
       for (let m = start; m <= end; m++) {
         if (m <= retireM) {
-          bal = bal * (1 + rm) + saveM;
+          bal = bal * (1 + rm) + monthSave;
           if (m === retireM) nest = bal;
         } else {
           const withdraw = monthWithdraw[m];
