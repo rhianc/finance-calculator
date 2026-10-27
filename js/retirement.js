@@ -255,54 +255,41 @@ export function boot(root) {
     };
 
     let maxV = 1;
-    const peaks = [];
     paths.forEach((p) => {
-      let peak = 1;
       p.points.forEach((pt) => {
         if (pt.balance > maxV) maxV = pt.balance;
-        if (pt.balance > peak) peak = pt.balance;
       });
-      peaks.push(peak);
     });
-    const second = peaks[1] || peaks[0] || 1;
-    const spread = maxV / second > 4 && maxV >= 80000;
-    let logOn = false;
-    let floor = 0;
-    if (spread) {
-      floor = decadeFloor(Math.max(1000, Math.min(input.balance, second) / 5));
-      maxV = decadeCeiling(maxV);
-      logOn = floor > 0 && floor < maxV / 2;
-    } else {
-      maxV = niceCeil(maxV);
-    }
+    const million = 1000000;
+    maxV = Math.max(million, Math.ceil(maxV / million) * million);
 
-    const padL = logOn ? (w < 420 ? 50 : 56) : w < 420 ? 46 : 54;
-    const padR = 10;
-    const padT = 14;
+    const padL = w < 420 ? 42 : 48;
+    const padR = 8;
+    const padT = 12;
     const padB = 22;
     const xOf = (age) => padL + ((age - input.age) / (input.endAge - input.age)) * (w - padL - padR);
-    const yOf = (v) => {
-      if (!logOn) return padT + (1 - v / maxV) * (h - padT - padB);
-      const vv = Math.max(v, floor);
-      const t = (Math.log10(vv) - Math.log10(floor)) / (Math.log10(maxV) - Math.log10(floor));
-      return padT + (1 - t) * (h - padT - padB);
-    };
+    const yOf = (v) => padT + (1 - v / maxV) * (h - padT - padB);
 
     ctx.font = "11px system-ui, sans-serif";
     ctx.lineWidth = 1;
     ctx.strokeStyle = line;
     ctx.fillStyle = ink;
-    const ticks = logOn ? logTicks(floor, maxV) : [0, maxV / 3, (2 * maxV) / 3, maxV];
-    ticks.forEach((v) => {
+    const plotH = h - padT - padB;
+    const millionGap = plotH / (maxV / million);
+    let labelEvery = 1;
+    while (millionGap * labelEvery < 11 && labelEvery < 20) labelEvery += 1;
+    for (let v = 0; v <= maxV + 1; v += million) {
       const y = yOf(v);
       ctx.beginPath();
       ctx.moveTo(padL, y);
       ctx.lineTo(w - padR, y);
       ctx.stroke();
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-      ctx.fillText(v === 0 ? "$0" : moneyShort(v), padL - 6, y);
-    });
+      if ((v / million) % labelEvery === 0) {
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(v === 0 ? "$0" : moneyShort(v), padL - 6, y);
+      }
+    }
 
     const xr = xOf(input.retireAge);
     ctx.save();
@@ -316,18 +303,19 @@ export function boot(root) {
 
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    const labels = [
-      [input.age, String(input.age)],
-      [input.retireAge, String(input.retireAge)],
-      [input.endAge, String(input.endAge)],
-    ];
-    let lastX = -999;
-    labels.forEach(([age, text]) => {
+    const fiveYears = [];
+    const firstTick = Math.ceil(input.age / 5) * 5;
+    const lastTick = Math.floor(input.endAge / 5) * 5;
+    for (let age = firstTick; age <= lastTick; age += 5) fiveYears.push(age);
+    const placed = [];
+    const paintAge = (age) => {
       const x = xOf(age);
-      if (x - lastX < 28) return;
-      ctx.fillText(text, x, h - padB + 6);
-      lastX = x;
-    });
+      if (placed.some((px) => Math.abs(px - x) < 16)) return;
+      placed.push(x);
+      ctx.fillText(String(age), x, h - padB + 6);
+    };
+    fiveYears.forEach(paintAge);
+    [input.age, input.endAge].forEach(paintAge);
 
     ["bad", "below", "avg"].forEach((key) => {
       const path = paths.find((p) => p.key === key);
