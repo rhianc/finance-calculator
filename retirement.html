@@ -95,7 +95,7 @@
   <div class="stick-scope">
   <section class="stage card" aria-label="Account balance over time">
     <p class="plot-name">Balance, today's dollars</p>
-    <p class="plot-note" id="path-note">Dotted line is retirement. The legend is the cutoff, not one life.</p>
+    <p class="plot-note" id="path-note">Dotted line is retirement.</p>
     <div class="chart-box tall">
       <canvas id="pathChart" aria-label="Retirement balance over time"></canvas>
     </div>
@@ -179,7 +179,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="salary">Pay today, before tax</label>
+        <label for="salary">Salary today</label>
         <div class="control">
           <span class="unit prefix">$</span>
           <input id="salary" class="money" inputmode="decimal" autocomplete="off" value="120,000">
@@ -297,7 +297,7 @@
   <section class="card">
     <details class="sheet" id="formulas">
       <summary>How the lines are counted</summary>
-      <p class="section-lead">500 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
+      <p class="section-lead">280 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
       <p>Savings are a percent of pay. Pay starts at the salary you type and rises at the raise rate above inflation, so the contribution is already in today's dollars. It stops at the 2026 IRS limit for that age, which is also held flat in today's dollars: $24,500 into a 401(k), or $72,000 if the mega backdoor is on. From 50 the catch-up adds $8,000. At 60 through 63 it adds $11,250 instead. The limit cannot exceed that year's pay.</p>
       <div class="math">Target real return = (1 + nominal) / (1 + inflation) − 1.</div>
       <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. The three lines are not three rates, and none of them is one person's biography. At each age they are a cutoff: the balance that half the histories beat, that 3 in 4 beat, and that 9 in 10 beat. Joining those cutoffs makes a smooth line. A real account jumps around. Fidelity's planner reads the plan off the 9-in-10 cutoff. Their writeup draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
@@ -314,6 +314,6 @@
   <p>Historical stock years, not a smooth 10%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
-<script type="module" src="js/retirement.js?v=5"></script>
+<script type="module" src="js/retirement.js?v=6"></script>
 </body>
 </html>

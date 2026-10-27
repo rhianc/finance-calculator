@@ -55,7 +55,7 @@ export function boot(root) {
   function applyNormalized(input, fromSlider) {
     const set = (id, value) => {
       const el = $(id);
-      if (document.activeElement === el) return;
+      if (!el || document.activeElement === el) return;
       el.value = value;
     };
     set("age", String(input.age));
@@ -113,6 +113,8 @@ export function boot(root) {
   }
 
   let queued = false;
+  let chartBusy = false;
+  let chartAgain = false;
   function schedule() {
     if (queued) return;
     queued = true;
@@ -123,40 +125,57 @@ export function boot(root) {
   }
 
   function render() {
-    const raw = readRaw();
-    if (document.activeElement && document.activeElement.id === "balance") {
-      raw.balance = parseFloat($("balance").value);
+    let input;
+    try {
+      const raw = readRaw();
+      if (document.activeElement && document.activeElement.id === "balance") {
+        raw.balance = parseFloat($("balance").value);
+      }
+      if (document.activeElement && document.activeElement.id === "spend") {
+        raw.annualSpend = parseFloat($("spend").value);
+      }
+      if (document.activeElement && document.activeElement.id === "savepct") {
+        raw.savePct = parseFloat($("savepct").value);
+      }
+      input = normalize(raw);
+      const editing = document.activeElement;
+      const skipFormat = editing && editing.classList && editing.classList.contains("money");
+      applyNormalized(input, null);
+      if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
+        // leave the in-progress typing alone
+      }
+    } catch (err) {
+      $("path-note").textContent = "Could not read the inputs. " + (err && err.message ? err.message : "");
+      return;
     }
-    if (document.activeElement && document.activeElement.id === "spend") {
-      raw.annualSpend = parseFloat($("spend").value);
+    if (chartBusy) {
+      chartAgain = true;
+      return;
     }
-    if (document.activeElement && document.activeElement.id === "savepct") {
-      raw.savePct = parseFloat($("savepct").value);
-    }
-    const input = normalize(raw);
-    const editing = document.activeElement;
-    const skipFormat = editing && editing.classList && editing.classList.contains("money");
-    applyNormalized(input, null);
-    if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
-      // leave the in-progress typing alone
-    }
-    const paths = project(input);
-    draw(chart, paths, input);
-    paintReadout(paths, input);
-    const verdict = paths
-      .map((p) => (p.depletedAge == null ? p.name + " lasts" : p.name + " runs out at " + ageLabel(p.depletedAge)))
-      .join(". ");
-    chart.setAttribute(
-      "aria-label",
-      "Balance in today's dollars from age " +
-        input.age +
-        " to " +
-        input.endAge +
-        ". " +
-        verdict +
-        ".",
-    );
-    scheduleSave(input);
+    chartBusy = true;
+    const snap = input;
+    $("path-note").textContent = "Counting…";
+    requestAnimationFrame(() => {
+      try {
+        const paths = project(snap);
+        if (!draw(chart, paths, snap)) {
+          requestAnimationFrame(() => draw(chart, paths, snap));
+        }
+        paintReadout(paths, snap);
+        const verdict = paths
+          .map((p) => (p.depletedAge == null ? p.name + " lasts" : p.name + " runs out at " + ageLabel(p.depletedAge)))
+          .join(". ");
+        chart.setAttribute("aria-label", "Balance from " + snap.age + " to " + snap.endAge + ". " + verdict + ".");
+        scheduleSave(snap);
+      } catch (err) {
+        $("path-note").textContent = "The chart failed. " + (err && err.message ? err.message : "");
+      }
+      chartBusy = false;
+      if (chartAgain) {
+        chartAgain = false;
+        render();
+      }
+    });
   }
 
   function paintReadout(paths, input) {
@@ -216,7 +235,7 @@ export function boot(root) {
     const parent = canvas.parentElement;
     const w = parent.clientWidth;
     const h = parent.clientHeight;
-    if (w < 10 || h < 10) return;
+    if (w < 10 || h < 10) return false;
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
@@ -336,6 +355,7 @@ export function boot(root) {
       item.appendChild(document.createTextNode(p.name + ", " + p.note));
       legend.appendChild(item);
     });
+    return true;
   }
 
   function scheduleSave(input) {
@@ -592,7 +612,7 @@ function saveSentence(input, saved, want, cap) {
     text += ", " + pct + "% of " + money(input.salary);
   }
   text +=
-    ". Pay rises " +
+    ". Salary rises " +
     trimNum(input.raise * 100) +
     "% a year above inflation. The cap is " +
     money(irsCap(30, input.mega)) +

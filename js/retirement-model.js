@@ -264,7 +264,7 @@ const CPI = [
 
 const RAW_REAL = STOCK.map((s, i) => (1 + s) / (1 + CPI[i]) - 1);
 const HIST_REAL = RAW_REAL.reduce((a, b) => a + b, 0) / RAW_REAL.length;
-const N_PATHS = 500;
+const N_PATHS = 280;
 const BLOCK = 5;
 const MAX_YEARS = 100;
 
@@ -421,11 +421,19 @@ function atPercent(sorted, p) {
 function successSpend(input, rates, flowOf, threshold) {
   const ok = (spend) => {
     const flow = flowOf(spend);
+    const need = Math.ceil(N_PATHS * threshold - 1e-9);
     let live = 0;
+    let dead = 0;
     for (let p = 0; p < N_PATHS; p++) {
-      if (runPath({ ...input, annualSpend: spend }, flow, rates[p], true).depletedAge == null) live += 1;
+      if (runPath({ ...input, annualSpend: spend }, flow, rates[p], true).depletedAge == null) {
+        live += 1;
+        if (live >= need) return true;
+      } else {
+        dead += 1;
+        if (N_PATHS - dead < need) return false;
+      }
     }
-    return live / N_PATHS >= threshold - 1e-9;
+    return live >= need;
   };
   if (!ok(0)) return 0;
   let lo = 0;
@@ -439,7 +447,7 @@ function successSpend(input, rates, flowOf, threshold) {
   return Math.floor(lo / 100) * 100;
 }
 
-/** 500 historical-block paths. Lines are the 50th, 25th, and 10th percentile balances. */
+/** Historical-block paths. Lines are the 50th, 25th, and 10th percentile balances. */
 export function project(input) {
   const years = Math.max(1, Math.ceil(input.endAge - input.age));
   const rates = yearRates(input, years);
