@@ -181,10 +181,16 @@ export function boot(root) {
       }
     });
 
-    const rawNote = paths
-      .map((p) => (p.depletedAge == null ? p.name + " lasts" : p.name + " is empty at " + ageLabel(p.depletedAge)))
-      .join(". ");
-    $("path-note").textContent = rawNote + ".";
+    const dead = paths.filter((p) => p.depletedAge != null);
+    let note =
+      "Each line is a cutoff, not one life. At every age it is the balance that many of the 500 histories still had. Average: half had at least this much. Below average: 3 in 4. A lot below: 9 in 10. The dotted line is retirement.";
+    if (dead.length) {
+      note +=
+        " " +
+        dead.map((p) => p.name + " is at zero by " + ageLabel(p.depletedAge)).join(". ") +
+        ".";
+    }
+    $("path-note").textContent = note;
 
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
     $("year-now").textContent = money(input.balance);

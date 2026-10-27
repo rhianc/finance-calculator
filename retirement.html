@@ -90,7 +90,7 @@
   <div class="stick-scope">
   <section class="stage card" aria-label="Account balance over time">
     <p class="plot-name">Balance, today's dollars</p>
-    <p class="plot-note" id="path-note">Three returns, from now until the age you pick. The dotted line is retirement.</p>
+    <p class="plot-note" id="path-note">Each line is a cutoff, not one life. At every age it is the balance that many of the 500 histories still had. The dotted line is retirement.</p>
     <div class="chart-box tall">
       <canvas id="pathChart" aria-label="Retirement balance over time"></canvas>
     </div>
@@ -274,7 +274,8 @@
       <summary>How the lines are counted</summary>
       <p class="section-lead">500 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. Savings and spending are spread through that year. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
       <div class="math">Target real return = (1 + nominal) / (1 + inflation) − 1.</div>
-      <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. The three lines are not three rates. At each age they are the balance that half the markets beat, that 3 in 4 beat, and that 9 in 10 beat. Fidelity's planner does this with a Monte Carlo and reads the plan off the 9-in-10 line. Their writeup draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
+      <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. The three lines are not three rates, and none of them is one person's biography. At each age they are a cutoff: the balance that half the histories beat, that 3 in 4 beat, and that 9 in 10 beat. Joining those cutoffs makes a smooth line. A real account jumps around. Fidelity's planner reads the plan off the 9-in-10 cutoff. Their writeup draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
+      <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later academic work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law. Longer blocks keep bad decades more intact.</p>
       <p>The knob is not what leaves the account. It is what you keep. Each retired year, the model looks for the withdrawal that still leaves that amount after federal tax, California tax, and the federal tax on Social Security. A traditional IRA withdrawal is all ordinary income. A Roth withdrawal is left out of income, which assumes you are 59½ and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally.</p>
       <p>Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction and the exemption credit. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income.</p>
       <p>The burn rate is a search. The big number is the largest after-tax spending level, to the nearest $100, that never hits zero in at least 9 out of 10 simulated markets. Below average uses 3 out of 4. Average uses half. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
@@ -287,6 +288,6 @@
   <p>Historical stock years, not a smooth 10%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
-<script type="module" src="js/retirement.js?v=3"></script>
+<script type="module" src="js/retirement.js?v=4"></script>
 </body>
 </html>
