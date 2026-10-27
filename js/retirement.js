@@ -1,6 +1,6 @@
-import { DEFAULTS, normalize, project, spendTax, yearSave, irsCap } from "./retirement-model.js";
+import { DEFAULTS, normalize, project, spendTax, yearSave, irsCap } from "./retirement-model.js?v=8";
 
-const STORAGE = "retire-plan-v1";
+const STORAGE = "retire-plan-v2";
 
 const SCENES = [
   { key: "avg", color: "--good" },
@@ -264,7 +264,7 @@ export function boot(root) {
     maxV = Math.max(million, Math.ceil(maxV / million) * million);
 
     const padL = w < 420 ? 42 : 48;
-    const padR = 8;
+    const padR = 22;
     const padT = 12;
     const padB = 22;
     const xOf = (age) => padL + ((age - input.age) / (input.endAge - input.age)) * (w - padL - padR);
@@ -304,9 +304,9 @@ export function boot(root) {
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const fiveYears = [];
-    const firstTick = Math.ceil(input.age / 5) * 5;
-    const lastTick = Math.floor(input.endAge / 5) * 5;
-    for (let age = firstTick; age <= lastTick; age += 5) fiveYears.push(age);
+    const firstTick = Math.ceil(input.age / 10) * 10;
+    const lastTick = Math.floor(input.endAge / 10) * 10;
+    for (let age = firstTick; age <= lastTick; age += 10) fiveYears.push(age);
     const placed = [];
     const paintAge = (age) => {
       const x = xOf(age);

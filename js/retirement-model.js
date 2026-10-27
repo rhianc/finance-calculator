@@ -4,7 +4,7 @@
 export const DEFAULTS = {
   age: 28,
   retireAge: 65,
-  endAge: 90,
+  endAge: 100,
   balance: 50000,
   annualSpend: 70000,
   ssAnnual: 24000,
@@ -15,7 +15,7 @@ export const DEFAULTS = {
   badPct: 4,
   account: "traditional",
   filing: "single",
-  salary: 120000,
+  salary: 200000,
   savePct: 15,
   raisePct: 1,
   mega: false,
