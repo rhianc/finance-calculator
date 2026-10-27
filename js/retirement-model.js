@@ -1,5 +1,5 @@
-// Steady real-dollar retirement paths. Spend is after-tax.
-// Not a sequence-of-returns model, and not a full tax return.
+// Historical stock-year paths, in today's dollars. Spend is after-tax.
+// Not a full tax return.
 
 export const DEFAULTS = {
   age: 28,
@@ -181,7 +181,7 @@ export function coverSpend(spend, ss, filing, account, age) {
   let lo = 0;
   let hi = Math.max(spend, 1);
   while (quote(hi).net + 0.5 < spend && hi < 50000000) hi *= 2;
-  for (let i = 0; i < 48; i++) {
+  for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2;
     if (quote(mid).net >= spend) hi = mid;
     else lo = mid;
@@ -201,26 +201,79 @@ export function spendTax(input) {
   return { steady, before };
 }
 
-/**
- * Monthly, in today's dollars.
- * Working months: grow, then add that month's savings.
- * Retired months: withdraw the pre-tax amount at the start, then grow.
- * The withdrawal is sized so spending on the knob is what remains after tax.
- * Social Security begins at the later of claim age and retirement.
- */
-export function simulate(input, nominal) {
-  const real = realAnnual(nominal, input.inflation);
-  const rm = Math.pow(1 + real, 1 / 12) - 1;
+// S&P 500 total return and CPI, calendar years 1928–2025.
+// Damodaran, NYU Stern. Real return pairs the two, so 1974 stays a bad year.
+const STOCK = [
+  0.4381, -0.0830, -0.2512, -0.4384, -0.0864, 0.4998, -0.0119, 0.4674,
+  0.3194, -0.3534, 0.2928, -0.0110, -0.1067, -0.1277, 0.1917, 0.2506,
+  0.1903, 0.3582, -0.0843, 0.0520, 0.0570, 0.1830, 0.3081, 0.2368,
+  0.1815, -0.0121, 0.5256, 0.3260, 0.0744, -0.1046, 0.4372, 0.1206,
+  0.0034, 0.2664, -0.0881, 0.2261, 0.1642, 0.1240, -0.0997, 0.2380,
+  0.1081, -0.0824, 0.0356, 0.1422, 0.1876, -0.1431, -0.2590, 0.3700,
+  0.2383, -0.0698, 0.0651, 0.1852, 0.3174, -0.0470, 0.2042, 0.2234,
+  0.0615, 0.3124, 0.1849, 0.0581, 0.1654, 0.3148, -0.0306, 0.3023,
+  0.0749, 0.0997, 0.0133, 0.3720, 0.2268, 0.3310, 0.2834, 0.2089,
+  -0.0903, -0.1185, -0.2197, 0.2836, 0.1074, 0.0483, 0.1561, 0.0548,
+  -0.3655, 0.2594, 0.1482, 0.0210, 0.1589, 0.3215, 0.1352, 0.0138,
+  0.1177, 0.2161, -0.0423, 0.3121, 0.1802, 0.2847, -0.1804, 0.2606,
+  0.2488, 0.1778,
+];
+const CPI = [
+  0.0643, 0.0077, -0.0234, -0.0566, -0.1030, -0.0513, 0.0307, 0.0227,
+  0.0146, 0.0360, -0.0211, 0.0808, 0.0120, 0.0556, 0.1088, 0.0190,
+  0.0170, 0.0234, 0.0833, 0.1459, 0.0244, -0.0211, 0.0123, 0.0790,
+  0.0153, 0.0076, -0.0073, 0.0244, 0.0300, 0.0334, 0.0285, 0.0070,
+  0.0174, 0.0100, 0.0107, 0.0124, 0.0131, 0.0160, 0.0290, 0.0308,
+  0.0427, 0.0546, 0.0584, 0.0430, 0.0327, 0.0616, 0.1103, 0.0913,
+  0.0486, 0.0650, 0.0763, 0.1122, 0.1358, 0.1035, 0.0616, 0.0379,
+  0.0430, 0.0356, 0.0190, 0.0365, 0.0443, 0.0483, 0.0540, 0.0424,
+  0.0295, 0.0297, 0.0267, 0.0281, 0.0333, 0.0229, 0.0156, 0.0268,
+  0.0341, 0.0283, 0.0159, 0.0227, 0.0326, 0.0339, 0.0254, 0.0408,
+  0.0384, -0.0036, 0.0150, 0.0316, 0.0174, 0.0146, 0.0076, 0.0012,
+  0.0207, 0.0213, 0.0191, 0.0181, 0.0123, 0.0704, 0.0650, 0.0340,
+  0.0289, 0.0290,
+];
+
+const RAW_REAL = STOCK.map((s, i) => (1 + s) / (1 + CPI[i]) - 1);
+const HIST_REAL = RAW_REAL.reduce((a, b) => a + b, 0) / RAW_REAL.length;
+const N_PATHS = 500;
+const BLOCK = 5;
+const MAX_YEARS = 100;
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function rand() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Fixed block draws so the chart does not reshuffle while a slider moves.
+const BLOCKS = (() => {
+  const rng = mulberry32(0x5eed);
+  const out = [];
+  for (let p = 0; p < N_PATHS; p++) {
+    const idx = new Array(MAX_YEARS);
+    let filled = 0;
+    while (filled < MAX_YEARS) {
+      const start = Math.floor(rng() * RAW_REAL.length);
+      for (let k = 0; k < BLOCK && filled < MAX_YEARS; k++) {
+        idx[filled++] = (start + k) % RAW_REAL.length;
+      }
+    }
+    out.push(idx);
+  }
+  return out;
+})();
+
+function cashflows(input) {
   const months = Math.max(1, Math.round((input.endAge - input.age) * 12));
   const retireM = Math.max(0, Math.round((input.retireAge - input.age) * 12));
   const claimM = Math.max(retireM, Math.round((input.ssAge - input.age) * 12));
-  let bal = input.balance;
-  let nest = input.balance;
-  let depletedAge = null;
-  const points = [{ age: input.age, balance: bal }];
-  const monthWithdraw = new Array(months + 1).fill(0);
-  const monthSurplus = new Array(months + 1).fill(0);
-
+  const monthWithdraw = new Float64Array(months + 1);
+  const monthSurplus = new Float64Array(months + 1);
   for (let y = 0; y * 12 < months; y++) {
     const start = y * 12 + 1;
     const end = Math.min(months, (y + 1) * 12);
@@ -246,70 +299,184 @@ export function simulate(input, nominal) {
       }
     }
   }
-
+  const years = Math.ceil(months / 12);
+  const yearWithdraw = new Float64Array(years);
+  const yearSurplus = new Float64Array(years);
   for (let m = 1; m <= months; m++) {
-    if (m <= retireM) {
-      bal = bal * (1 + rm) + input.annualSave / 12;
-      if (m === retireM) nest = bal;
-    } else {
-      const withdraw = monthWithdraw[m];
-      bal -= withdraw;
-      if (bal <= 0.5 && withdraw > 0.5) {
-        bal = 0;
-        if (depletedAge == null) depletedAge = input.age + (m - 1) / 12;
-      }
-      bal = Math.max(0, bal) * (1 + rm) + monthSurplus[m];
-    }
-    if (m % 12 === 0 || m === months || m === retireM) {
-      points.push({ age: roundAge(input.age + m / 12), balance: Math.max(0, bal) });
-    }
+    const y = (m - 1) / 12 | 0;
+    yearWithdraw[y] += monthWithdraw[m];
+    yearSurplus[y] += monthSurplus[m];
   }
+  return { months, retireM, monthWithdraw, monthSurplus, yearWithdraw, yearSurplus };
+}
 
-  if (retireM === 0) nest = input.balance;
-  return {
-    points,
-    nest,
-    depletedAge,
-    final: Math.max(0, bal),
-    real,
+function yearRates(input, years) {
+  const target = realAnnual(input.avg, input.inflation);
+  const shift = target - HIST_REAL;
+  const rates = new Array(N_PATHS);
+  for (let p = 0; p < N_PATHS; p++) {
+    const idx = BLOCKS[p];
+    const real = new Float64Array(years);
+    for (let y = 0; y < years; y++) {
+      real[y] = Math.min(1.2, Math.max(-0.7, RAW_REAL[idx[y]] + shift));
+    }
+    rates[p] = real;
+  }
+  return rates;
+}
+
+function runPath(input, flow, real, stopEarly) {
+  const { months, retireM, monthWithdraw, monthSurplus } = flow;
+  const saveM = input.annualSave / 12;
+  let bal = input.balance;
+  let nest = input.balance;
+  let depletedAge = null;
+  const marks = [0, bal];
+  for (let y = 0; y < real.length; y++) {
+    const start = y * 12 + 1;
+    const end = Math.min(months, (y + 1) * 12);
+    if (start > months) break;
+    const r = real[y];
+    const span = end - start + 1;
+    if (end <= retireM && span === 12) {
+      bal = bal * (1 + r) + saveM * 12 * (1 + r * 0.5);
+    } else if (start > retireM && span === 12) {
+      const w = flow.yearWithdraw[y];
+      const s = flow.yearSurplus[y];
+      const afterHalf = bal - w * 0.5;
+      if (afterHalf <= 0.5 && w > 0.5) {
+        bal = 0;
+        if (depletedAge == null) depletedAge = input.age + (start - 1) / 12;
+        if (stopEarly) break;
+      } else {
+        bal = Math.max(0, afterHalf) * (1 + r) - w * 0.5 + s;
+        if (bal <= 0.5 && w > 0.5) {
+          bal = 0;
+          if (depletedAge == null) depletedAge = input.age + (start - 1) / 12;
+          if (stopEarly) break;
+        } else if (bal < 0) {
+          bal = 0;
+        }
+      }
+    } else {
+      const rm = Math.pow(1 + r, 1 / 12) - 1;
+      for (let m = start; m <= end; m++) {
+        if (m <= retireM) {
+          bal = bal * (1 + rm) + saveM;
+          if (m === retireM) nest = bal;
+        } else {
+          const withdraw = monthWithdraw[m];
+          bal -= withdraw;
+          if (bal <= 0.5 && withdraw > 0.5) {
+            bal = 0;
+            if (depletedAge == null) depletedAge = input.age + (m - 1) / 12;
+          } else if (bal < 0) {
+            bal = 0;
+          }
+          bal = bal * (1 + rm) + monthSurplus[m];
+        }
+      }
+    }
+    if (end === retireM) nest = bal;
+    if (end % 12 === 0 || end === months || end === retireM) marks.push(end, Math.max(0, bal));
+  }
+  return { nest, depletedAge, final: Math.max(0, bal), marks };
+}
+
+function atPercent(sorted, p) {
+  const i = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
+  return sorted[i];
+}
+
+function successSpend(input, rates, flowOf, threshold) {
+  const ok = (spend) => {
+    const flow = flowOf(spend);
+    let live = 0;
+    for (let p = 0; p < N_PATHS; p++) {
+      if (runPath({ ...input, annualSpend: spend }, flow, rates[p], true).depletedAge == null) live += 1;
+    }
+    return live / N_PATHS >= threshold - 1e-9;
   };
-}
-
-function roundAge(age) {
-  return Math.round(age * 1000) / 1000;
-}
-
-export function lasts(input, nominal, spend) {
-  const sim = simulate({ ...input, annualSpend: spend }, nominal);
-  return sim.depletedAge == null;
-}
-
-/** Largest constant real after-tax spending (rounded down to $100) that never hits zero. */
-export function sustainableSpend(input, nominal) {
-  if (!lasts(input, nominal, 0)) return 0;
+  if (!ok(0)) return 0;
   let lo = 0;
-  let hi = 100000;
-  while (lasts(input, nominal, hi) && hi < 20000000) hi *= 2;
-  for (let i = 0; i < 28; i++) {
+  let hi = 50000;
+  while (ok(hi) && hi < 20000000) hi *= 2;
+  for (let i = 0; i < 16; i++) {
     const mid = (lo + hi) / 2;
-    if (lasts(input, nominal, mid)) lo = mid;
+    if (ok(mid)) lo = mid;
     else hi = mid;
   }
   return Math.floor(lo / 100) * 100;
 }
 
+/** 500 historical-block paths. Lines are the 50th, 25th, and 10th percentile balances. */
 export function project(input) {
-  const paths = [
-    { key: "avg", name: "Average", nominal: input.avg },
-    { key: "below", name: "Below average", nominal: input.below },
-    { key: "bad", name: "A lot below", nominal: input.bad },
-  ];
-  return paths.map((path) => {
-    const sim = simulate(input, path.nominal);
+  const years = Math.max(1, Math.ceil(input.endAge - input.age));
+  const rates = yearRates(input, years);
+  const base = { ...input };
+  const cache = new Map();
+  const flowOf = (spend) => {
+    let flow = cache.get(spend);
+    if (!flow) {
+      flow = cashflows({ ...base, annualSpend: spend });
+      cache.set(spend, flow);
+    }
+    return flow;
+  };
+  const flow = flowOf(input.annualSpend);
+  const ran = rates.map((rm) => runPath(input, flow, rm));
+
+  const markIndex = ran[0].marks;
+  const ages = [];
+  for (let i = 0; i < markIndex.length; i += 2) ages.push(roundAge(input.age + markIndex[i] / 12));
+
+  const series = { avg: [], below: [], bad: [] };
+  const pct = { avg: 0.5, below: 0.25, bad: 0.1 };
+  for (let i = 1; i < markIndex.length; i += 2) {
+    const vals = ran.map((r) => r.marks[i]).sort((a, b) => a - b);
+    series.avg.push(atPercent(vals, pct.avg));
+    series.below.push(atPercent(vals, pct.below));
+    series.bad.push(atPercent(vals, pct.bad));
+  }
+
+  const nests = ran.map((r) => r.nest).sort((a, b) => a - b);
+  const burns = {
+    avg: successSpend(input, rates, flowOf, 0.5),
+    below: successSpend(input, rates, flowOf, 0.75),
+    bad: successSpend(input, rates, flowOf, 0.9),
+  };
+
+  const meta = {
+    avg: { name: "Average", note: "half of markets" },
+    below: { name: "Below average", note: "1 in 4 worse" },
+    bad: { name: "A lot below", note: "1 in 10 worse" },
+  };
+
+  return ["avg", "below", "bad"].map((key) => {
+    const points = ages.map((age, i) => ({ age, balance: Math.max(0, series[key][i]) }));
+    let depletedAge = null;
+    for (const pt of points) {
+      if (pt.age > input.retireAge + 0.01 && pt.balance <= 0.5) {
+        depletedAge = pt.age;
+        break;
+      }
+    }
+    const nestPt = points.find((pt) => Math.abs(pt.age - input.retireAge) < 0.02);
     return {
-      ...path,
-      ...sim,
-      burn: sustainableSpend(input, path.nominal),
+      key,
+      name: meta[key].name,
+      note: meta[key].note,
+      nominal: input.avg,
+      real: realAnnual(input.avg, input.inflation),
+      points,
+      nest: nestPt ? nestPt.balance : atPercent(nests, pct[key]),
+      depletedAge,
+      burn: burns[key],
+      final: points[points.length - 1].balance,
     };
   });
+}
+
+function roundAge(age) {
+  return Math.round(age * 1000) / 1000;
 }

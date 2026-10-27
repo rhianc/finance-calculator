@@ -2,7 +2,7 @@
 
 A fixed-rate home loan payment and a month-by-month rent-versus-buy comparison, with the formulas on the page.
 
-The Retire tab carries a balance from a chosen age to a chosen end, at an average stock return, a below-average one, and a much lower one. The spending knob is what you keep after federal and California tax. It estimates the after-tax spending that still lasts. The math is in `js/retirement-model.js`.
+The Retire tab carries a balance from a chosen age to a chosen end. Each year is a real S&P 500 year, redrawn in stretches, and the lines are the median, the lower quarter, and the lower tenth. The spending knob is what you keep after federal and California tax. The headline number is the spend that lasted in 9 out of 10 of those markets. The math is in `js/retirement-model.js`.
 
 Live site: [https://rhianc.github.io/finance-calculator/](https://rhianc.github.io/finance-calculator/)
 

@@ -25,8 +25,6 @@ export function boot(root) {
       ssAge: fieldNum("ss-age"),
       inflationPct: fieldNum("inflation"),
       avgPct: fieldNum("ret-avg"),
-      belowPct: fieldNum("ret-below"),
-      badPct: fieldNum("ret-bad"),
       account: pressed("account"),
       filing: pressed("filing"),
     };
@@ -70,8 +68,6 @@ export function boot(root) {
     set("ss-age", String(input.ssAge));
     set("inflation", trimNum(input.inflation * 100));
     set("ret-avg", trimNum(input.avg * 100));
-    set("ret-below", trimNum(input.below * 100));
-    set("ret-bad", trimNum(input.bad * 100));
     setChoice("account", input.account);
     setChoice("filing", input.filing);
     fitSlider("balance", input.balance, [200000, 500000, 1000000, 2500000, 10000000]);
@@ -106,6 +102,16 @@ export function boot(root) {
     if (box) box.style.setProperty("--fill", String(pct));
     const out = $(el.id + "-out");
     if (out) out.textContent = label;
+  }
+
+  let queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      render();
+    });
   }
 
   function render() {
@@ -143,55 +149,48 @@ export function boot(root) {
   }
 
   function paintReadout(paths, input) {
-    const avg = paths[0];
-    $("burn-avg").textContent = money(avg.burn);
-    $("burn-mo").textContent = money(avg.burn / 12) + " a month";
+    const cautious = paths.find((p) => p.key === "bad");
+    const median = paths.find((p) => p.key === "avg");
+    $("burn-avg").textContent = money(cautious.burn);
+    $("burn-mo").textContent = money(cautious.burn / 12) + " a month";
     const plan = input.annualSpend;
-    const over = plan > avg.burn + 50;
-    $("burn-avg").classList.toggle("pos", !over && avg.burn > 0);
+    const over = plan > cautious.burn + 50;
+    $("burn-avg").classList.toggle("pos", !over && cautious.burn > 0);
     $("burn-avg").classList.toggle("neg", over);
     $("burn-sub").textContent = over
-      ? "a year after tax on the average path, in today's dollars, until " +
+      ? "a year after tax that lasted in 9 out of 10 simulated markets, until " +
         input.endAge +
         ". Your " +
         money(plan) +
-        " plan is above that."
-      : "a year after tax on the average path, in today's dollars, and the account still lasts until " +
+        " plan needs a kinder market than that."
+      : "a year after tax that lasted in 9 out of 10 simulated markets, in today's dollars, until " +
         input.endAge +
         ".";
 
     paths.forEach((p) => {
       $(p.key + "-burn").textContent = money(p.burn);
       $(p.key + "-nest").textContent = money(p.nest);
+      $(p.key + "-name").textContent = p.name;
       const el = $(p.key + "-fate");
       if (p.depletedAge == null) {
-        el.textContent = "Lasts to " + input.endAge;
+        el.textContent = p.note + ". Lasts to " + input.endAge;
         el.className = "hint pos";
       } else {
-        el.textContent = "Runs out at " + ageLabel(p.depletedAge);
+        el.textContent = p.note + ". Empty at " + ageLabel(p.depletedAge);
         el.className = "hint neg";
       }
-      const rate = Math.round(p.nominal * 1000) / 10;
-      $(p.key + "-name").textContent = p.name + ", " + trimNum(rate) + "%";
     });
 
     const rawNote = paths
-      .map((p) => {
-        const rate = trimNum(Math.round(p.nominal * 1000) / 10);
-        const bit =
-          p.depletedAge == null
-            ? p.name + " (" + rate + "%) lasts"
-            : p.name + " (" + rate + "%) runs out at " + ageLabel(p.depletedAge);
-        return bit;
-      })
+      .map((p) => (p.depletedAge == null ? p.name + " lasts" : p.name + " is empty at " + ageLabel(p.depletedAge)))
       .join(". ");
     $("path-note").textContent = rawNote + ".";
 
-    const year = avg.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || avg.points[1];
+    const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
     $("year-now").textContent = money(input.balance);
     $("year-add").textContent = money(input.annualSave);
     $("year-next").textContent = year ? money(year.balance) : "—";
-    $("year-real").textContent = (avg.real * 100).toFixed(1) + "%";
+    $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
     $("ss-hint").textContent =
       "Social Security is " +
       money(input.ssAnnual) +
@@ -322,8 +321,7 @@ export function boot(root) {
       const sw = document.createElement("i");
       sw.style.background = colors[p.key];
       item.appendChild(sw);
-      const rate = trimNum(Math.round(p.nominal * 1000) / 10);
-      item.appendChild(document.createTextNode(p.name + " " + rate + "%"));
+      item.appendChild(document.createTextNode(p.name + ", " + p.note));
       legend.appendChild(item);
     });
   }
@@ -353,8 +351,6 @@ export function boot(root) {
       ["ssage", input.ssAge, DEFAULTS.ssAge],
       ["infl", trimNum(input.inflation * 100), String(DEFAULTS.inflationPct)],
       ["r1", trimNum(input.avg * 100), String(DEFAULTS.avgPct)],
-      ["r2", trimNum(input.below * 100), String(DEFAULTS.belowPct)],
-      ["r3", trimNum(input.bad * 100), String(DEFAULTS.badPct)],
       ["acct", input.account, DEFAULTS.account],
       ["file", input.filing, DEFAULTS.filing],
     ];
@@ -378,7 +374,9 @@ export function boot(root) {
     } else if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
     }
-    render();
+    if (t.id === "age" || t.id === "retire") paintSlider(t, t.value);
+    if (t.id === "balance" || t.id === "spend") paintSlider(t, moneyShort(parseFloat(t.value)));
+    schedule();
   }
 
   function onBlur(event) {
@@ -386,7 +384,7 @@ export function boot(root) {
     if (!(t instanceof HTMLElement) || !t.classList.contains("money")) return;
     if (!t.value.trim()) return;
     setMoney(t.id, parseMoney(t.value));
-    render();
+    schedule();
   }
 
   root.addEventListener("input", onEdit);
@@ -397,7 +395,7 @@ export function boot(root) {
     if (!btn || !root.contains(btn)) return;
     const name = btn.hasAttribute("data-account") ? "account" : "filing";
     setChoice(name, btn.getAttribute("data-" + name));
-    render();
+    schedule();
   };
   root.addEventListener("click", onPick);
 
@@ -421,7 +419,7 @@ export function boot(root) {
   };
   copy.addEventListener("click", onCopy);
 
-  const observer = new ResizeObserver(() => render());
+  const observer = new ResizeObserver(() => schedule());
   observer.observe(chart.parentElement);
 
   loadInitial();
