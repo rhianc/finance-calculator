@@ -40,6 +40,38 @@
   #burn-avg.pos { color: var(--good); }
   #burn-avg.neg { color: var(--rent); }
   .meta .hint { margin-top: 0.2rem; }
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+  }
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    padding: 0.22rem;
+    background: var(--soft);
+    border-radius: 999px;
+  }
+  .pills button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 0.4rem 0.8rem;
+    min-height: 2.4rem;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .pills button[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--field);
+  }
+  #tax-note { margin-top: 0.35rem; }
 </style>
 </head>
 <body>
@@ -96,7 +128,7 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="spend">Spend</label>
+          <label for="spend">After tax</label>
           <output for="spend" id="spend-out">$70k</output>
         </div>
         <div class="vrange">
@@ -104,7 +136,18 @@
         </div>
       </div>
     </div>
-    <p class="fine">Spend is the retirement burn, in today's dollars, before Social Security. The lines use that spend. The figure below is the most that still lasts.</p>
+    <div class="pill-row">
+      <div class="pills" role="radiogroup" aria-label="Which account">
+        <button type="button" data-account="traditional" aria-pressed="true">Traditional IRA</button>
+        <button type="button" data-account="roth" aria-pressed="false">Roth IRA</button>
+      </div>
+      <div class="pills" role="radiogroup" aria-label="Filing status">
+        <button type="button" data-filing="single" aria-pressed="true">Single</button>
+        <button type="button" data-filing="joint" aria-pressed="false">Married</button>
+      </div>
+    </div>
+    <p class="fine">The knob is what you live on after federal and California income tax, in today's dollars. Social Security is part of that, not extra. The lines use this plan. The figure below is the most that still lasts.</p>
+    <p class="fine" id="tax-note"></p>
     <div class="actions">
       <button type="button" class="textbtn" id="copy-link">Copy link</button>
     </div>
@@ -125,7 +168,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="spend-amt">Spending each year, retired</label>
+        <label for="spend-amt">To live on each year, after tax</label>
         <div class="control">
           <span class="unit prefix">$</span>
           <input id="spend-amt" class="money" inputmode="decimal" autocomplete="off" value="70,000">
@@ -183,7 +226,7 @@
             </div>
           </div>
           <p class="hint span-2" id="ss-hint"></p>
-          <p class="hint span-2">Returns are nominal, like the 10% stock assumption on the other pages. Inflation comes off, so the chart is today's dollars. Each line is a steady rate, not a crash in one particular year. Withdrawal taxes and fees are not taken out. Spending is what leaves the account.</p>
+          <p class="hint span-2">Returns are nominal, like the 10% stock assumption on the other pages. Inflation comes off, so the chart and the spending knob are today's dollars. Each line is a steady rate, not a crash in one particular year. Fees are not taken out.</p>
         </div>
       </details>
     </div>
@@ -212,7 +255,7 @@
         <div class="hint" id="bad-fate"></div>
       </div>
     </div>
-    <p class="hint">Your spending slider does not change these. They are the most you could spend, Social Security included, and still finish the last year above zero.</p>
+    <p class="hint">Your slider does not change these. They are the most you could live on after tax, Social Security included, and still finish the last year above zero.</p>
   </section>
 
   <section class="card" aria-labelledby="nest-heading">
@@ -243,11 +286,13 @@
   <section class="card">
     <details class="sheet" id="formulas">
       <summary>How the lines are counted</summary>
-      <p class="section-lead">Once a month. Savings go in at the end of a working month. In retirement, spending comes out at the start of the month, then what's left grows. Social Security starts at the later of the claim age and retirement, and it is already in today's dollars.</p>
+      <p class="section-lead">Once a month. Savings go in at the end of a working month. In retirement, the withdrawal comes out at the start of the month, then what's left grows. Social Security starts at the later of the claim age and retirement, and it is already in today's dollars.</p>
       <div class="math">Real return = (1 + nominal) / (1 + inflation) − 1.</div>
-      <p>The monthly rate is that real return, compounded. A contribution that rises with inflation is a flat amount in today's dollars, so the savings input is added as-is. Same for spending and Social Security.</p>
-      <p>The burn rate is a search: the largest spending level, to the nearest $100, whose balance never hits zero before the last month. Your slider is a separate plan drawn on the chart. If a line reaches the floor, that plan has run out, and the age is the first month it could not pay.</p>
-      <p>Left out: tax on withdrawals, fees, a bad sequence of years, and any pension besides the Social Security number. Not a quote, and not tax or investment advice.</p>
+      <p>The monthly rate is that real return, compounded. A contribution that rises with inflation is a flat amount in today's dollars, so the savings input is added as-is. Same for the after-tax spending and for Social Security.</p>
+      <p>The knob is not what leaves the account. It is what you keep. Each retired year, the model looks for the withdrawal that still leaves that amount after federal tax, California tax, and the federal tax on Social Security. A traditional IRA withdrawal is all ordinary income. A Roth withdrawal is left out of income, which assumes you are 59½ and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally.</p>
+      <p>Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction and the exemption credit. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income.</p>
+      <p>The burn rate is a search: the largest after-tax spending level, to the nearest $100, whose balance never hits zero before the last month. Your slider is a separate plan drawn on the chart. If a line reaches the floor, that plan has run out, and the age is the first month it could not pay the withdrawal.</p>
+      <p>Left out: fees, a bad sequence of years, and any pension besides the Social Security number. Not a quote, and not tax or investment advice.</p>
     </details>
   </section>
 </main>
@@ -256,6 +301,6 @@
   <p>Steady returns, not a forecast. The 10% line matches the stock assumption on the buy-or-rent pages. Not tax or investment advice.</p>
 </footer>
 
-<script type="module" src="js/retirement.js?v=1"></script>
+<script type="module" src="js/retirement.js?v=2"></script>
 </body>
 </html>

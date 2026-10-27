@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project } from "./retirement-model.js";
+import { DEFAULTS, normalize, project, spendTax } from "./retirement-model.js";
 
 const STORAGE = "retire-plan-v1";
 
@@ -27,7 +27,20 @@ export function boot(root) {
       avgPct: fieldNum("ret-avg"),
       belowPct: fieldNum("ret-below"),
       badPct: fieldNum("ret-bad"),
+      account: pressed("account"),
+      filing: pressed("filing"),
     };
+  }
+
+  function pressed(name) {
+    const el = root.querySelector("[data-" + name + '][aria-pressed="true"]');
+    return el ? el.getAttribute("data-" + name) : DEFAULTS[name];
+  }
+
+  function setChoice(name, value) {
+    root.querySelectorAll("[data-" + name + "]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.getAttribute("data-" + name) === value ? "true" : "false");
+    });
   }
 
   function sliderNum(id) {
@@ -59,6 +72,8 @@ export function boot(root) {
     set("ret-avg", trimNum(input.avg * 100));
     set("ret-below", trimNum(input.below * 100));
     set("ret-bad", trimNum(input.bad * 100));
+    setChoice("account", input.account);
+    setChoice("filing", input.filing);
     fitSlider("balance", input.balance, [200000, 500000, 1000000, 2500000, 10000000]);
     fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
     if (fromSlider === "balance") $("balance").value = String(input.balance);
@@ -136,12 +151,12 @@ export function boot(root) {
     $("burn-avg").classList.toggle("pos", !over && avg.burn > 0);
     $("burn-avg").classList.toggle("neg", over);
     $("burn-sub").textContent = over
-      ? "a year on the average path, in today's dollars, until " +
+      ? "a year after tax on the average path, in today's dollars, until " +
         input.endAge +
         ". Your " +
         money(plan) +
         " plan is above that."
-      : "a year on the average path, in today's dollars, and the account still lasts until " +
+      : "a year after tax on the average path, in today's dollars, and the account still lasts until " +
         input.endAge +
         ".";
 
@@ -182,7 +197,8 @@ export function boot(root) {
       money(input.ssAnnual) +
       " a year in today's dollars, starting at " +
       Math.max(input.ssAge, input.retireAge) +
-      ". It reduces what the account pays. Set it to 0 to leave it out.";
+      ". It counts toward the after-tax spending. Set it to 0 to leave it out.";
+    $("tax-note").textContent = taxSentence(input, spendTax(input));
   }
 
   function draw(canvas, paths, input) {
@@ -339,6 +355,8 @@ export function boot(root) {
       ["r1", trimNum(input.avg * 100), String(DEFAULTS.avgPct)],
       ["r2", trimNum(input.below * 100), String(DEFAULTS.belowPct)],
       ["r3", trimNum(input.bad * 100), String(DEFAULTS.badPct)],
+      ["acct", input.account, DEFAULTS.account],
+      ["file", input.filing, DEFAULTS.filing],
     ];
     map.forEach(([k, v, def]) => {
       if (String(v) !== String(def)) params.set(k, String(v));
@@ -374,6 +392,14 @@ export function boot(root) {
   root.addEventListener("input", onEdit);
   root.addEventListener("change", onEdit);
   root.addEventListener("blur", onBlur, true);
+  const onPick = (event) => {
+    const btn = event.target.closest("[data-account], [data-filing]");
+    if (!btn || !root.contains(btn)) return;
+    const name = btn.hasAttribute("data-account") ? "account" : "filing";
+    setChoice(name, btn.getAttribute("data-" + name));
+    render();
+  };
+  root.addEventListener("click", onPick);
 
   bindKnobs(root, () => {
     /* slider handlers dispatch input */
@@ -405,6 +431,7 @@ export function boot(root) {
     root.removeEventListener("input", onEdit);
     root.removeEventListener("change", onEdit);
     root.removeEventListener("blur", onBlur, true);
+    root.removeEventListener("click", onPick);
     copy.removeEventListener("click", onCopy);
     observer.disconnect();
     clearTimeout(frame);
@@ -435,6 +462,8 @@ export function boot(root) {
           avgPct: q.get("r1"),
           belowPct: q.get("r2"),
           badPct: q.get("r3"),
+          account: q.get("acct"),
+          filing: q.get("file"),
         }
       : stored
         ? {
@@ -450,6 +479,8 @@ export function boot(root) {
             avgPct: stored.avg * 100,
             belowPct: stored.below * 100,
             badPct: stored.bad * 100,
+            account: stored.account,
+            filing: stored.filing,
           }
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });
@@ -530,6 +561,44 @@ function formatMoneyLive(el) {
 
 function money(n) {
   return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+function taxSentence(input, tax) {
+  const kind = input.account === "roth" ? "Roth IRA" : "traditional IRA";
+  const steady = tax.steady;
+  let text =
+    "To keep " +
+    money(input.annualSpend) +
+    ", once Social Security has started, the " +
+    kind +
+    " pays " +
+    money(steady.withdrawal) +
+    " a year. ";
+  if (steady.bill.total < 1) {
+    text += "Income tax on that year is about zero.";
+  } else {
+    text +=
+      "About " +
+      money(steady.bill.total) +
+      " is tax (" +
+      money(steady.bill.federal) +
+      " federal, " +
+      money(steady.bill.state) +
+      " California).";
+  }
+  if (tax.before) {
+    text +=
+      " From " +
+      input.retireAge +
+      " until " +
+      input.ssAge +
+      ", before the benefit, it pays " +
+      money(tax.before.withdrawal) +
+      " and tax is about " +
+      money(tax.before.bill.total) +
+      ".";
+  }
+  return text;
 }
 
 function moneyShort(n) {
