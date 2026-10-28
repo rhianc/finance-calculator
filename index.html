@@ -37,10 +37,8 @@
     <div class="sliders">
       <div class="slider">
         <div class="slider-row">
-          <label for="rent-out">Rent</label>
-          <span class="knob-read">
-            <input class="knob-num" id="rent-out" data-for="rent" data-kind="usd" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Monthly rent in dollars" value="$3,650">
-          </span>
+          <label for="rent">Rent</label>
+          <output for="rent" id="rent-out">$3,650</output>
         </div>
         <div class="vrange">
           <input id="rent" type="range" min="500" max="5000" step="25" value="3650">
@@ -48,11 +46,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="loan-rate-out">Rate</label>
-          <span class="knob-read">
-            <input class="knob-num" id="loan-rate-out" data-for="loan-rate" data-kind="pct" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Loan rate in percent" value="6.5%">
-            <span class="knob-suffix">%</span>
-          </span>
+          <label for="loan-rate">Rate</label>
+          <output for="loan-rate" id="loan-rate-out">6.5%</output>
         </div>
         <div class="vrange">
           <input id="loan-rate" type="range" min="2" max="12" step="0.05" value="6.5">
@@ -60,11 +55,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="home-price-out">Price</label>
-          <span class="knob-read">
-            <input class="knob-num" id="home-price-out" data-for="home-price" data-kind="k" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Home price in thousands of dollars" value="$500k">
-            <span class="knob-suffix">k</span>
-          </span>
+          <label for="home-price">Price</label>
+          <output for="home-price" id="home-price-out">$500k</output>
         </div>
         <div class="vrange">
           <input id="home-price" type="range" min="100000" max="1500000" step="25000" value="500000">
@@ -72,11 +64,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="down-pct-out">Down</label>
-          <span class="knob-read">
-            <input class="knob-num" id="down-pct-out" data-for="down-pct" data-kind="pct" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Down payment in percent" value="20%">
-            <span class="knob-suffix">%</span>
-          </span>
+          <label for="down-pct">Down</label>
+          <output for="down-pct" id="down-pct-out">20%</output>
         </div>
         <div class="vrange">
           <input id="down-pct" type="range" min="0" max="100" step="1" value="20">
@@ -392,7 +381,6 @@
 <script src="js/markets.js?v=14"></script>
 <script src="js/redfin.js?v=1"></script>
 <script src="js/charts.js?v=31"></script>
-<script src="js/knobs.js?v=1"></script>
 <script src="js/main.js?v=26"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

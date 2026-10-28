@@ -391,27 +391,28 @@ select.bare:focus {
 }
 
 .sliders {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }
 
 .slider {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
+  width: 100%;
   padding: 0;
 }
 
 .slider-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.05rem;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
   width: 100%;
   margin: 0;
-  text-align: center;
 }
 
 .slider-row label {
@@ -420,63 +421,22 @@ select.bare:focus {
   font-weight: 600;
 }
 
-.knob-read {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  width: 100%;
+.slider-row output {
+  display: block;
   min-width: 0;
-}
-
-.knob-num {
-  width: 4.6rem;
-  max-width: 100%;
-  flex: 0 1 auto;
-  margin: 0;
-  padding: 0.05rem 0.1rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
   color: var(--ink);
-  font: inherit;
-  font-size: 16px;
+  font-size: 0.95rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
-  text-align: center;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.knob-num:focus {
-  outline: none;
-  background: var(--field);
-}
-
-.knob-num[readonly] {
-  pointer-events: none;
-}
-
-.knob-suffix {
-  display: none;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.knob-read:focus-within .knob-num {
-  width: 3.4rem;
-}
-
-.knob-read:focus-within .knob-suffix {
-  display: inline;
+  text-align: right;
 }
 
 .vrange {
   position: relative;
   width: 100%;
-  height: 151px;
-  margin-top: 0.2rem;
+  height: 36px;
+  margin-top: 0.05rem;
   touch-action: none;
   --fill: 0;
 }
@@ -484,26 +444,26 @@ select.bare:focus {
 .vrange::before {
   content: '';
   position: absolute;
-  left: 50%;
-  top: 14px;
-  bottom: 14px;
-  width: 4px;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 4px;
   border-radius: 99px;
-  transform: translateX(-50%);
-  background: linear-gradient(to top, var(--ink) calc(var(--fill) * 100%), var(--soft) calc(var(--fill) * 100%));
+  transform: translateY(-50%);
+  background: linear-gradient(to right, var(--ink) calc(var(--fill) * 100%), var(--soft) calc(var(--fill) * 100%));
 }
 
 .vrange::after {
   content: '';
   position: absolute;
-  left: 50%;
+  top: 50%;
+  left: calc(14px + (100% - 28px) * var(--fill));
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: var(--ink);
   border: 3px solid var(--card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-  top: calc(14px + (100% - 28px) * (1 - var(--fill)));
   transform: translate(-50%, -50%);
 }
 
@@ -743,8 +703,7 @@ footer a { color: var(--house); }
   .fields { grid-template-columns: minmax(0, 1fr); }
   .span-2 { grid-column: auto; }
   .field label { min-height: 0; }
-  .knob-num { width: 100%; font-size: 16px; }
-  .knob-read:focus-within .knob-num { width: 3.1rem; }
+  .slider-row output { min-width: 0; font-size: 0.88rem; }
   .stage {
     position: sticky;
     top: 0;

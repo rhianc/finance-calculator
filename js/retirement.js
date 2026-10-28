@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=9";
+import { DEFAULTS, normalize, project, spendTax, yearSave, irsCap } from "./retirement-model.js?v=8";
 
 const STORAGE = "retire-plan-v2";
 
@@ -18,8 +18,8 @@ export function boot(root) {
       age: sliderNum("age"),
       retireAge: sliderNum("retire"),
       endAge: fieldNum("end"),
-      balance: sliderNum("balance"),
-      annualSpend: sliderNum("spend"),
+      balance: fieldNum("balance-amt"),
+      annualSpend: fieldNum("spend-amt"),
       salary: fieldNum("salary"),
       savePct: sliderNum("savepct"),
       raisePct: fieldNum("raise"),
@@ -64,9 +64,11 @@ export function boot(root) {
     retire.max = "80";
     if (document.activeElement !== retire) retire.value = String(input.retireAge);
     set("end", String(input.endAge));
+    setMoney("balance-amt", input.balance);
     setMoney("salary", input.salary);
     set("raise", trimNum(input.raise * 100));
     setChoice("mega", input.mega ? "1" : "0");
+    setMoney("spend-amt", input.annualSpend);
     setMoney("ss", input.ssAnnual);
     set("ss-age", String(input.ssAge));
     set("inflation", trimNum(input.inflation * 100));
@@ -107,35 +109,7 @@ export function boot(root) {
     const box = el.closest(".vrange");
     if (box) box.style.setProperty("--fill", String(pct));
     const out = $(el.id + "-out");
-    if (out && document.activeElement !== out) out.value = label;
-  }
-
-  function commitKnob(id, n) {
-    const el = $(id);
-    if (!el) return;
-    if (id === "balance" || id === "spend" || id === "savepct") {
-      const ceilings = id === "balance"
-        ? [200000, 500000, 1000000, 2500000, 10000000]
-        : id === "spend"
-          ? [150000, 300000, 600000, 1500000]
-          : [40, 60, 100];
-      let cap = ceilings[ceilings.length - 1];
-      for (const c of ceilings) {
-        if (n <= c) {
-          cap = c;
-          break;
-        }
-      }
-      el.max = String(cap);
-    }
-    const min = parseFloat(el.min);
-    const max = parseFloat(el.max);
-    const step = parseFloat(el.step) || 1;
-    let v = Math.min(max, Math.max(min, n));
-    v = min + Math.round((v - min) / step) * step;
-    v = Math.min(max, Math.max(min, v));
-    el.value = String(Math.round(v * 1000) / 1000);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    if (out) out.textContent = label;
   }
 
   let queued = false;
@@ -167,7 +141,7 @@ export function boot(root) {
       const editing = document.activeElement;
       const skipFormat = editing && editing.classList && editing.classList.contains("money");
       applyNormalized(input, null);
-      if (skipFormat && (editing.id === "salary" || editing.id === "ss")) {
+      if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
         // leave the in-progress typing alone
       }
     } catch (err) {
@@ -228,26 +202,33 @@ export function boot(root) {
       $(p.key + "-nest").textContent = money(p.nest);
       $(p.key + "-name").textContent = p.name;
       const el = $(p.key + "-fate");
-      el.textContent = p.note;
-      el.className = "hint";
+      if (p.depletedAge == null) {
+        el.textContent = p.note + ". Lasts to " + input.endAge;
+        el.className = "hint pos";
+      } else {
+        el.textContent = p.note + ". Empty at " + ageLabel(p.depletedAge);
+        el.className = "hint neg";
+      }
     });
 
     $("path-note").textContent = "Dotted line is retirement.";
 
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
-    const savedNow = contributionSplit(input, 0, input.age + 1);
+    const savedNow = yearSave(input, 0, input.age + 1);
+    const want = input.salary * input.savePct;
+    const capNow = irsCap(input.age + 1, input.mega);
     $("year-now").textContent = money(input.balance);
-    $("year-add").textContent = money(savedNow.total);
+    $("year-add").textContent = money(savedNow);
     $("year-next").textContent = year ? money(year.balance) : "—";
     $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
-    $("save-note").textContent = saveSentence(input, savedNow);
+    $("save-note").textContent = saveSentence(input, savedNow, want, capNow);
     $("ss-hint").textContent =
       "Social Security is " +
       money(input.ssAnnual) +
       " a year in today's dollars, starting at " +
       Math.max(input.ssAge, input.retireAge) +
       ". It counts toward the after-tax spending. Set it to 0 to leave it out.";
-    $("tax-note").textContent = taxSentence(input, spendTax(input, median.taxShare));
+    $("tax-note").textContent = taxSentence(input, spendTax(input));
   }
 
   function draw(canvas, paths, input) {
@@ -409,7 +390,11 @@ export function boot(root) {
   function onEdit(event) {
     const t = event.target;
     if (!(t instanceof HTMLElement) || !root.contains(t)) return;
-    if (t.classList.contains("money") && event.type === "input") {
+    if (t.id === "balance") {
+      setMoney("balance-amt", parseFloat(t.value));
+    } else if (t.id === "spend") {
+      setMoney("spend-amt", parseFloat(t.value));
+    } else if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
     }
     if (t.id === "age" || t.id === "retire") paintSlider(t, t.value);
@@ -438,18 +423,6 @@ export function boot(root) {
   };
   root.addEventListener("click", onPick);
 
-  if (window.KnobNums) {
-    KnobNums.bind({
-      commit: commitKnob,
-      paint(id) {
-        const el = $(id);
-        if (!el) return;
-        if (id === "age" || id === "retire") paintSlider(el, el.value);
-        else if (id === "balance" || id === "spend") paintSlider(el, moneyShort(parseFloat(el.value)));
-        else if (id === "savepct") paintSlider(el, trimNum(parseFloat(el.value)) + "%");
-      },
-    });
-  }
   bindKnobs(root, () => {
     /* slider handlers dispatch input */
   });
@@ -540,6 +513,8 @@ export function boot(root) {
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });
     applyNormalized(input, null);
+    setMoney("balance-amt", input.balance);
+    setMoney("spend-amt", input.annualSpend);
   }
 }
 
@@ -555,11 +530,11 @@ function bindKnobs(root) {
   root.querySelectorAll(".vrange").forEach((box) => {
     const el = box.querySelector('input[type="range"]');
     if (!el) return;
-    function valueFromY(clientY) {
+    function valueFromX(clientX) {
       const rect = box.getBoundingClientRect();
       const pad = 14;
-      const span = Math.max(1, rect.height - pad * 2);
-      let t = (rect.bottom - pad - clientY) / span;
+      const span = Math.max(1, rect.width - pad * 2);
+      let t = (clientX - rect.left - pad) / span;
       t = Math.min(1, Math.max(0, t));
       const min = parseFloat(el.min);
       const max = parseFloat(el.max);
@@ -569,7 +544,7 @@ function bindKnobs(root) {
       return Math.round(v * 1000) / 1000;
     }
     function setFromEvent(event) {
-      const v = valueFromY(event.clientY);
+      const v = valueFromX(event.clientX);
       if (String(v) !== el.value) {
         el.value = String(v);
         el.dispatchEvent(new Event("input", { bubbles: true }));
@@ -616,43 +591,45 @@ function money(n) {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-function saveSentence(input, split) {
+function saveSentence(input, saved, want, cap) {
   const pct = trimNum(Math.round(input.savePct * 100));
-  let text = "This year " + money(split.total) + " goes into the 401(k)";
-  if (split.pre > 0 && split.roth > 0) {
-    text += ", " + money(split.pre) + " pre-tax and " + money(split.roth) + " Roth";
-  } else if (split.pre === 0) {
-    text += " as Roth";
+  let text = "This year " + money(saved) + " goes in";
+  if (want > cap + 1) {
+    text += ". " + pct + "% of pay is " + money(want) + ", so the IRS cap binds";
   } else {
-    text += " pre-tax";
+    text += ", " + pct + "% of " + money(input.salary);
   }
-  if (split.want > split.total + 1) {
-    text += ". " + pct + "% of " + money(split.salary) + " is " + money(split.want) + ", so the cap binds";
-  }
-  return text + ".";
+  text +=
+    ". Salary rises " +
+    trimNum(input.raise * 100) +
+    "% a year above inflation. The cap is " +
+    money(irsCap(30, input.mega)) +
+    " until 50, " +
+    money(irsCap(55, input.mega)) +
+    " after that, and " +
+    money(irsCap(61, input.mega)) +
+    " at 60–63.";
+  return text;
 }
 
 function taxSentence(input, tax) {
+  const kind = input.account === "roth" ? "Roth IRA" : "traditional IRA";
   const steady = tax.steady;
-  const share = tax.share;
   let text =
-    "Keeping " +
+    "To keep " +
     money(input.annualSpend) +
-    " takes a " +
+    ", once Social Security has started, the " +
+    kind +
+    " pays " +
     money(steady.withdrawal) +
-    " withdrawal once Social Security has started. ";
-  if (share > 0.001 && share < 0.999) {
-    text += money(steady.withdrawal * share) + " of that is pre-tax. ";
-  } else if (share <= 0.001) {
-    text += "That withdrawal is Roth. ";
-  }
+    " a year. ";
   if (steady.bill.total < 1) {
-    text += "Income tax that year is about zero.";
+    text += "Income tax on that year is about zero.";
   } else {
     text +=
-      "Tax is about " +
+      "About " +
       money(steady.bill.total) +
-      " (" +
+      " is tax (" +
       money(steady.bill.federal) +
       " federal, " +
       money(steady.bill.state) +
@@ -660,9 +637,11 @@ function taxSentence(input, tax) {
   }
   if (tax.before) {
     text +=
-      " Before " +
+      " From " +
+      input.retireAge +
+      " until " +
       input.ssAge +
-      ", the withdrawal is " +
+      ", before the benefit, it pays " +
       money(tax.before.withdrawal) +
       " and tax is about " +
       money(tax.before.bill.total) +
@@ -690,6 +669,35 @@ function trimNum(n) {
 
 function ageLabel(age) {
   return String(Math.floor(age));
+}
+
+function niceCeil(v) {
+  if (v <= 0) return 1;
+  const exp = Math.pow(10, Math.floor(Math.log10(v)));
+  const f = v / exp;
+  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+  return nice * exp;
+}
+
+function decadeFloor(v) {
+  const exp = Math.floor(Math.log10(Math.max(v, 1000)));
+  return 10 ** exp;
+}
+
+function decadeCeiling(v) {
+  const exp = Math.ceil(Math.log10(Math.max(v * 1.08, 10)));
+  return 10 ** exp;
+}
+
+function logTicks(floor, max) {
+  const ticks = [];
+  let v = decadeFloor(floor);
+  while (v <= max * 1.001 && ticks.length < 6) {
+    if (v >= floor * 0.99) ticks.push(v);
+    v *= 10;
+  }
+  if (ticks.length === 0) ticks.push(floor, max);
+  return ticks;
 }
 
 boot(document);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="description" content="How long a 401(k) lasts. The lines are the middle, the lower quarter, and the lower tenth of simulated stock markets.">
+<meta name="description" content="How long a retirement account lasts, at an average market, a softer one, and a bad one.">
 <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -75,16 +75,8 @@
     background: var(--field);
   }
   #tax-note { margin-top: 0.35rem; }
-  .sliders { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  /* iOS sizes a text field from its size attribute, which stretches the row past the phone. */
-  .slider-row, .knob-read, .knob-num { min-width: 0; max-width: 100%; }
-  .knob-num { width: 100%; }
   .stage .chart-box.tall { height: 188px; }
-  @media (max-width: 1024px) {
-    .sliders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
   @media (max-width: 700px) {
-    .sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stage .chart-box.tall { height: 148px; }
   }
 </style>
@@ -116,10 +108,8 @@
     <div class="sliders">
       <div class="slider">
         <div class="slider-row">
-          <label for="age-out">Age</label>
-          <span class="knob-read">
-            <input class="knob-num" id="age-out" data-for="age" data-kind="num" type="text" size="1" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Age" value="28">
-          </span>
+          <label for="age">Age</label>
+          <output for="age" id="age-out">28</output>
         </div>
         <div class="vrange">
           <input id="age" type="range" min="18" max="75" step="1" value="28">
@@ -127,10 +117,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="retire-out">Retire</label>
-          <span class="knob-read">
-            <input class="knob-num" id="retire-out" data-for="retire" data-kind="num" type="text" size="1" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Retirement age" value="65">
-          </span>
+          <label for="retire">Retire</label>
+          <output for="retire" id="retire-out">65</output>
         </div>
         <div class="vrange">
           <input id="retire" type="range" min="29" max="80" step="1" value="65">
@@ -138,11 +126,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="balance-out">Balance</label>
-          <span class="knob-read">
-            <input class="knob-num" id="balance-out" data-for="balance" data-kind="k" type="text" size="1" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Balance today in thousands of dollars" value="$50k">
-            <span class="knob-suffix">k</span>
-          </span>
+          <label for="balance">Balance</label>
+          <output for="balance" id="balance-out">$50k</output>
         </div>
         <div class="vrange">
           <input id="balance" type="range" min="0" max="200000" step="1000" value="50000">
@@ -150,11 +135,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="spend-out">Live on</label>
-          <span class="knob-read">
-            <input class="knob-num" id="spend-out" data-for="spend" data-kind="k" type="text" size="1" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Yearly spending after tax, in thousands of dollars" value="$70k">
-            <span class="knob-suffix">k</span>
-          </span>
+          <label for="spend">After tax</label>
+          <output for="spend" id="spend-out">$70k</output>
         </div>
         <div class="vrange">
           <input id="spend" type="range" min="0" max="150000" step="1000" value="70000">
@@ -162,11 +144,8 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="savepct-out">Save</label>
-          <span class="knob-read">
-            <input class="knob-num" id="savepct-out" data-for="savepct" data-kind="pct" type="text" size="1" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Percent of salary saved" value="15%">
-            <span class="knob-suffix">%</span>
-          </span>
+          <label for="savepct">Save</label>
+          <output for="savepct" id="savepct-out">15%</output>
         </div>
         <div class="vrange">
           <input id="savepct" type="range" min="0" max="40" step="1" value="15">
@@ -175,8 +154,8 @@
     </div>
     <div class="pill-row">
       <div class="pills" role="radiogroup" aria-label="Which account">
-        <button type="button" data-account="traditional" aria-pressed="true">Pre-tax</button>
-        <button type="button" data-account="roth" aria-pressed="false">Roth</button>
+        <button type="button" data-account="traditional" aria-pressed="true">Traditional IRA</button>
+        <button type="button" data-account="roth" aria-pressed="false">Roth IRA</button>
       </div>
       <div class="pills" role="radiogroup" aria-label="Filing status">
         <button type="button" data-filing="single" aria-pressed="true">Single</button>
@@ -195,6 +174,13 @@
 
     <div class="fields">
       <div class="field">
+        <label for="balance-amt">Balance today</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="balance-amt" class="money" inputmode="decimal" autocomplete="off" value="50,000">
+        </div>
+      </div>
+      <div class="field">
         <label for="salary">Salary today</label>
         <div class="control">
           <span class="unit prefix">$</span>
@@ -206,6 +192,13 @@
         <div class="control">
           <input id="raise" type="number" min="-5" max="20" step="0.1" value="1" inputmode="decimal">
           <span class="unit">%/yr</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="spend-amt">To live on each year, after tax</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="spend-amt" class="money" inputmode="decimal" autocomplete="off" value="70,000">
         </div>
       </div>
       <div class="field">
@@ -275,7 +268,7 @@
         <div class="hint" id="bad-fate"></div>
       </div>
     </div>
-    <p class="hint">The big number is the most you could spend after tax and still finish with money in 9 out of 10 simulated markets. Below average lasted in 3 out of 4. Average lasted in half. The after-tax slider does not change these. Saving, age, and the account do. Social Security is included.</p>
+    <p class="hint">The big number is the cautious one, the spend that still lasted in 9 out of 10 simulated markets. Below average lasted in 3 out of 4. Average is the median market, and half did better. Your slider does not change these. After tax, Social Security included.</p>
   </section>
 
   <section class="card" aria-labelledby="nest-heading">
@@ -298,7 +291,7 @@
     <div class="steps" id="worked">
       <div class="step"><span class="expr">Balance today</span><span class="val" id="year-now">—</span></div>
       <div class="step"><span class="expr">Saved this year, after the cap</span><span class="val" id="year-add">—</span></div>
-      <div class="step"><span class="expr">Long-run real return</span><span class="val" id="year-real">—</span></div>
+      <div class="step"><span class="expr">Average real return</span><span class="val" id="year-real">—</span></div>
       <div class="step"><span class="expr">Median balance in one year</span><span class="val" id="year-next">—</span></div>
     </div>
   </section>
@@ -316,20 +309,20 @@
       <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Fidelity's planner draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
 
       <h3>While you work</h3>
-      <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of salary saved. This is a 401(k), not an IRA. The 2026 IRA limit is $7,500, and that is not the cap here. \(\mathrm{cap}(a)\) is the 2026 workplace limit at that age, held flat in today's dollars. Elective deferrals are $24,500 and follow the pre-tax or Roth button. From 50 the catch-up adds $8,000, or $11,250 at ages 60 through 63. Pay over $150,000 makes that catch-up Roth even if the button says pre-tax. Mega backdoor fills what is left of the $72,000 annual-additions limit with Roth money, and it assumes the employer contributes nothing. The deposit cannot exceed that year's pay.</p>
+      <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of salary saved. \(\mathrm{cap}(a)\) is the 2026 IRS limit at that age, held flat in today's dollars: $24,500 into a 401(k), or $72,000 if the mega backdoor is on. From 50 the catch-up adds $8,000. At 60 through 63 it adds $11,250 instead. The contribution cannot exceed that year's pay.</p>
       <div class="math">\[
         C_y = \min\!\left(S_0(1+g)^y \, p,\; \mathrm{cap}(a),\; S_0(1+g)^y\right)
       \]</div>
-      <p>That total is then split into the pre-tax and Roth pockets. A full working year adds the contribution at mid-year:</p>
+      <p>A full working year adds the contribution at mid-year:</p>
       <div class="math">\[
         B_{y+1} = B_y(1+r_y) + C_y\!\left(1 + \tfrac{1}{2} r_y\right)
       \]</div>
 
       <h3>After you retire</h3>
-      <p>The spending knob is what you keep, not what leaves the account. \(K\) is that after-tax amount. \(SS\) is Social Security once it has started. \(W\) is the withdrawal that still leaves \(K\), and only the pre-tax share of \(W\) is ordinary income:</p>
-      <div class="math">\[ W + SS - \mathrm{Tax}(f W, SS) = K \]</div>
-      <p>\(f\) is the pre-tax share of the balance that year. Withdrawals come out of the pre-tax and Roth pockets in proportion. A Roth withdrawal is left out of income, which assumes you are \(59\tfrac{1}{2}\) and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally. Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction, the exemption credit, and another $158 from the year you turn 65. Those credits phase out at high income and do not offset the 1% mental-health tax above $1 million of taxable income. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income. Required minimum distributions are not forced.</p>
-      <p>A full retired year takes the withdrawal at mid-year. \(U\) is Social Security not needed that year. It is added to the Roth pocket, so it is not taxed a second time:</p>
+      <p>The spending knob is what you keep, not what leaves the account. \(K\) is that after-tax amount. \(SS\) is Social Security once it has started. \(W\) is the withdrawal that still leaves \(K\):</p>
+      <div class="math">\[ W + SS - \mathrm{Tax}(W, SS) = K \]</div>
+      <p>A traditional IRA withdrawal is ordinary income. A Roth withdrawal is left out of income, which assumes you are \(59\tfrac{1}{2}\) and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally. Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction and the exemption credit. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income.</p>
+      <p>A full retired year takes the withdrawal at mid-year. \(U\) is Social Security not needed that year, which stays in the account:</p>
       <div class="math">\[
         \begin{gathered}
           B_{y+1} = \max\!\left(0,\; B_y - \tfrac{1}{2} W\right)(1+r_y) \\
@@ -340,7 +333,7 @@
       <h3>The three lines</h3>
       <p>The lines are not three rates, and none of them is one person's life. At each age they are a cutoff across the 280 balances: the level half the histories beat, the level 3 in 4 beat, and the level 9 in 10 beat. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
-      <p>Left out: fees, an employer match, bonds, required minimum distributions, any pension besides the Social Security number, and the chance that future stocks do worse than 1928–2025 even after you lower the average. Not a quote, and not tax or investment advice.</p>
+      <p>Left out: fees, bonds, any pension besides the Social Security number, and the chance that future stocks do worse than 1928–2025 even after you lower the average. Not a quote, and not tax or investment advice.</p>
     </details>
   </section>
 </main>
@@ -349,8 +342,7 @@
   <p>Historical stock years, not a smooth 10%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
-<script src="js/knobs.js?v=1"></script>
-<script type="module" src="js/retirement.js?v=10"></script>
+<script type="module" src="js/retirement.js?v=9"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

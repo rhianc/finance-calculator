@@ -718,12 +718,13 @@
     var box = el.closest ? el.closest('.vrange') : null;
     if (box) box.style.setProperty('--fill', String(pct));
     var out = $(el.id + '-out');
-    if (!out || document.activeElement === out) return;
-    if (el.id === 'home-price') out.value = knobPrice(val);
-    else if (el.id === 'rent') out.value = money(val, 0);
+    if (!out) return;
+    if (el.id === 'home-price') out.textContent = knobPrice(val);
+    else if (el.id === 'rent') out.textContent = money(val, 0);
     else if (el.id === 'loan-rate') {
-      out.value = (Math.round(val * 100) / 100) + '%';
-    } else if (el.id === 'down-pct') out.value = Math.round(val) + '%';
+      var rate = Math.round(val * 100) / 100;
+      out.textContent = (Math.round(val * 10) / 10).toFixed(1) + '%';
+    } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
   }
 
   function knobPrice(n) {
@@ -853,11 +854,11 @@
     document.querySelectorAll('.vrange').forEach(function (box) {
       var el = box.querySelector('input[type="range"]');
       if (!el || el.id === 'rent') return;
-      function valueFromY(clientY) {
+      function valueFromX(clientX) {
         var rect = box.getBoundingClientRect();
         var pad = 14;
-        var span = Math.max(1, rect.height - pad * 2);
-        var t = (rect.bottom - pad - clientY) / span;
+        var span = Math.max(1, rect.width - pad * 2);
+        var t = (clientX - rect.left - pad) / span;
         if (t < 0) t = 0;
         if (t > 1) t = 1;
         var min = parseFloat(el.min);
@@ -870,7 +871,7 @@
         return Math.round(v * 1000) / 1000;
       }
       function setFromEvent(event, commit) {
-        var v = valueFromY(event.clientY);
+        var v = valueFromX(event.clientX);
         if (String(v) !== el.value) {
           el.value = String(v);
           el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -902,17 +903,6 @@
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     try { applyRent(); } catch (err) { console.error(err); }
     paintSliders();
-    if (window.KnobNums) {
-      KnobNums.bind({
-        commit: function (id, n) {
-          setRange(id, n);
-          var el = $(id);
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        },
-        paint: function (id) { paintSlider($(id)); }
-      });
-    }
     bindKnobs();
     refresh();
     writeQuery();
