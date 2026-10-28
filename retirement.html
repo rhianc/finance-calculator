@@ -10,6 +10,9 @@
 <meta name="color-scheme" content="light dark">
 <title>Will it last?</title>
 <link rel="stylesheet" href="css/styles.css?v=35">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <style>
   .legend {
     display: flex;
@@ -297,14 +300,40 @@
   <section class="card">
     <details class="sheet" id="formulas">
       <summary>How the lines are counted</summary>
-      <p class="section-lead">280 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches. The historical real return is shifted so the average matches the stock return and the inflation you typed.</p>
-      <p>Savings are a percent of pay. Pay starts at the salary you type and rises at the raise rate above inflation, so the contribution is already in today's dollars. It stops at the 2026 IRS limit for that age, which is also held flat in today's dollars: $24,500 into a 401(k), or $72,000 if the mega backdoor is on. From 50 the catch-up adds $8,000. At 60 through 63 it adds $11,250 instead. The limit cannot exceed that year's pay.</p>
-      <div class="math">Target real return = (1 + nominal) / (1 + inflation) − 1.</div>
-      <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. The three lines are not three rates, and none of them is one person's biography. At each age they are a cutoff: the balance that half the histories beat, that 3 in 4 beat, and that 9 in 10 beat. Joining those cutoffs makes a smooth line. A real account jumps around. Fidelity's planner reads the plan off the 9-in-10 cutoff. Their writeup draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
-      <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later academic work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law. Longer blocks keep bad decades more intact.</p>
-      <p>The knob is not what leaves the account. It is what you keep. Each retired year, the model looks for the withdrawal that still leaves that amount after federal tax, California tax, and the federal tax on Social Security. A traditional IRA withdrawal is all ordinary income. A Roth withdrawal is left out of income, which assumes you are 59½ and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally.</p>
-      <p>Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction and the exemption credit. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income.</p>
-      <p>The burn rate is a search. The big number is the largest after-tax spending level, to the nearest $100, that never hits zero in at least 9 out of 10 simulated markets. Below average uses 3 out of 4. Average uses half. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
+      <p class="section-lead">280 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches.</p>
+
+      <h3>Today's dollars</h3>
+      <p>\(n\) is the stock return you type and \(\pi\) is inflation. The target real return is</p>
+      <div class="math">\[ r = \frac{1+n}{1+\pi} - 1 \]</div>
+      <p>\(\tilde r\) is that historical year's real total return and \(\bar r\) is the average of those years. The block is shifted so the mean matches what you typed, then clamped:</p>
+      <div class="math">\[ r_y = \mathrm{clamp}\!\left(\tilde r_{b(y)} + (r - \bar r),\; -0.7,\; 1.2\right) \]</div>
+      <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Fidelity's planner draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
+
+      <h3>While you work</h3>
+      <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of salary saved. \(\mathrm{cap}(a)\) is the 2026 IRS limit at that age, held flat in today's dollars: $24,500 into a 401(k), or $72,000 if the mega backdoor is on. From 50 the catch-up adds $8,000. At 60 through 63 it adds $11,250 instead. The contribution cannot exceed that year's pay.</p>
+      <div class="math">\[
+        C_y = \min\!\left(S_0(1+g)^y \, p,\; \mathrm{cap}(a),\; S_0(1+g)^y\right)
+      \]</div>
+      <p>A full working year adds the contribution at mid-year:</p>
+      <div class="math">\[
+        B_{y+1} = B_y(1+r_y) + C_y\!\left(1 + \tfrac{1}{2} r_y\right)
+      \]</div>
+
+      <h3>After you retire</h3>
+      <p>The spending knob is what you keep, not what leaves the account. \(K\) is that after-tax amount. \(SS\) is Social Security once it has started. \(W\) is the withdrawal that still leaves \(K\):</p>
+      <div class="math">\[ W + SS - \mathrm{Tax}(W, SS) = K \]</div>
+      <p>A traditional IRA withdrawal is ordinary income. A Roth withdrawal is left out of income, which assumes you are \(59\tfrac{1}{2}\) and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally. Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction and the exemption credit. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income.</p>
+      <p>A full retired year takes the withdrawal at mid-year. \(U\) is Social Security not needed that year, which stays in the account:</p>
+      <div class="math">\[
+        \begin{gathered}
+          B_{y+1} = \max\!\left(0,\; B_y - \tfrac{1}{2} W\right)(1+r_y) \\
+          -\; \tfrac{1}{2} W + U
+        \end{gathered}
+      \]</div>
+
+      <h3>The three lines</h3>
+      <p>The lines are not three rates, and none of them is one person's life. At each age they are a cutoff across the 280 balances: the level half the histories beat, the level 3 in 4 beat, and the level 9 in 10 beat. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
+      <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
       <p>Left out: fees, bonds, any pension besides the Social Security number, and the chance that future stocks do worse than 1928–2025 even after you lower the average. Not a quote, and not tax or investment advice.</p>
     </details>
   </section>
@@ -315,5 +344,17 @@
 </footer>
 
 <script type="module" src="js/retirement.js?v=8"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (!window.renderMathInElement) return;
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: "\\[", right: "\\]", display: true },
+      { left: "\\(", right: "\\)", display: false }
+    ],
+    throwOnError: false
+  });
+});
+</script>
 </body>
 </html>
