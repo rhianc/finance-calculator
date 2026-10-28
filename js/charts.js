@@ -549,6 +549,7 @@
         hovertemplate: 'Median home this year<br>$%{y:.0f}k<extra></extra>'
       });
     }
+    var narrow = (el.clientWidth || 800) < 560;
     if (spec.price > 0) {
       data.push({
         type: 'scatter',
@@ -567,7 +568,6 @@
       var ySpan = yTop - yBottom;
       var yNorm = ySpan > 0 ? (spec.price / 1000 - yBottom) / ySpan : 0.5;
       var above = yNorm < 0.78;
-      var narrow = (el.clientWidth || 800) < 560;
       var outcome = gap === 0 ? 'Even' : who + compactMoney(Math.abs(gap));
       tag = {
         x: years[years.length - 1],
@@ -615,7 +615,7 @@
       width: el.clientWidth || undefined,
       height: el.clientHeight || undefined,
       uirevision: 'crossover',
-      margin: { t: 36, r: 78, b: 42, l: 54, autoexpand: false },
+      margin: { t: narrow ? 58 : 36, r: 72, b: 42, l: 48, autoexpand: false },
       xaxis: {
         domain: [0, 1],
         title: { text: 'Years after purchase', font: { size: 11, color: muted }, standoff: 4 },
@@ -638,7 +638,7 @@
       legend: {
         orientation: 'h',
         yanchor: 'bottom',
-        y: 1.02,
+        y: 1,
         x: 0,
         xanchor: 'left',
         font: { size: 11, color: ink },
