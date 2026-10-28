@@ -420,15 +420,56 @@ select.bare:focus {
   font-weight: 600;
 }
 
-.slider-row output {
-  display: block;
-  min-width: 4.75rem;
+.knob-read {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.knob-num {
+  width: 4.6rem;
+  max-width: 100%;
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0.05rem 0.1rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--ink);
-  font-size: 0.95rem;
+  font: inherit;
+  font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.knob-num:focus {
+  outline: none;
+  background: var(--field);
+}
+
+.knob-num[readonly] {
+  pointer-events: none;
+}
+
+.knob-suffix {
+  display: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.knob-read:focus-within .knob-num {
+  width: 3.4rem;
+}
+
+.knob-read:focus-within .knob-suffix {
+  display: inline;
 }
 
 .vrange {
@@ -702,7 +743,8 @@ footer a { color: var(--house); }
   .fields { grid-template-columns: minmax(0, 1fr); }
   .span-2 { grid-column: auto; }
   .field label { min-height: 0; }
-  .slider-row output { min-width: 0; font-size: 0.88rem; }
+  .knob-num { width: 100%; font-size: 16px; }
+  .knob-read:focus-within .knob-num { width: 3.1rem; }
   .stage {
     position: sticky;
     top: 0;

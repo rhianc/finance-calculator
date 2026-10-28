@@ -18,8 +18,8 @@ export function boot(root) {
       age: sliderNum("age"),
       retireAge: sliderNum("retire"),
       endAge: fieldNum("end"),
-      balance: fieldNum("balance-amt"),
-      annualSpend: fieldNum("spend-amt"),
+      balance: sliderNum("balance"),
+      annualSpend: sliderNum("spend"),
       salary: fieldNum("salary"),
       savePct: sliderNum("savepct"),
       raisePct: fieldNum("raise"),
@@ -64,11 +64,9 @@ export function boot(root) {
     retire.max = "80";
     if (document.activeElement !== retire) retire.value = String(input.retireAge);
     set("end", String(input.endAge));
-    setMoney("balance-amt", input.balance);
     setMoney("salary", input.salary);
     set("raise", trimNum(input.raise * 100));
     setChoice("mega", input.mega ? "1" : "0");
-    setMoney("spend-amt", input.annualSpend);
     setMoney("ss", input.ssAnnual);
     set("ss-age", String(input.ssAge));
     set("inflation", trimNum(input.inflation * 100));
@@ -109,7 +107,35 @@ export function boot(root) {
     const box = el.closest(".vrange");
     if (box) box.style.setProperty("--fill", String(pct));
     const out = $(el.id + "-out");
-    if (out) out.textContent = label;
+    if (out && document.activeElement !== out) out.value = label;
+  }
+
+  function commitKnob(id, n) {
+    const el = $(id);
+    if (!el) return;
+    if (id === "balance" || id === "spend" || id === "savepct") {
+      const ceilings = id === "balance"
+        ? [200000, 500000, 1000000, 2500000, 10000000]
+        : id === "spend"
+          ? [150000, 300000, 600000, 1500000]
+          : [40, 60, 100];
+      let cap = ceilings[ceilings.length - 1];
+      for (const c of ceilings) {
+        if (n <= c) {
+          cap = c;
+          break;
+        }
+      }
+      el.max = String(cap);
+    }
+    const min = parseFloat(el.min);
+    const max = parseFloat(el.max);
+    const step = parseFloat(el.step) || 1;
+    let v = Math.min(max, Math.max(min, n));
+    v = min + Math.round((v - min) / step) * step;
+    v = Math.min(max, Math.max(min, v));
+    el.value = String(Math.round(v * 1000) / 1000);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   let queued = false;
@@ -141,7 +167,7 @@ export function boot(root) {
       const editing = document.activeElement;
       const skipFormat = editing && editing.classList && editing.classList.contains("money");
       applyNormalized(input, null);
-      if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
+      if (skipFormat && (editing.id === "salary" || editing.id === "ss")) {
         // leave the in-progress typing alone
       }
     } catch (err) {
@@ -383,11 +409,7 @@ export function boot(root) {
   function onEdit(event) {
     const t = event.target;
     if (!(t instanceof HTMLElement) || !root.contains(t)) return;
-    if (t.id === "balance") {
-      setMoney("balance-amt", parseFloat(t.value));
-    } else if (t.id === "spend") {
-      setMoney("spend-amt", parseFloat(t.value));
-    } else if (t.classList.contains("money") && event.type === "input") {
+    if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
     }
     if (t.id === "age" || t.id === "retire") paintSlider(t, t.value);
@@ -416,6 +438,18 @@ export function boot(root) {
   };
   root.addEventListener("click", onPick);
 
+  if (window.KnobNums) {
+    KnobNums.bind({
+      commit: commitKnob,
+      paint(id) {
+        const el = $(id);
+        if (!el) return;
+        if (id === "age" || id === "retire") paintSlider(el, el.value);
+        else if (id === "balance" || id === "spend") paintSlider(el, moneyShort(parseFloat(el.value)));
+        else if (id === "savepct") paintSlider(el, trimNum(parseFloat(el.value)) + "%");
+      },
+    });
+  }
   bindKnobs(root, () => {
     /* slider handlers dispatch input */
   });
@@ -506,8 +540,6 @@ export function boot(root) {
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });
     applyNormalized(input, null);
-    setMoney("balance-amt", input.balance);
-    setMoney("spend-amt", input.annualSpend);
   }
 }
 

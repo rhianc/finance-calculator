@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e0e0c" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <title>Rent it out?</title>
-<link rel="stylesheet" href="css/styles.css?v=34">
+<link rel="stylesheet" href="css/styles.css?v=36">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -37,8 +37,10 @@
     <div class="sliders">
       <div class="slider">
         <div class="slider-row">
-          <label for="rent">Rent</label>
-          <output for="rent" id="rent-out">$1,944</output>
+          <label>Rent</label>
+          <span class="knob-read" title="Follows the price and the local yield">
+            <input class="knob-num" id="rent-out" data-for="rent" data-kind="usd" type="text" inputmode="decimal" readonly tabindex="-1" aria-label="Monthly rent in dollars, from the price and local yield" value="$1,944">
+          </span>
         </div>
         <div class="vrange" title="Follows the price and the local yield">
           <input id="rent" type="range" min="0" max="8000" step="1" value="1944" disabled>
@@ -46,8 +48,11 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="loan-rate">Rate</label>
-          <output for="loan-rate" id="loan-rate-out">6.5%</output>
+          <label for="loan-rate-out">Rate</label>
+          <span class="knob-read">
+            <input class="knob-num" id="loan-rate-out" data-for="loan-rate" data-kind="pct" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Loan rate in percent" value="6.5%">
+            <span class="knob-suffix">%</span>
+          </span>
         </div>
         <div class="vrange">
           <input id="loan-rate" type="range" min="2" max="12" step="0.05" value="6.5">
@@ -55,8 +60,11 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="home-price">Price</label>
-          <output for="home-price" id="home-price-out">$500k</output>
+          <label for="home-price-out">Price</label>
+          <span class="knob-read">
+            <input class="knob-num" id="home-price-out" data-for="home-price" data-kind="k" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Home price in thousands of dollars" value="$500k">
+            <span class="knob-suffix">k</span>
+          </span>
         </div>
         <div class="vrange">
           <input id="home-price" type="range" min="100000" max="1500000" step="25000" value="500000">
@@ -64,8 +72,11 @@
       </div>
       <div class="slider">
         <div class="slider-row">
-          <label for="down-pct">Down</label>
-          <output for="down-pct" id="down-pct-out">20%</output>
+          <label for="down-pct-out">Down</label>
+          <span class="knob-read">
+            <input class="knob-num" id="down-pct-out" data-for="down-pct" data-kind="pct" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Down payment in percent" value="20%">
+            <span class="knob-suffix">%</span>
+          </span>
         </div>
         <div class="vrange">
           <input id="down-pct" type="range" min="0" max="100" step="1" value="20">
@@ -349,7 +360,8 @@
 <script src="js/markets.js?v=14"></script>
 <script src="js/redfin.js?v=1"></script>
 <script src="js/rental-model.js?v=14"></script>
-<script src="js/rental-page.js?v=40"></script>
+<script src="js/knobs.js?v=1"></script>
+<script src="js/rental-page.js?v=41"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
