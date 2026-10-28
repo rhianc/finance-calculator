@@ -131,24 +131,62 @@ function num(v, fallback) {
 }
 
 // 2026 workplace limits. Inflation-indexed, so flat in today's dollars.
-// Catch-up is on top of the 415(c) annual-additions limit.
+// Notice 2025-67. Catch-up sits outside the 415(c) annual-additions limit.
+// IRA limits are not used: a traditional or Roth IRA is $7,500 in 2026.
 const DEFERRAL_2026 = 24500;
 const CATCHUP_2026 = 8000;
 const SUPER_CATCHUP_2026 = 11250;
 const ANNUAL_ADDITIONS_2026 = 72000;
+// Prior-year FICA wages above this force the catch-up to be Roth. Indexed, so flat here.
+const ROTH_CATCHUP_WAGE = 150000;
+const CA_SENIOR = 158;
+const CA_PHASE = {
+  single: { agi: 260778, step: 2500, per: 6 },
+  joint: { agi: 521561, step: 2500, per: 12 },
+};
+
+export function catchupAmount(age) {
+  if (age >= 60 && age < 64) return SUPER_CATCHUP_2026;
+  if (age >= 50) return CATCHUP_2026;
+  return 0;
+}
 
 export function irsCap(age, mega) {
-  let extra = 0;
-  if (age >= 60 && age < 64) extra = SUPER_CATCHUP_2026;
-  else if (age >= 50) extra = CATCHUP_2026;
-  return (mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + extra;
+  return (mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + catchupAmount(age);
+}
+
+/**
+ * This year's 401(k) deposit, split into pre-tax and Roth.
+ * The button chooses the elective deferral. Catch-up follows it, except pay
+ * over $150,000 makes the catch-up Roth. Mega backdoor fills the rest of the
+ * $72,000 additions limit and is Roth. Employer contributions are not included.
+ */
+export function contributionSplit(input, yearsWorked, ageAtYearEnd) {
+  const salary = input.salary * Math.pow(1 + input.raise, Math.max(0, yearsWorked));
+  const extra = catchupAmount(ageAtYearEnd);
+  const room = (input.mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + extra;
+  const want = Math.max(0, salary * input.savePct);
+  const total = Math.max(0, Math.min(want, room, salary));
+  let left = total;
+  const elective = Math.min(left, DEFERRAL_2026);
+  left -= elective;
+  const catchTake = Math.min(left, extra);
+  left -= catchTake;
+  const megaTake = left;
+  const rothCatch = input.account === "roth" || salary > ROTH_CATCHUP_WAGE;
+  let pre = 0;
+  let roth = 0;
+  if (input.account === "roth") roth += elective;
+  else pre += elective;
+  if (rothCatch) roth += catchTake;
+  else pre += catchTake;
+  roth += megaTake;
+  return { salary, want, pre, roth, total, cap: room };
 }
 
 /** Dollars saved that year, in today's dollars, after the IRS cap. */
 export function yearSave(input, yearsWorked, ageAtYearEnd) {
-  const salary = input.salary * Math.pow(1 + input.raise, Math.max(0, yearsWorked));
-  const want = salary * input.savePct;
-  return Math.max(0, Math.min(want, irsCap(ageAtYearEnd, input.mega), salary));
+  return contributionSplit(input, yearsWorked, ageAtYearEnd).total;
 }
 
 function bracketTax(income, brackets) {
@@ -181,6 +219,14 @@ export function taxableSocialSecurity(ss, other, filing) {
  * California does not tax Social Security. Age 65 adds the extra federal
  * standard deduction. The temporary $6,000 senior deduction is not included.
  */
+function caExemption(status, age, agi) {
+  const credits = [CA[status].credit];
+  if (age >= 65) credits.push(CA_SENIOR);
+  const phase = CA_PHASE[status];
+  const cut = agi > phase.agi ? Math.ceil((agi - phase.agi) / phase.step) * phase.per : 0;
+  return credits.reduce((sum, credit) => sum + Math.max(0, credit - cut), 0);
+}
+
 export function taxBill(withdrawal, ss, filing, account, age) {
   const status = filing === "joint" ? "joint" : "single";
   const other = account === "roth" ? 0 : Math.max(0, withdrawal);
@@ -190,16 +236,17 @@ export function taxBill(withdrawal, ss, filing, account, age) {
   const federal = bracketTax(Math.max(0, other + ssTaxable - std), fed.brackets);
   const ca = CA[status];
   const caTaxable = Math.max(0, other - ca.std);
-  let state = bracketTax(caTaxable, ca.brackets);
-  if (caTaxable > 1000000) state += (caTaxable - 1000000) * 0.01;
-  state = Math.max(0, state - ca.credit);
+  const regular = bracketTax(caTaxable, ca.brackets);
+  const mental = caTaxable > 1000000 ? (caTaxable - 1000000) * 0.01 : 0;
+  const state = Math.max(0, regular - caExemption(status, age, other + ssTaxable)) + mental;
   return { federal, state, total: federal + state, ssTaxable };
 }
 
-/** Withdrawal that leaves `spend` after tax. Surplus is Social Security not needed. */
+/** Withdrawal that leaves `spend` after tax. `account` may be a pre-tax share from 0 to 1. */
 export function coverSpend(spend, ss, filing, account, age) {
+  const share = typeof account === "number" ? clamp(account, 0, 1) : account === "roth" ? 0 : 1;
   const quote = (w) => {
-    const bill = taxBill(w, ss, filing, account, age);
+    const bill = taxBill(w * share, ss, filing, "traditional", age);
     return { withdrawal: w, bill, net: w + Math.max(0, ss) - bill.total };
   };
   const zero = quote(0);
@@ -219,14 +266,15 @@ export function coverSpend(spend, ss, filing, account, age) {
 }
 
 /** What the account pays so the knob's after-tax spending is covered. */
-export function spendTax(input) {
+export function spendTax(input, share) {
+  const frac = share == null ? (input.account === "roth" ? 0 : 1) : clamp(share, 0, 1);
   const steadyAge = Math.max(input.retireAge, input.ssAge);
-  const steady = coverSpend(input.annualSpend, input.ssAnnual, input.filing, input.account, steadyAge);
+  const steady = coverSpend(input.annualSpend, input.ssAnnual, input.filing, frac, steadyAge);
   const before =
     input.ssAnnual > 0 && input.retireAge + 0.05 < input.ssAge
-      ? coverSpend(input.annualSpend, 0, input.filing, input.account, input.retireAge)
+      ? coverSpend(input.annualSpend, 0, input.filing, frac, input.retireAge)
       : null;
-  return { steady, before };
+  return { steady, before, share: frac };
 }
 
 // S&P 500 total return and CPI, calendar years 1928–2025.
@@ -296,13 +344,13 @@ const BLOCKS = (() => {
   return out;
 })();
 
-function cashflows(input) {
+function buildSkeleton(input) {
   const months = Math.max(1, Math.round((input.endAge - input.age) * 12));
   const retireM = Math.max(0, Math.round((input.retireAge - input.age) * 12));
   const claimM = Math.max(retireM, Math.round((input.ssAge - input.age) * 12));
-  const monthWithdraw = new Float64Array(months + 1);
-  const monthSurplus = new Float64Array(months + 1);
-  for (let y = 0; y * 12 < months; y++) {
+  const n = Math.ceil(months / 12);
+  const slots = [];
+  for (let y = 0; y < n; y++) {
     const start = y * 12 + 1;
     const end = Math.min(months, (y + 1) * 12);
     let retiredMonths = 0;
@@ -311,31 +359,39 @@ function cashflows(input) {
       if (m > retireM) retiredMonths += 1;
       if (m > retireM && m >= claimM) ssMonths += 1;
     }
-    if (retiredMonths === 0) continue;
-    const spend = (input.annualSpend * retiredMonths) / 12;
-    const ss = (input.ssAnnual * ssMonths) / 12;
-    const ageAtEnd = input.age + end / 12;
-    const bill = coverSpend(spend, ss, input.filing, input.account, ageAtEnd);
-    const each = bill.withdrawal / retiredMonths;
-    for (let m = start; m <= end; m++) {
-      if (m > retireM) monthWithdraw[m] = each;
-    }
-    if (bill.surplus > 0 && ssMonths > 0) {
-      const extra = bill.surplus / ssMonths;
-      for (let m = start; m <= end; m++) {
-        if (m > retireM && m >= claimM) monthSurplus[m] = extra;
-      }
-    }
+    const yearsWorked = Math.max(0, Math.round((start - 1) / 12));
+    slots.push({
+      start,
+      end,
+      retiredMonths,
+      ssMonths,
+      ageAtEnd: input.age + end / 12,
+      saved: contributionSplit(input, yearsWorked, input.age + end / 12),
+    });
   }
-  const years = Math.ceil(months / 12);
-  const yearWithdraw = new Float64Array(years);
-  const yearSurplus = new Float64Array(years);
-  for (let m = 1; m <= months; m++) {
-    const y = (m - 1) / 12 | 0;
-    yearWithdraw[y] += monthWithdraw[m];
-    yearSurplus[y] += monthSurplus[m];
+  return { months, retireM, claimM, slots };
+}
+
+function planWithSpend(skel, input) {
+  const years = skel.slots.map((slot) => ({
+    ...slot,
+    spend: (input.annualSpend * slot.retiredMonths) / 12,
+    ss: (input.ssAnnual * slot.ssMonths) / 12,
+  }));
+  return { months: skel.months, retireM: skel.retireM, claimM: skel.claimM, years };
+}
+
+let coverCache = null;
+
+function cachedCover(spend, ss, filing, share, age) {
+  if (!coverCache) return coverSpend(spend, ss, filing, share, age);
+  const key = spend + "|" + ss + "|" + filing + "|" + Math.round(age) + "|" + Math.round(share * 1000);
+  let hit = coverCache.get(key);
+  if (!hit) {
+    hit = coverSpend(spend, ss, filing, Math.round(share * 1000) / 1000, age);
+    coverCache.set(key, hit);
   }
-  return { months, retireM, monthWithdraw, monthSurplus, yearWithdraw, yearSurplus };
+  return hit;
 }
 
 function yearRates(input, years) {
@@ -353,64 +409,124 @@ function yearRates(input, years) {
   return rates;
 }
 
+function growPockets(pre, roth, r, addPre, addRoth) {
+  return [pre * (1 + r) + addPre * (1 + r * 0.5), roth * (1 + r) + addRoth * (1 + r * 0.5)];
+}
+
+function payYear(pre, roth, w, s, r) {
+  const total = pre + roth;
+  const preShare = total > 0 ? pre / total : 0;
+  const preW = w * preShare;
+  const rothW = w - preW;
+  let preHalf = pre - preW * 0.5;
+  let rothHalf = roth - rothW * 0.5;
+  if (preHalf < 0) {
+    rothHalf += preHalf;
+    preHalf = 0;
+  }
+  if (rothHalf < 0) {
+    preHalf += rothHalf;
+    rothHalf = 0;
+  }
+  if (preHalf <= 0.5 && rothHalf <= 0.5 && w > 0.5) return { pre: 0, roth: 0, broke: true };
+  pre = Math.max(0, preHalf) * (1 + r) - preW * 0.5;
+  roth = Math.max(0, rothHalf) * (1 + r) - rothW * 0.5 + s;
+  if (pre < 0) {
+    roth += pre;
+    pre = 0;
+  }
+  if (roth < 0) {
+    pre += roth;
+    roth = 0;
+  }
+  if (pre < 0) pre = 0;
+  const broke = pre + roth <= 0.5 && w > 0.5;
+  return { pre: broke ? 0 : pre, roth: broke ? 0 : roth, broke };
+}
+
 function runPath(input, flow, real, stopEarly) {
-  const { months, retireM, monthWithdraw, monthSurplus } = flow;
-  let bal = input.balance;
-  let nest = input.balance;
+  const { months, retireM, claimM, years } = flow;
+  let pre = input.account === "roth" ? 0 : input.balance;
+  let roth = input.account === "roth" ? input.balance : 0;
+  let nest = pre + roth;
   let depletedAge = null;
-  const marks = [0, bal];
+  let steadyShare = input.account === "roth" ? 0 : 1;
+  let shareSet = false;
+  const marks = [0, pre + roth];
+  const noteShare = () => {
+    if (shareSet) return;
+    const total = pre + roth;
+    steadyShare = total > 1 ? pre / total : 0;
+    shareSet = true;
+  };
   for (let y = 0; y < real.length; y++) {
-    const start = y * 12 + 1;
-    const end = Math.min(months, (y + 1) * 12);
-    if (start > months) break;
+    const slot = years[y];
+    if (!slot || slot.start > months) break;
+    const { start, end } = slot;
     const r = real[y];
     const span = end - start + 1;
-    const yearsWorked = Math.max(0, Math.round((start - 1) / 12));
-    const saved = yearSave(input, yearsWorked, input.age + end / 12);
     if (end <= retireM && span === 12) {
-      bal = bal * (1 + r) + saved * (1 + r * 0.5);
+      [pre, roth] = growPockets(pre, roth, r, slot.saved.pre, slot.saved.roth);
     } else if (start > retireM && span === 12) {
-      const w = flow.yearWithdraw[y];
-      const s = flow.yearSurplus[y];
-      const afterHalf = bal - w * 0.5;
-      if (afterHalf <= 0.5 && w > 0.5) {
-        bal = 0;
+      const total = pre + roth;
+      const share = total > 1 ? pre / total : 0;
+      const bill = cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd);
+      const paid = payYear(pre, roth, bill.withdrawal, bill.surplus, r);
+      pre = paid.pre;
+      roth = paid.roth;
+      if (paid.broke) {
         if (depletedAge == null) depletedAge = input.age + (start - 1) / 12;
         if (stopEarly) break;
-      } else {
-        bal = Math.max(0, afterHalf) * (1 + r) - w * 0.5 + s;
-        if (bal <= 0.5 && w > 0.5) {
-          bal = 0;
-          if (depletedAge == null) depletedAge = input.age + (start - 1) / 12;
-          if (stopEarly) break;
-        } else if (bal < 0) {
-          bal = 0;
-        }
       }
     } else {
       const rm = Math.pow(1 + r, 1 / 12) - 1;
-      const monthSave = saved / 12;
+      const monthPre = slot.saved.pre / 12;
+      const monthRoth = slot.saved.roth / 12;
+      const total = pre + roth;
+      const share = total > 1 ? pre / total : 0;
+      const bill = slot.retiredMonths > 0 ? cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd) : null;
+      const each = bill && slot.retiredMonths > 0 ? bill.withdrawal / slot.retiredMonths : 0;
+      const extra = bill && slot.ssMonths > 0 ? bill.surplus / slot.ssMonths : 0;
       for (let m = start; m <= end; m++) {
         if (m <= retireM) {
-          bal = bal * (1 + rm) + monthSave;
-          if (m === retireM) nest = bal;
-        } else {
-          const withdraw = monthWithdraw[m];
-          bal -= withdraw;
-          if (bal <= 0.5 && withdraw > 0.5) {
-            bal = 0;
-            if (depletedAge == null) depletedAge = input.age + (m - 1) / 12;
-          } else if (bal < 0) {
-            bal = 0;
+          pre = pre * (1 + rm) + monthPre;
+          roth = roth * (1 + rm) + monthRoth;
+          if (m === retireM) {
+            nest = pre + roth;
+            noteShare();
           }
-          bal = bal * (1 + rm) + monthSurplus[m];
+        } else {
+          const pot = pre + roth;
+          const takePre = pot > 0 ? each * (pre / pot) : 0;
+          const takeRoth = each - takePre;
+          pre -= takePre;
+          roth -= takeRoth;
+          if (pre < 0) {
+            roth += pre;
+            pre = 0;
+          }
+          if (roth < 0) {
+            pre += roth;
+            roth = 0;
+          }
+          if (pre < 0) pre = 0;
+          if (pre + roth <= 0.5 && each > 0.5) {
+            pre = 0;
+            roth = 0;
+            if (depletedAge == null) depletedAge = input.age + (m - 1) / 12;
+          }
+          pre *= 1 + rm;
+          roth = roth * (1 + rm) + (m >= claimM ? extra : 0);
         }
       }
     }
-    if (end === retireM) nest = bal;
-    if (end % 12 === 0 || end === months || end === retireM) marks.push(end, Math.max(0, bal));
+    if (end === retireM) {
+      nest = pre + roth;
+      noteShare();
+    }
+    if (end % 12 === 0 || end === months || end === retireM) marks.push(end, Math.max(0, pre + roth));
   }
-  return { nest, depletedAge, final: Math.max(0, bal), marks };
+  return { nest, depletedAge, final: Math.max(0, pre + roth), marks, steadyShare };
 }
 
 function atPercent(sorted, p) {
@@ -418,9 +534,9 @@ function atPercent(sorted, p) {
   return sorted[i];
 }
 
-function successSpend(input, rates, flowOf, threshold) {
+function successSpend(input, rates, skel, threshold) {
   const ok = (spend) => {
-    const flow = flowOf(spend);
+    const flow = planWithSpend(skel, { ...input, annualSpend: spend });
     const need = Math.ceil(N_PATHS * threshold - 1e-9);
     let live = 0;
     let dead = 0;
@@ -451,17 +567,9 @@ function successSpend(input, rates, flowOf, threshold) {
 export function project(input) {
   const years = Math.max(1, Math.ceil(input.endAge - input.age));
   const rates = yearRates(input, years);
-  const base = { ...input };
-  const cache = new Map();
-  const flowOf = (spend) => {
-    let flow = cache.get(spend);
-    if (!flow) {
-      flow = cashflows({ ...base, annualSpend: spend });
-      cache.set(spend, flow);
-    }
-    return flow;
-  };
-  const flow = flowOf(input.annualSpend);
+  const skel = buildSkeleton(input);
+  coverCache = new Map();
+  const flow = planWithSpend(skel, input);
   const ran = rates.map((rm) => runPath(input, flow, rm));
 
   const markIndex = ran[0].marks;
@@ -478,11 +586,14 @@ export function project(input) {
   }
 
   const nests = ran.map((r) => r.nest).sort((a, b) => a - b);
+  const byNest = ran.slice().sort((a, b) => a.nest - b.nest);
+  const taxShare = byNest[Math.round(0.5 * (byNest.length - 1))].steadyShare;
   const burns = {
-    avg: successSpend(input, rates, flowOf, 0.5),
-    below: successSpend(input, rates, flowOf, 0.75),
-    bad: successSpend(input, rates, flowOf, 0.9),
+    avg: successSpend(input, rates, skel, 0.5),
+    below: successSpend(input, rates, skel, 0.75),
+    bad: successSpend(input, rates, skel, 0.9),
   };
+  coverCache = null;
 
   const meta = {
     avg: { name: "Average", note: "half of markets" },
@@ -510,6 +621,7 @@ export function project(input) {
       nest: nestPt ? nestPt.balance : atPercent(nests, pct[key]),
       depletedAge,
       burn: burns[key],
+      taxShare,
       final: points[points.length - 1].balance,
     };
   });

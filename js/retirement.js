@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, yearSave, irsCap } from "./retirement-model.js?v=8";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=9";
 
 const STORAGE = "retire-plan-v2";
 
@@ -202,33 +202,26 @@ export function boot(root) {
       $(p.key + "-nest").textContent = money(p.nest);
       $(p.key + "-name").textContent = p.name;
       const el = $(p.key + "-fate");
-      if (p.depletedAge == null) {
-        el.textContent = p.note + ". Lasts to " + input.endAge;
-        el.className = "hint pos";
-      } else {
-        el.textContent = p.note + ". Empty at " + ageLabel(p.depletedAge);
-        el.className = "hint neg";
-      }
+      el.textContent = p.note;
+      el.className = "hint";
     });
 
     $("path-note").textContent = "Dotted line is retirement.";
 
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
-    const savedNow = yearSave(input, 0, input.age + 1);
-    const want = input.salary * input.savePct;
-    const capNow = irsCap(input.age + 1, input.mega);
+    const savedNow = contributionSplit(input, 0, input.age + 1);
     $("year-now").textContent = money(input.balance);
-    $("year-add").textContent = money(savedNow);
+    $("year-add").textContent = money(savedNow.total);
     $("year-next").textContent = year ? money(year.balance) : "—";
     $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
-    $("save-note").textContent = saveSentence(input, savedNow, want, capNow);
+    $("save-note").textContent = saveSentence(input, savedNow);
     $("ss-hint").textContent =
       "Social Security is " +
       money(input.ssAnnual) +
       " a year in today's dollars, starting at " +
       Math.max(input.ssAge, input.retireAge) +
       ". It counts toward the after-tax spending. Set it to 0 to leave it out.";
-    $("tax-note").textContent = taxSentence(input, spendTax(input));
+    $("tax-note").textContent = taxSentence(input, spendTax(input, median.taxShare));
   }
 
   function draw(canvas, paths, input) {
@@ -591,45 +584,43 @@ function money(n) {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-function saveSentence(input, saved, want, cap) {
+function saveSentence(input, split) {
   const pct = trimNum(Math.round(input.savePct * 100));
-  let text = "This year " + money(saved) + " goes in";
-  if (want > cap + 1) {
-    text += ". " + pct + "% of pay is " + money(want) + ", so the IRS cap binds";
+  let text = "This year " + money(split.total) + " goes into the 401(k)";
+  if (split.pre > 0 && split.roth > 0) {
+    text += ", " + money(split.pre) + " pre-tax and " + money(split.roth) + " Roth";
+  } else if (split.pre === 0) {
+    text += " as Roth";
   } else {
-    text += ", " + pct + "% of " + money(input.salary);
+    text += " pre-tax";
   }
-  text +=
-    ". Salary rises " +
-    trimNum(input.raise * 100) +
-    "% a year above inflation. The cap is " +
-    money(irsCap(30, input.mega)) +
-    " until 50, " +
-    money(irsCap(55, input.mega)) +
-    " after that, and " +
-    money(irsCap(61, input.mega)) +
-    " at 60–63.";
-  return text;
+  if (split.want > split.total + 1) {
+    text += ". " + pct + "% of " + money(split.salary) + " is " + money(split.want) + ", so the cap binds";
+  }
+  return text + ".";
 }
 
 function taxSentence(input, tax) {
-  const kind = input.account === "roth" ? "Roth IRA" : "traditional IRA";
   const steady = tax.steady;
+  const share = tax.share;
   let text =
-    "To keep " +
+    "Keeping " +
     money(input.annualSpend) +
-    ", once Social Security has started, the " +
-    kind +
-    " pays " +
+    " takes a " +
     money(steady.withdrawal) +
-    " a year. ";
+    " withdrawal once Social Security has started. ";
+  if (share > 0.001 && share < 0.999) {
+    text += money(steady.withdrawal * share) + " of that is pre-tax. ";
+  } else if (share <= 0.001) {
+    text += "That withdrawal is Roth. ";
+  }
   if (steady.bill.total < 1) {
-    text += "Income tax on that year is about zero.";
+    text += "Income tax that year is about zero.";
   } else {
     text +=
-      "About " +
+      "Tax is about " +
       money(steady.bill.total) +
-      " is tax (" +
+      " (" +
       money(steady.bill.federal) +
       " federal, " +
       money(steady.bill.state) +
@@ -637,11 +628,9 @@ function taxSentence(input, tax) {
   }
   if (tax.before) {
     text +=
-      " From " +
-      input.retireAge +
-      " until " +
+      " Before " +
       input.ssAge +
-      ", before the benefit, it pays " +
+      ", the withdrawal is " +
       money(tax.before.withdrawal) +
       " and tax is about " +
       money(tax.before.bill.total) +
@@ -669,35 +658,6 @@ function trimNum(n) {
 
 function ageLabel(age) {
   return String(Math.floor(age));
-}
-
-function niceCeil(v) {
-  if (v <= 0) return 1;
-  const exp = Math.pow(10, Math.floor(Math.log10(v)));
-  const f = v / exp;
-  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
-  return nice * exp;
-}
-
-function decadeFloor(v) {
-  const exp = Math.floor(Math.log10(Math.max(v, 1000)));
-  return 10 ** exp;
-}
-
-function decadeCeiling(v) {
-  const exp = Math.ceil(Math.log10(Math.max(v * 1.08, 10)));
-  return 10 ** exp;
-}
-
-function logTicks(floor, max) {
-  const ticks = [];
-  let v = decadeFloor(floor);
-  while (v <= max * 1.001 && ticks.length < 6) {
-    if (v >= floor * 0.99) ticks.push(v);
-    v *= 10;
-  }
-  if (ticks.length === 0) ticks.push(floor, max);
-  return ticks;
 }
 
 boot(document);
