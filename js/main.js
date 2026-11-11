@@ -480,7 +480,7 @@
     if (el.id === 'home-price') out.textContent = knobPrice(val);
     else if (el.id === 'rent') out.textContent = money(val, 0);
     else if (el.id === 'loan-rate') {
-      out.textContent = (Math.round(val * 10) / 10).toFixed(1) + '%';
+      out.textContent = (Math.round(val * 100) / 100) + '%';
     } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
   }
 
