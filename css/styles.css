@@ -421,15 +421,58 @@ select.bare:focus {
   font-weight: 600;
 }
 
-.slider-row output {
-  display: block;
+.knob-read {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
   min-width: 0;
+  margin-left: auto;
+}
+
+.knob-num {
+  width: 6.5rem;
+  max-width: 42vw;
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0.05rem 0.1rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--ink);
-  font-size: 0.95rem;
+  font: inherit;
+  font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   text-align: right;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.knob-num:focus {
+  outline: none;
+  background: var(--field);
+}
+
+.knob-num[readonly] {
+  pointer-events: none;
+  opacity: 1;
+  -webkit-text-fill-color: var(--ink);
+}
+
+.knob-suffix {
+  display: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.knob-read:focus-within .knob-num {
+  width: 4.6rem;
+}
+
+.knob-read:focus-within .knob-suffix {
+  display: inline;
 }
 
 .vrange {
@@ -703,7 +746,7 @@ footer a { color: var(--house); }
   .fields { grid-template-columns: minmax(0, 1fr); }
   .span-2 { grid-column: auto; }
   .field label { min-height: 0; }
-  .slider-row output { min-width: 0; font-size: 0.88rem; }
+  .knob-num { font-size: 16px; }
   .stage {
     position: sticky;
     top: 0;

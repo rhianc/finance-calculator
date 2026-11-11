@@ -1,4 +1,4 @@
-// Editable numbers above the dials.
+// Editable numbers beside the sliders.
 (function (root) {
   'use strict';
 
@@ -51,7 +51,8 @@
         var id = el.getAttribute('data-for');
         var n = parse(el.getAttribute('data-kind'), el.value);
         if (n != null && opts.commit) opts.commit(id, n);
-        else if (opts.paint) opts.paint(id);
+        // Focus is still here during blur, so paint after it leaves.
+        if (opts.paint) setTimeout(function () { opts.paint(id); }, 0);
       });
     });
     // A tap on a dial is not a focus change, so commit the open number first.

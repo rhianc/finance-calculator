@@ -438,33 +438,11 @@
 
     FinanceCharts.renderLines($('wealthChart'), result.points);
     FinanceCharts.renderPie($('pieChart'), slices);
-    if (fast) {
-      scheduleCrossover(input);
-      return;
-    }
+    if (fast) return;
 
     renderYears(result.points);
     renderWorked(result);
-    crossJob = null;
     FinanceCharts.renderCrossover(input);
-  }
-
-  var crossJob = null;
-  var crossBusy = false;
-  function scheduleCrossover(input) {
-    crossJob = input;
-    if (crossBusy) return;
-    crossBusy = true;
-    function draw() {
-      var job = crossJob;
-      crossJob = null;
-      if (job) {
-        try { FinanceCharts.renderCrossover(job, true); } catch (err) {}
-      }
-      if (crossJob) requestAnimationFrame(draw);
-      else crossBusy = false;
-    }
-    requestAnimationFrame(draw);
   }
 
   function paintSlider(el) {
@@ -476,12 +454,12 @@
     var box = el.closest ? el.closest('.vrange') : null;
     if (box) box.style.setProperty('--fill', String(pct));
     var out = $(el.id + '-out');
-    if (!out) return;
-    if (el.id === 'home-price') out.textContent = knobPrice(val);
-    else if (el.id === 'rent') out.textContent = money(val, 0);
+    if (!out || document.activeElement === out) return;
+    if (el.id === 'home-price') out.value = knobPrice(val);
+    else if (el.id === 'rent') out.value = money(val, 0);
     else if (el.id === 'loan-rate') {
-      out.textContent = (Math.round(val * 100) / 100) + '%';
-    } else if (el.id === 'down-pct') out.textContent = Math.round(val) + '%';
+      out.value = (Math.round(val * 100) / 100) + '%';
+    } else if (el.id === 'down-pct') out.value = Math.round(val) + '%';
   }
 
   function knobPrice(n) {
@@ -541,6 +519,15 @@
 
   var queryTimer = 0;
   var sharpenTimer = 0;
+  var liveQueued = false;
+  function scheduleLive() {
+    if (liveQueued) return;
+    liveQueued = true;
+    requestAnimationFrame(function () {
+      liveQueued = false;
+      refresh(true);
+    });
+  }
   function scheduleQuery() {
     clearTimeout(queryTimer);
     queryTimer = setTimeout(writeQuery, 300);
@@ -592,7 +579,7 @@
       syncPctFromAmt();
     }
     if (slider && event.type === 'input') {
-      refresh(true);
+      scheduleLive();
       return;
     }
     if (slider && event.type === 'change') {
@@ -677,6 +664,17 @@
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
     paintSliders();
+    if (window.KnobNums) {
+      KnobNums.bind({
+        commit: function (id, n) {
+          setRange(id, n);
+          var el = $(id);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        paint: function (id) { paintSlider($(id)); }
+      });
+    }
     bindKnobs();
     refresh();
     writeQuery();

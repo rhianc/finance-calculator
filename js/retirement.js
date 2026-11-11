@@ -81,11 +81,40 @@ export function boot(root) {
     if (fromSlider === "spend") $("spend").value = String(input.annualSpend);
     fitSlider("savepct", Math.round(input.savePct * 100), [40, 60, 100]);
     if (fromSlider === "savepct") $("savepct").value = String(Math.round(input.savePct * 100));
-    paintSlider($("age"), String(input.age));
-    paintSlider($("retire"), String(input.retireAge));
-    paintSlider($("balance"), moneyShort(input.balance));
-    paintSlider($("spend"), moneyShort(input.annualSpend));
-    paintSlider($("savepct"), trimNum(Math.round(input.savePct * 100)) + "%");
+    paintSlider($("age"));
+    paintSlider($("retire"));
+    paintSlider($("balance"));
+    paintSlider($("spend"));
+    paintSlider($("savepct"));
+  }
+
+  function commitKnob(id, n) {
+    const el = $(id);
+    if (!el) return;
+    if (id === "balance" || id === "spend" || id === "savepct") {
+      const ceilings = id === "balance"
+        ? [200000, 500000, 1000000, 2500000, 10000000]
+        : id === "spend"
+          ? [150000, 300000, 600000, 1500000]
+          : [40, 60, 100];
+      let cap = ceilings[ceilings.length - 1];
+      for (const c of ceilings) {
+        if (n <= c) {
+          cap = c;
+          break;
+        }
+      }
+      el.max = String(cap);
+    }
+    const min = parseFloat(el.min);
+    const max = parseFloat(el.max);
+    const step = parseFloat(el.step) || 1;
+    let v = Math.min(max, Math.max(min, n));
+    v = min + Math.round((v - min) / step) * step;
+    v = Math.min(max, Math.max(min, v));
+    el.value = String(Math.round(v * 1000) / 1000);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function fitSlider(id, value, ceilings) {
@@ -101,7 +130,15 @@ export function boot(root) {
     el.value = String(Math.min(value, max));
   }
 
-  function paintSlider(el, label) {
+  function sliderLabel(el) {
+    const val = parseFloat(el.value);
+    if (el.id === "balance" || el.id === "spend") return moneyShort(val);
+    if (el.id === "savepct") return trimNum(val) + "%";
+    return String(Math.round(val));
+  }
+
+  function paintSlider(el) {
+    if (!el) return;
     const min = parseFloat(el.min);
     const max = parseFloat(el.max);
     const val = parseFloat(el.value);
@@ -109,19 +146,27 @@ export function boot(root) {
     const box = el.closest(".vrange");
     if (box) box.style.setProperty("--fill", String(pct));
     const out = $(el.id + "-out");
-    if (out) out.textContent = label;
+    if (!out || document.activeElement === out) return;
+    out.value = sliderLabel(el);
   }
 
   let queued = false;
   let chartBusy = false;
   let chartAgain = false;
+  let liveTimer = 0;
   function schedule() {
+    clearTimeout(liveTimer);
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
       render();
     });
+  }
+
+  function scheduleLive() {
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(schedule, 100);
   }
 
   function render() {
@@ -395,9 +440,19 @@ export function boot(root) {
     } else if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
     }
-    if (t.id === "age" || t.id === "retire") paintSlider(t, t.value);
-    if (t.id === "balance" || t.id === "spend") paintSlider(t, moneyShort(parseFloat(t.value)));
-    if (t.id === "savepct") paintSlider(t, trimNum(parseFloat(t.value)) + "%");
+    if (t.type === "range") paintSlider(t);
+    if (t.type === "range" && event.type === "input") {
+      scheduleLive();
+      return;
+    }
+    if (t.type === "range" && event.type === "change") {
+      schedule();
+      return;
+    }
+    if (t.classList.contains("money") && event.type === "input") {
+      scheduleLive();
+      return;
+    }
     schedule();
   }
 
@@ -421,9 +476,13 @@ export function boot(root) {
   };
   root.addEventListener("click", onPick);
 
-  bindKnobs(root, () => {
-    /* slider handlers dispatch input */
-  });
+  bindKnobs(root);
+  if (window.KnobNums) {
+    window.KnobNums.bind({
+      commit: commitKnob,
+      paint: (id) => paintSlider($(id)),
+    });
+  }
 
   const copy = $("copy-link");
   const onCopy = async () => {
@@ -454,6 +513,7 @@ export function boot(root) {
     root.removeEventListener("click", onPick);
     copy.removeEventListener("click", onCopy);
     observer.disconnect();
+    clearTimeout(liveTimer);
     clearTimeout(frame);
   };
 
@@ -541,21 +601,30 @@ function bindKnobs(root) {
       v = Math.min(max, Math.max(min, v));
       return Math.round(v * 1000) / 1000;
     }
-    function setFromEvent(event) {
+    function setFromEvent(event, commit) {
       const v = valueFromX(event.clientX);
       if (String(v) !== el.value) {
         el.value = String(v);
         el.dispatchEvent(new Event("input", { bubbles: true }));
       }
+      if (commit) el.dispatchEvent(new Event("change", { bubbles: true }));
     }
     box.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
       box.setPointerCapture(event.pointerId);
-      setFromEvent(event);
+      setFromEvent(event, false);
     });
     box.addEventListener("pointermove", (event) => {
       if (!box.hasPointerCapture(event.pointerId)) return;
-      setFromEvent(event);
+      setFromEvent(event, false);
+    });
+    box.addEventListener("pointerup", (event) => {
+      if (!box.hasPointerCapture(event.pointerId)) return;
+      setFromEvent(event, true);
+    });
+    box.addEventListener("pointercancel", (event) => {
+      if (!box.hasPointerCapture(event.pointerId)) return;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
     });
   });
 }
