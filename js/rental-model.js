@@ -39,6 +39,8 @@
       sellingCostRate: clamp(finite(src.sellingCostRate, 0), 0, 0.2),
       homeAppreciation: clamp(finite(src.homeAppreciation, 0), -0.5, 0.5),
       stockReturn: clamp(finite(src.stockReturn, 0), -0.5, 0.5),
+      stockVol: clamp(finite(src.stockVol, 0), 0, 1),
+      rentGrowth: clamp(finite(src.rentGrowth, finite(src.inflation, 0)), -0.5, 0.5),
       investmentDrag: clamp(finite(src.investmentDrag, 0), 0, 0.2),
       inflation: clamp(finite(src.inflation, 0), 0, 0.2),
       rentMonth: Math.max(0, finite(src.rentMonth, 0)),
@@ -98,31 +100,58 @@
     return { recognized: -allowed, suspended: Math.max(0, suspendedStart) + (-ytdProfit - allowed) };
   }
 
-  function saleTax(spec, recapture, capGain, heldMonths) {
+  // Tax on selling the rental, beyond the tax on wages alone.
+  // U is depreciation taken (unrecaptured section 1250 gain), G the rest of the gain, L the suspended
+  // passive losses. Section 469(g) frees L at the sale as an ordinary deduction, so it comes off the
+  // wages first. U is stacked on what is left and taxed at ordinary rates, but never above 25%.
+  // G is stacked on top of both. Returns the tax and the ordinary income the gain sat on.
+  function saleTax(spec, U, G, L, longTerm) {
     var Rules = root.TaxRules;
-    if (!Rules) return 0;
-    recapture = Math.max(0, recapture);
-    capGain = Math.max(0, capGain);
+    U = Math.max(0, U);
+    G = Math.max(0, G);
+    L = Math.max(0, L);
+    if (!Rules) return { tax: 0, base: spec.income };
+    if (!longTerm) {
+      // A sale within a year is all ordinary income.
+      U += G;
+      G = 0;
+    }
     var status = spec.filingStatus;
     var income = spec.income;
     var std = status === 'single' ? 16100 : 32200;
-    var marginal = Rules.federalMarginal(status, Math.max(0, income - std));
-    var recaptureRate = Math.min(0.25, marginal > 0 ? marginal : 0.10);
-    var fed = recapture * recaptureRate;
-    var state = Rules.stateIncomeTax(spec.stateCode, status, income + recapture, 0, spec.cityName)
+    var afterLoss = income - L;
+    var base = afterLoss + U;
+    var fedLoss = Rules.ordinaryTax(status, Math.max(0, afterLoss - std)) - Rules.ordinaryTax(status, Math.max(0, income - std));
+    var fedU = Rules.ordinaryTax(status, Math.max(0, base - std)) - Rules.ordinaryTax(status, Math.max(0, afterLoss - std));
+    if (longTerm) fedU = Math.min(fedU, 0.25 * U);
+    var state = Rules.stateIncomeTax(spec.stateCode, status, Math.max(0, base), 0, spec.cityName)
       - Rules.stateIncomeTax(spec.stateCode, status, income, 0, spec.cityName);
-    if (!(state > 0)) state = 0;
     var threshold = status === 'single' ? 200000 : 250000;
-    var niit = 0.038 * Math.min(recapture, Math.max(0, income + recapture - threshold));
-    var cap = capGain > 0 ? Rules.taxOnGain({
+    var nii = Math.max(0, U - L);
+    var niit = 0.038 * Math.min(nii, Math.max(0, base - threshold));
+    var cap = G > 0 ? Rules.taxOnGain({
       status: status,
       state: spec.stateCode,
       city: spec.cityName,
-      income: income + recapture,
-      taxableGain: capGain,
-      longTerm: heldMonths >= 12
+      income: Math.max(0, base),
+      taxableGain: G,
+      longTerm: true
     }) : 0;
-    return fed + state + niit + cap;
+    return { tax: fedLoss + fedU + state + niit + cap, base: Math.max(0, base) + G };
+  }
+
+  // Tax on a stock account's gain, stacked on `base` income.
+  function stockTax(spec, gain, base, longTerm) {
+    var Rules = root.TaxRules;
+    if (!Rules || !(gain > 0)) return 0;
+    return Rules.taxOnGain({
+      status: spec.filingStatus,
+      state: spec.stateCode,
+      city: spec.cityName,
+      income: Math.max(0, base),
+      taxableGain: gain,
+      longTerm: longTerm
+    });
   }
 
   function project(raw) {
@@ -139,11 +168,15 @@
     var payment = mortgagePayment(loan0, spec.annualRate, spec.years);
     var r = spec.annualRate / 12;
     var homeMonthly = monthlyFromAnnual(spec.homeAppreciation);
-    var stockMonthly = monthlyFromAnnual(spec.stockReturn - spec.investmentDrag);
+    // The typical path compounds at (1+mu)e^(-sigma^2/2) - 1 (companion, eq-drag-limit).
+    var stockTypical = (1 + spec.stockReturn) * Math.exp(-spec.stockVol * spec.stockVol / 2) - 1;
+    var stockMonthly = monthlyFromAnnual(stockTypical - spec.investmentDrag);
     var home = price;
     var balance = loan0;
     var stock = down + closing;
+    var stockBasis = stock;
     var side = 0;
+    var sideBasis = 0;
     var accumDep = 0;
     var suspendedStart = 0;
     var recognizedTax = 0;
@@ -166,7 +199,7 @@
 
     function monthCosts(year) {
       var growth = Math.pow(1 + spec.inflation, year);
-      var rent = spec.rentMonth * growth;
+      var rent = spec.rentMonth * Math.pow(1 + spec.rentGrowth, year);
       var collected = rent * (1 - spec.vacancyRate);
       return {
         rent: rent,
@@ -184,13 +217,17 @@
       var pos = yearPosition(spec, ytdProfit(), suspendedStart);
       var realized = home * (1 - spec.sellingCostRate);
       var gain = Math.max(0, realized - (basis - accumDep));
-      var offset = Math.min(pos.suspended, gain);
-      var gainLeft = gain - offset;
-      var lossLeft = pos.suspended - offset;
-      var recapture = Math.min(accumDep, gainLeft);
-      var capGain = Math.max(0, gainLeft - recapture);
-      var tax = saleTax(spec, recapture, capGain, month) + ordinaryOnExtra(spec, -lossLeft);
+      var recapture = Math.min(accumDep, gain);
+      var capGain = Math.max(0, gain - recapture);
+      var heldLong = month > 12;
+      var sale = saleTax(spec, recapture, capGain, pos.suspended, heldLong);
+      var tax = sale.tax;
+      // The side account is sold the same year, on top of the rental gain.
+      var sideTax = stockTax(spec, side - sideBasis, sale.base, heldLong);
+      var stockOnlyTax = stockTax(spec, stock - stockBasis, spec.income, heldLong);
       var proceeds = realized - balance - tax;
+      var rentalNominal = proceeds + side - sideTax;
+      var stockNominal = stock - stockOnlyTax;
       var discount = Math.pow(1 + spec.inflation, month / 12);
       if (!(discount > 0)) discount = 1;
       return {
@@ -203,10 +240,12 @@
         saleTax: tax,
         depreciation: accumDep,
         suspended: pos.suspended,
-        rentalNominal: proceeds + side,
-        stockNominal: stock,
-        rentalReal: (proceeds + side) / discount,
-        stockReal: stock / discount
+        sideTax: sideTax,
+        stockTax: stockOnlyTax,
+        rentalNominal: rentalNominal,
+        stockNominal: stockNominal,
+        rentalReal: rentalNominal / discount,
+        stockReal: stockNominal / discount
       };
     }
 
@@ -285,8 +324,13 @@
       var cashFlow = c.collected - c.management - c.propertyTax - c.insurance - c.maintenance - c.hoa - pmi - interest - principal - taxCash;
       stock *= 1 + stockMonthly;
       side *= 1 + stockMonthly;
-      if (cashFlow >= 0) side += cashFlow;
-      else stock += -cashFlow;
+      if (cashFlow >= 0) {
+        side += cashFlow;
+        sideBasis += cashFlow;
+      } else {
+        stock += -cashFlow;
+        stockBasis += -cashFlow;
+      }
 
       var point = mark(m + 1);
       point.rent = c.rent;
@@ -332,6 +376,7 @@
       closing: closing,
       basis: basis,
       depreciable: depreciable,
+      stockTypical: stockTypical,
       totals: {
         interest: totalInterest,
         pmiMonths: pmiMonths,
@@ -376,6 +421,8 @@
       sellingCostRate: spec.sellingCostRate,
       homeAppreciation: spec.homeAppreciation,
       stockReturn: spec.stockReturn,
+      stockVol: spec.stockVol,
+      rentGrowth: spec.rentGrowth,
       investmentDrag: spec.investmentDrag,
       inflation: spec.inflation,
       rentMonth: scaledRent(spec.rentMonth, spec.price, next),
@@ -397,6 +444,7 @@
     scaledRent: scaledRent,
     RENT_ELASTICITY: RENT_ELASTICITY,
     mortgagePayment: mortgagePayment,
-    passiveAllowance: passiveAllowance
+    passiveAllowance: passiveAllowance,
+    saleTax: saleTax
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

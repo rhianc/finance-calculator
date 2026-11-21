@@ -125,9 +125,16 @@
         <summary>Typical assumptions</summary>
         <div class="fields">
           <div class="field">
-            <label for="stock-return">Stock return, nominal</label>
+            <label for="stock-return">Stock return, expected, nominal</label>
             <div class="control">
-              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="9" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="stock-vol">Stock volatility</label>
+            <div class="control">
+              <input id="stock-vol" type="number" min="0" max="60" step="1" value="16" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -211,11 +218,12 @@
           <div class="field">
             <label for="drag">Investment tax drag</label>
             <div class="control">
-              <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
+              <input id="drag" type="number" min="0" max="10" step="0.1" value="0.4" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
-          <p class="hint span-2">Vacancy is rent you don't collect. Management is a share of the rent you do. The building, not the land, depreciates over 27.5 years. Drag comes off the stock return.</p>
+          <p class="hint span-2">Vacancy is rent you don't collect. Management is a share of the rent you do. The building, not the land, depreciates over 27.5 years. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate.</p>
+          <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return.</p>
         </div>
       </details>
 
@@ -226,6 +234,13 @@
             <label for="home-app">Home appreciation, nominal</label>
             <div class="control">
               <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="rent-growth">Rent growth, nominal</label>
+            <div class="control">
+              <input id="rent-growth" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -259,6 +274,7 @@
             </div>
           </div>
           <p class="hint span-2" id="app-hint"></p>
+          <p class="hint span-2" id="rent-growth-hint"></p>
           <p class="hint span-2" id="tax-hint"></p>
           <p class="hint span-2" id="cost-hint"></p>
           <p class="hint span-2">Filled in from the place and the price. A change here sticks until you change one of those.</p>
@@ -303,12 +319,15 @@
     <div class="chart-box tall">
       <canvas id="wealthChart" aria-label="Rental versus stocks in today's dollars"></canvas>
     </div>
+    <p class="hint">The lines are one typical path, not a range. At 20% down the rental is five dollars of one building for every dollar of equity, so a 10% fall in price takes half of it, and a vacancy or a big repair lands on you alone. The stocks spread that risk over the whole market.</p>
   </section>
 
   <section class="card" aria-labelledby="math-heading">
     <details class="sheet" id="formulas">
       <summary id="math-heading">How the comparison works</summary>
       <p class="section-lead">Once a month. The mortgage rate is divided by 12. Appreciation, rent growth, and the stock return are effective annual rates. Figures on the chart are after inflation.</p>
+      <p>\(\mu\) is the expected stock return, \(\sigma\) its volatility, and \(d\) the drag. Wealth multiplies, so a typical path compounds below \(\mu\), and the chart follows that path. Home appreciation is already a compound rate, from FHFA's index.</p>
+      <div class="math">\[ s = (1+\mu)\,e^{-\sigma^2/2} - 1,\qquad r_s = (1+s-d)^{1/12}-1 \]</div>
 
       <h3>Loan</h3>
       <p>\(P\) is the amount borrowed, \(r\) the monthly rate, \(N\) the number of payments.</p>
@@ -324,7 +343,7 @@
       <p>Income tax is federal, state, and the 3.8% net investment income tax on profit. A loss offsets wages only up to the $25,000 allowance, which phases out from $100,000 to $150,000 of income. The rest waits until you sell. There is no primary-residence exclusion.</p>
 
       <h3>The two accounts</h3>
-      <p>\(S\) starts as the down payment plus closing costs. Negative cash flow is added to \(S\). Positive cash flow is added to \(T\), invested beside the house. Both earn the stock return after drag.</p>
+      <p>\(S\) starts as the down payment plus closing costs. Negative cash flow is added to \(S\). Positive cash flow is added to \(T\), invested beside the house. Both earn \(r_s\). What went into each is its cost basis.</p>
       <div class="math">\[
         S_t = S_{t-1}(1+r_s) + \max(0,-\mathrm{CF}_t)
       \]</div>
@@ -336,7 +355,8 @@
       <div class="math">\[
         \mathrm{Gain} = \max\left(0,\ H(1-c_s) - (\mathrm{basis} - \mathrm{depreciation})\right)
       \]</div>
-      <p>Depreciation taken so far is taxed at your ordinary rate, up to 25%. The rest of the gain is long-term after a year. Suspended losses offset that gain first. What you keep is the sale price after selling costs, minus the loan and the tax, plus \(T\).</p>
+      <p>Depreciation taken so far is unrecaptured section 1250 gain. It is stacked on your wages and taxed at those rates, but never above 25%. The rest of the gain is long-term after more than a year and stacks on top. A sale within the first year is all ordinary income. Losses that were suspended become an ordinary deduction when you sell (section 469(g)), so they come off your wages first, at your top rate, not off the gain. The 3.8% net investment income tax applies to the gain less those losses.</p>
+      <p>Both stock accounts are sold the same month, and their gains above basis are taxed too. \(T\)'s gain stacks on top of the rental gain, and \(S\)'s gain stacks on wages alone. A loss is not credited. What you keep is the sale price after selling costs, minus the loan and the tax, plus \(T\) after its tax. The stock line is \(S\) after its tax.</p>
 
       <h3>Left out on purpose</h3>
       <ul class="left-out">
@@ -344,7 +364,8 @@
         <li>The mid-month depreciation convention, and improvements beyond the maintenance rate.</li>
         <li>Real estate professional status, and the qualified business income deduction.</li>
         <li>Refinancing, extra principal, and adjustable rates.</li>
-        <li>Rent control, and returns that don't arrive in a straight line.</li>
+        <li>Rent control.</li>
+        <li>The spread of outcomes. Each line is one typical path, and one building's spread is wider than an index's.</li>
       </ul>
     </details>
   </section>
@@ -356,12 +377,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=11"></script>
+<script src="js/taxes.js?v=12"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/redfin.js?v=1"></script>
-<script src="js/rental-model.js?v=14"></script>
+<script src="js/rental-model.js?v=15"></script>
 <script src="js/knobs.js?v=2"></script>
-<script src="js/rental-page.js?v=44"></script>
+<script src="js/rental-page.js?v=45"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

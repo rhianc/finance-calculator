@@ -134,6 +134,8 @@
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place) return;
     $('home-app').value = place.rate.toFixed(2);
+    // Rent keeps pace with the house by default, so price-to-rent stays where it is.
+    $('rent-growth').value = place.rate.toFixed(2);
   }
 
   function cityName() {
@@ -191,6 +193,8 @@
       sellingCostRate: readNum('selling') / 100,
       homeAppreciation: readNum('home-app') / 100,
       stockReturn: readNum('stock-return') / 100,
+      stockVol: readNum('stock-vol') / 100,
+      rentGrowth: readNum('rent-growth') / 100,
       investmentDrag: readNum('drag') / 100,
       inflation: readNum('inflation') / 100,
       rentMonth: Math.max(0, readNum('rent')),
@@ -274,8 +278,9 @@
       ['State tax saved this month', money(first.stateSavings, 2)],
       ['Owner cash this month', money(first.ownerOutlay, 2)],
       ['Rent this month', money(first.rent, 2)],
-      ['Added to the renter portfolio, owner cash minus rent', money(first.renterDeposit, 2)],
-      ['Added to the owner tax portfolio', money(first.savings, 2)]
+      ['State deductible interest, under ' + money(result.input.stateCode === 'CA' ? 1000000 : first.debtCap), money(first.stateDeductibleInterest, 2)],
+      ['Added to the renter portfolio, owner cash minus rent if positive', money(first.renterDeposit, 2)],
+      ['Added to the owner portfolio, tax saved plus rent minus owner cash if positive', money(first.ownerDeposit, 2)]
     ];
     lines.forEach(function (line) { host.appendChild(step(line[0], line[1])); });
   }
@@ -435,6 +440,27 @@
       var label = place.kind === 'city' ? place.city.name : place.state.name;
       $('app-hint').textContent = formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '.';
     }
+
+    $('stock-hint').textContent = 'A ' + rateText(input.stockReturn) + '% expected return with ' + rateText(input.stockVol)
+      + '% volatility compounds at ' + rateText(result.stockTypical) + '% on a typical path, '
+      + rateText(result.stockAnnual) + '% after drag. 9% is 4% T-bills plus a 5% equity premium.';
+    var rg = input.rentGrowth;
+    $('rent-growth-hint').textContent = Math.abs(rg - input.homeAppreciation) < 0.00005
+      ? 'Rent grows with the home, so price-to-rent holds. Lower it if you expect rents to lag.'
+      : 'Rent grows ' + rateText(rg) + '% a year against ' + rateText(input.homeAppreciation) + '% for the home, so price-to-rent '
+        + (rg < input.homeAppreciation ? 'rises' : 'falls') + ' every year.';
+
+    var uc = result.userCost;
+    $('uc-u').textContent = rateText(uc.u) + '%';
+    $('uc-yield').textContent = rateText(uc.rentYield) + '%';
+    var parts = uc.parts;
+    $('uc-note').textContent = rateText(parts.opportunity) + '% forgone in stocks + ' + rateText(parts.propertyTax) + '% tax + '
+      + rateText(parts.maintenance) + '% upkeep + ' + rateText(parts.insurance + parts.hoa) + '% insurance and HOA − '
+      + rateText(parts.appreciation) + '% appreciation + ' + rateText(parts.transactions) + '% buying and selling spread over '
+      + Math.round(input.horizonYears) + ' years. '
+      + (uc.rentYield > uc.u ? 'Rent costs more per dollar than owning, which favors buying.'
+        : 'Owning costs more per dollar than rent, which favors renting.')
+      + (uc.rentYield > 0 ? ' Price-to-rent is ' + formatNumber(1 / uc.rentYield, 1) + '.' : '');
 
     FinanceCharts.renderLines($('wealthChart'), result.points);
     FinanceCharts.renderPie($('pieChart'), slices);

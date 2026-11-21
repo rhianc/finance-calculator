@@ -140,6 +140,7 @@
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place) return;
     $('home-app').value = place.rate.toFixed(2);
+    $('rent-growth').value = place.rate.toFixed(2);
   }
 
   function applyInsurance() {
@@ -198,6 +199,8 @@
       sellingCostRate: readNum('selling') / 100,
       homeAppreciation: readNum('home-app') / 100,
       stockReturn: readNum('stock-return') / 100,
+      stockVol: readNum('stock-vol') / 100,
+      rentGrowth: readNum('rent-growth') / 100,
       investmentDrag: readNum('drag') / 100,
       inflation: readNum('inflation') / 100,
       rentMonth: Math.max(0, readNum('rent')),
@@ -645,6 +648,15 @@
     if (cross != null && !result.totals.endsAhead) note = 'The rental leads at ' + formatDuration(cross) + ', then falls behind.';
     $('stat-note').textContent = note;
     $('stat-note').hidden = !note;
+
+    $('stock-hint').textContent = 'A ' + rateText(input.stockReturn) + '% expected return with ' + rateText(input.stockVol)
+      + '% volatility compounds at ' + rateText(result.stockTypical) + '% on a typical path, '
+      + rateText(result.stockTypical - input.investmentDrag) + '% after drag. 9% is 4% T-bills plus a 5% equity premium.';
+    var rg = input.rentGrowth;
+    $('rent-growth-hint').textContent = Math.abs(rg - input.homeAppreciation) < 0.00005
+      ? 'Rent grows with the home, so the gross yield holds. Lower it if you expect rents to lag.'
+      : 'Rent grows ' + rateText(rg) + '% a year against ' + rateText(input.homeAppreciation) + '% for the home, so the yield '
+        + (rg < input.homeAppreciation ? 'falls' : 'rises') + ' every year.';
 
     var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
     var filing = input.filingStatus === 'single' ? 'single' : 'joint';

@@ -1,6 +1,7 @@
 load('js/taxes.js');
 load('js/model.js');
 load('js/markets.js');
+load('js/rental-model.js');
 
 var M = FinanceModel;
 var failed = 0;
@@ -167,7 +168,9 @@ var inflated = M.project(base({
   rentMonth: 100,
   inflation: 0.10
 }));
-near('rent steps up on the anniversary', inflated.points[15].rentNominal, 100 - 12 * 100 - 3 * 110, 0.01);
+near('rent steps up on the anniversary', inflated.points[15].houseNominal - inflated.points[15].rentNominal, 12 * 100 + 3 * 110, 0.01);
+near('when renting costs more, the owner invests the difference', inflated.points[15].taxPortfolio, 12 * 100 + 3 * 110, 0.01);
+near('and the renter never draws the account down', inflated.points[15].rentNominal, 100, 0.01);
 
 var gains = M.project(base({
   price: 300000,
@@ -182,7 +185,9 @@ var gains = M.project(base({
 }));
 var g12 = 300000 * Math.pow(1.5, 1) - 300000;
 var g24 = 300000 * Math.pow(1.5, 2) - 300000;
-near('short of two years, no exclusion', gains.points[12].gainsTax, g12 * 0.15, 0.05);
+near('exactly one year is still short-term', gains.points[12].gainsTax, g12 * 0.24, 0.05);
+var g13 = gains.points[13].home - 300000;
+near('a year and a month is long-term, no exclusion yet', gains.points[13].gainsTax, g13 * 0.15, 0.05);
 near('exclusion applies at 24 months', gains.points[24].gainsTax, (g24 - 250000) * 0.15, 0.05);
 near('month 6 is taxed as ordinary income', gains.points[6].gainsTax, (gains.points[6].home - 300000) * 0.24, 0.05);
 check('month 23 still has no exclusion', gains.points[23].gainsTax > gains.points[24].gainsTax);
@@ -259,6 +264,40 @@ var undragged = M.project(base({
 }));
 check('drag lowers the renter portfolio', drag.points[12].rentNominal < undragged.points[12].rentNominal - 1);
 
+near('typical return is the mean less the drag', M.typicalReturn(0.09, 0.16), 1.09 * Math.exp(-0.0128) - 1, 1e-12);
+near('no volatility, no drag', M.typicalReturn(0.09, 0), 0.09, 1e-12);
+
+var volCase = M.project(base({
+  price: 100000, downPayment: 100000, years: 1, horizonYears: 1, stockReturn: 0.09, stockVol: 0.16
+}));
+near('the renter compounds at the typical rate', volCase.points[12].rentPortfolio, 100000 * 1.09 * Math.exp(-0.0128), 0.5);
+
+var stockTax = M.project(base({
+  price: 100000, downPayment: 100000, years: 2, horizonYears: 2, stockReturn: 0.10,
+  ltcgRate: 0.15, stateRate: 0.05, federalRate: 0.3
+}));
+var grown = 100000 * 1.21;
+near('the renter pays gains tax when the account is sold', stockTax.points[24].rentNominal, grown - (grown - 100000) * 0.20, 0.5);
+near('short-term stock gains are ordinary', stockTax.points[6].renterStockTax, (stockTax.points[6].rentPortfolio - 100000) * 0.35, 0.01);
+
+var caCap = M.project(base({
+  price: 1250000, downPayment: 0, annualRate: 0.06, years: 30, horizonYears: 1,
+  income: 400000, stateCode: 'CA', filingStatus: 'mfj'
+}));
+near('California deducts interest on up to $1,000,000', caCap.first.stateDeductibleInterest, 1250000 * 0.005 * 0.8, 0.01);
+near('the federal return stops at $750,000', caCap.first.deductibleInterest, 1250000 * 0.005 * 0.6, 0.01);
+
+var grows = M.project(base({ price: 100, downPayment: 100, years: 1, horizonYears: 2, rentMonth: 100, inflation: 0.02, rentGrowth: 0.05 }));
+near('rent follows its own growth rate', grows.points[13].houseNominal - grows.points[12].houseNominal, 105, 0.01);
+
+var uc = M.project(base({
+  price: 800000, downPayment: 160000, annualRate: 0.0625, horizonYears: 7, propertyTaxRate: 0.011,
+  maintenanceRate: 0.01, insuranceYear: 3200, homeAppreciation: 0.035, stockReturn: 0.06,
+  closingCostRate: 0.02, sellingCostRate: 0.06, rentMonth: 3400
+}));
+near('user cost matches the companion house', uc.userCost.u, 0.06 + 0.011 + 0.01 + 0.004 - 0.035 + 0.08 / 7, 1e-9);
+near('rent yield is a year of rent over price', uc.userCost.rentYield, 0.051, 1e-9);
+
 var H = HomeMarkets;
 near('U.S. appreciation since 1991', H.place('US', '').rate, 4.26, 0.001);
 near('California statewide appreciation', H.place('CA', '').rate, 4.14, 0.001);
@@ -290,7 +329,7 @@ var T = TaxRules;
 near('2026 joint tax on $217,800 taxable', T.ordinaryTax('mfj', 217800), 37468, 0.01);
 near('that income is the 24% bracket', T.federalMarginal('mfj', 217800), 0.24, 0.0001);
 near('California marginal rate at $250,000', T.stateMarginal('CA', 'mfj', 250000, ''), 0.093, 0.0001);
-near('California tax at $250,000 joint', T.saltBill('CA', 'mfj', 250000, ''), 14790.84, 1);
+near('California tax at $250,000 joint, 2026 schedule', T.saltBill('CA', 'mfj', 250000, ''), 14471.72, 1);
 near('Texas has no income tax', T.saltBill('TX', 'mfj', 250000, ''), 0, 0.01);
 near('a dollar of California interest saves 9.3 cents', T.stateIncomeTax('CA', 'mfj', 250000, 0, '') - T.stateIncomeTax('CA', 'mfj', 250000, 1, ''), 0.093, 0.0001);
 near('long-term gain at the NIIT threshold', T.taxOnGain({
@@ -332,6 +371,24 @@ var kept = M.atPrice(base({
   cityName: 'Los Angeles'
 }), 500000);
 check('income stays put as the price changes', kept.income === 250000 && kept.stateCode === 'CA' && kept.cityName === 'Los Angeles');
+
+var RM = RentalModel;
+var tx = { filingStatus: 'mfj', income: 200000, stateCode: 'TX', cityName: '' };
+var freed = RM.saleTax(tx, 0, 100000, 50000, true).tax - RM.saleTax(tx, 0, 100000, 0, true).tax;
+near('freed passive losses come off wages at 22%, and pull the gain under the NIIT line', freed, -50000 * 0.22 - 50000 * 0.038, 0.5);
+near('depreciation recapture is capped at 25%', RM.saleTax({ filingStatus: 'mfj', income: 700000, stateCode: 'TX', cityName: '' }, 100000, 0, 0, true).tax, 25000 + 3800, 0.5);
+var lowU = RM.saleTax({ filingStatus: 'mfj', income: 100000, stateCode: 'TX', cityName: '' }, 10000, 0, 0, true).tax;
+near('recapture under 25% is taxed at the bracket it lands in', lowU, 10000 * 0.12, 0.5);
+var rentalBase = {
+  price: 400000, downPayment: 100000, annualRate: 0.06, years: 30, horizonYears: 3, propertyTaxRate: 0.01,
+  insuranceYear: 1500, maintenanceRate: 0.01, homeAppreciation: 0.04, stockReturn: 0.09, stockVol: 0.16,
+  inflation: 0.025, rentGrowth: 0.04, rentMonth: 2600, vacancyRate: 0.05, managementRate: 0.08,
+  closingCostRate: 0.02, sellingCostRate: 0.06, filingStatus: 'mfj', income: 200000, stateCode: 'TX'
+};
+var rp = RM.project(rentalBase);
+check('the stock alternative pays tax on its gain when sold', rp.points[36].stockTax > 0 && rp.points[36].stockNominal < rp.points[36].stock);
+near('rental stocks compound at the typical rate', rp.stockTypical, 1.09 * Math.exp(-0.0128) - 1, 1e-12);
+near('rental rent grows at its own rate', rp.points[13].rent / rp.points[12].rent, 1.04, 1e-9);
 
 if (failed) {
   print(failed + ' failed');

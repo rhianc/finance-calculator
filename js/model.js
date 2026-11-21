@@ -14,8 +14,18 @@
     saltPhaseoutRate: 0.30,
     mortgageCap: { single: 750000, mfj: 750000 },
     gainExclusion: { single: 250000, mfj: 500000 },
-    prop13Cap: 0.02
+    prop13Cap: 0.02,
+    // California never adopted the 2017 cap: its return deducts interest on up to $1,000,000.
+    stateMortgageCap: { CA: 1000000 }
   };
+
+  // The return a typical (median) path compounds at, from the expected yearly return and its volatility.
+  // Wealth multiplies, so the median grows at (1+mu)e^(-sigma^2/2) - 1, not at mu (companion, eq-drag-limit).
+  function typicalReturn(mean, vol) {
+    var m = typeof mean === 'number' && isFinite(mean) ? mean : 0;
+    var v = typeof vol === 'number' && isFinite(vol) ? Math.max(0, vol) : 0;
+    return (1 + m) * Math.exp(-v * v / 2) - 1;
+  }
 
   function finite(value, fallback) {
     return typeof value === 'number' && isFinite(value) ? value : fallback;
@@ -53,6 +63,10 @@
       sellingCostRate: clamp(finite(src.sellingCostRate, 0), 0, 0.2),
       homeAppreciation: clamp(finite(src.homeAppreciation, 0), -0.5, 0.5),
       stockReturn: clamp(finite(src.stockReturn, 0), -0.5, 0.5),
+      // Volatility of the stock return. 0 compounds the typed return as if it arrived every year.
+      stockVol: clamp(finite(src.stockVol, 0), 0, 1),
+      // Rent growth. Missing means inflation, the older behavior.
+      rentGrowth: clamp(finite(src.rentGrowth, finite(src.inflation, 0)), -0.5, 0.5),
       investmentDrag: clamp(finite(src.investmentDrag, 0), 0, 0.2),
       inflation: clamp(finite(src.inflation, 0), 0, 0.2),
       rentMonth: Math.max(0, finite(src.rentMonth, 0)),
@@ -108,7 +122,7 @@
       insurance: spec.insuranceYear * growth / 12,
       maintenance: spec.price * spec.maintenanceRate * growth / 12,
       hoa: spec.hoaMonth * growth,
-      rent: spec.rentMonth * growth
+      rent: spec.rentMonth * Math.pow(1 + spec.rentGrowth, year)
     };
   }
 
@@ -143,7 +157,8 @@
   // deduction beyond what the household could already itemize without the house.
   // With an income, that difference is computed on the 2026 brackets. Otherwise
   // it is the flat federal rate passed in.
-  function addHousing(tax, deductibleInterest, propertyTaxMonth) {
+  function addHousing(tax, deductibleInterest, propertyTaxMonth, stateInterest) {
+    if (stateInterest == null) stateInterest = deductibleInterest;
     var room = Math.max(0, tax.saltRoom - tax.ytdProp);
     var propDeduct = Math.min(Math.max(0, propertyTaxMonth), room);
     tax.ytdProp += propDeduct;
@@ -162,9 +177,9 @@
     }
     var stateSavings;
     if (tax.income == null) {
-      stateSavings = deductibleInterest * tax.stateRate;
+      stateSavings = stateInterest * tax.stateRate;
     } else {
-      tax.ytdInterest += deductibleInterest;
+      tax.ytdInterest += stateInterest;
       var stateBenefit = tax.stateBase - TaxRules.stateIncomeTax(tax.stateCode, tax.filingStatus, tax.income, tax.ytdInterest, tax.cityName);
       stateSavings = stateBenefit - tax.prevStateBenefit;
       tax.prevStateBenefit = stateBenefit;
@@ -190,7 +205,9 @@
     var std = RULES.standardDeduction[input.filingStatus];
     var exclusion = RULES.gainExclusion[input.filingStatus];
     var salt = saltCapAmount(input.magi);
-    var stockAnnual = input.stockReturn - input.investmentDrag;
+    var stockTypical = typicalReturn(input.stockReturn, input.stockVol);
+    var stockAnnual = stockTypical - input.investmentDrag;
+    var stateCap = RULES.stateMortgageCap[input.stateCode] || cap;
     var stockMonthly = Math.pow(1 + stockAnnual, 1 / 12) - 1;
     var homeMonthly = Math.pow(1 + input.homeAppreciation, 1 / 12) - 1;
     var closing = price * input.closingCostRate;
@@ -198,30 +215,42 @@
 
     var home = price;
     var balance = loan0;
+    // Each side's stock account and what went into it. Cashing out taxes the gain above that basis.
     var taxPort = 0;
+    var taxBasis = 0;
     var rentPort = input.downPayment + closing;
+    var rentBasis = rentPort;
+
+    // Tax on a gain stacked on top of `extra` other gain the same year. Long-term means held over a year.
+    function gainTax(gain, extra, heldLong) {
+      if (!(gain > 0)) return 0;
+      if (input.income == null) {
+        return gain * ((heldLong ? input.ltcgRate : input.federalRate) + input.stateRate);
+      }
+      return TaxRules.taxOnGain({
+        income: input.income + Math.max(0, extra),
+        status: input.filingStatus,
+        state: input.stateCode,
+        city: input.cityName,
+        taxableGain: gain,
+        longTerm: heldLong
+      });
+    }
 
     function mark(month) {
       var realized = home * (1 - input.sellingCostRate);
       var gain = Math.max(0, realized - basis);
-      var heldLong = month >= 12;
+      var heldLong = month > 12;
       var excluded = month >= 24 ? exclusion : 0;
       var taxable = Math.max(0, gain - excluded);
-      var gainsTax;
-      if (input.income == null) {
-        var fedGain = heldLong ? input.ltcgRate : input.federalRate;
-        gainsTax = taxable * (fedGain + input.stateRate);
-      } else {
-        gainsTax = TaxRules.taxOnGain({
-          income: input.income,
-          status: input.filingStatus,
-          state: input.stateCode,
-          city: input.cityName,
-          taxableGain: taxable,
-          longTerm: heldLong
-        });
-      }
-      var nominalHouse = realized - balance - gainsTax + taxPort;
+      var gainsTax = gainTax(taxable, 0, heldLong);
+      // The owner's account is sold the same year as the house, so its gain stacks on the house gain.
+      var ownerStockGain = Math.max(0, taxPort - taxBasis);
+      var ownerStockTax = gainTax(ownerStockGain, taxable, heldLong);
+      var renterStockGain = Math.max(0, rentPort - rentBasis);
+      var renterStockTax = gainTax(renterStockGain, 0, heldLong);
+      var nominalHouse = realized - balance - gainsTax + taxPort - ownerStockTax;
+      var nominalRent = rentPort - renterStockTax;
       var discount = Math.pow(1 + input.inflation, month / 12);
       return {
         month: month,
@@ -231,10 +260,12 @@
         gainsTax: gainsTax,
         taxPortfolio: taxPort,
         rentPortfolio: rentPort,
+        ownerStockTax: ownerStockTax,
+        renterStockTax: renterStockTax,
         houseNominal: nominalHouse,
-        rentNominal: rentPort,
+        rentNominal: nominalRent,
         houseReal: nominalHouse / discount,
-        rentReal: rentPort / discount
+        rentReal: nominalRent / discount
       };
     }
 
@@ -289,16 +320,22 @@
 
       var fraction = startBalance > 0 ? Math.min(1, cap / startBalance) : 0;
       var dedInterest = interest * fraction;
-      var taxBits = addHousing(tax, dedInterest, costs.propertyTax);
+      var stateInterest = interest * (startBalance > 0 ? Math.min(1, stateCap / startBalance) : 0);
+      var taxBits = addHousing(tax, dedInterest, costs.propertyTax, stateInterest);
       var stateSavings = taxBits.stateSavings;
       var savings = taxBits.fedIncrement + stateSavings;
       var ownerOutlay = interest + principal + costs.propertyTax + costs.insurance + costs.maintenance + costs.hoa + pmi;
 
-      // Tax savings are invested on the buy side. They are not also removed from
-      // the renter's deposit, or the deduction would be counted twice.
-      var renterDeposit = ownerOutlay - costs.rent;
-      taxPort = taxPort * (1 + stockMonthly) + savings;
+      // Whoever pays less for housing that month invests the difference. Tax savings are invested
+      // on the buy side and are not also removed from the renter's deposit, or the deduction
+      // would be counted twice.
+      var gap = ownerOutlay - costs.rent;
+      var renterDeposit = Math.max(0, gap);
+      var ownerDeposit = savings + Math.max(0, -gap);
+      taxPort = taxPort * (1 + stockMonthly) + ownerDeposit;
+      taxBasis = Math.max(0, taxBasis + ownerDeposit);
       rentPort = rentPort * (1 + stockMonthly) + renterDeposit;
+      rentBasis += renterDeposit;
 
       totalInterest += interest;
       if (m < 12) {
@@ -322,10 +359,12 @@
           ownerOutlay: ownerOutlay,
           rent: costs.rent,
           renterDeposit: renterDeposit,
+          ownerDeposit: ownerDeposit,
           savings: savings,
           federalSavings: taxBits.fedIncrement,
           stateSavings: stateSavings,
           deductibleInterest: dedInterest,
+          stateDeductibleInterest: stateInterest,
           interestFraction: fraction,
           debtCap: cap,
           startBalance: startBalance,
@@ -346,11 +385,32 @@
       }
     }
 
+    // Poterba's user cost: what owning costs per dollar of house each year, against the rent yield.
+    // The opportunity cost is the stock return the down payment would have compounded at.
+    var userParts = {
+      opportunity: stockAnnual,
+      propertyTax: input.propertyTaxRate,
+      maintenance: input.maintenanceRate,
+      insurance: price > 0 ? input.insuranceYear / price : 0,
+      hoa: price > 0 ? input.hoaMonth * 12 / price : 0,
+      appreciation: input.homeAppreciation,
+      transactions: input.horizonYears > 0 ? (input.closingCostRate + input.sellingCostRate) / input.horizonYears : 0
+    };
+    var userCost = userParts.opportunity + userParts.propertyTax + userParts.maintenance + userParts.insurance
+      + userParts.hoa - userParts.appreciation + userParts.transactions;
+
     var last = points[points.length - 1];
     return {
       input: input,
       points: points,
       first: first,
+      stockTypical: stockTypical,
+      stockAnnual: stockAnnual,
+      userCost: {
+        u: userCost,
+        parts: userParts,
+        rentYield: price > 0 ? 12 * input.rentMonth / price : 0
+      },
       totals: {
         interest: totalInterest,
         pmiMonths: pmiMonths,
@@ -384,6 +444,7 @@
     RULES: RULES,
     normalize: normalize,
     saltCapAmount: saltCapAmount,
+    typicalReturn: typicalReturn,
     mortgagePayment: mortgagePayment,
     balanceAfter: balanceAfter,
     annualPropertyTax: annualPropertyTax,

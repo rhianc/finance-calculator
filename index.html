@@ -124,9 +124,16 @@
         <summary>Typical assumptions</summary>
         <div class="fields">
           <div class="field">
-            <label for="stock-return">Stock return, nominal</label>
+            <label for="stock-return">Stock return, expected, nominal</label>
             <div class="control">
-              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="10" inputmode="decimal">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="9" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="stock-vol">Stock volatility</label>
+            <div class="control">
+              <input id="stock-vol" type="number" min="0" max="60" step="1" value="16" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -140,7 +147,7 @@
           <div class="field">
             <label for="drag">Investment tax drag</label>
             <div class="control">
-              <input id="drag" type="number" min="0" max="10" step="0.1" value="0" inputmode="decimal">
+              <input id="drag" type="number" min="0" max="10" step="0.1" value="0.4" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -200,7 +207,8 @@
               <span class="unit">$/yr</span>
             </div>
           </div>
-          <p class="hint span-2">PMI applies only while the loan is above 80% of the price. Drag comes off the stock return. Costs step up with inflation each year.</p>
+          <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return, so the stocks grow at the rate shown here, then the drag comes off.</p>
+          <p class="hint span-2">PMI applies only while the loan is above 80% of the price. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate. Costs step up with inflation each year.</p>
         </div>
       </details>
 
@@ -211,6 +219,13 @@
             <label for="home-app">Home appreciation, nominal</label>
             <div class="control">
               <input id="home-app" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
+              <span class="unit">%/yr</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="rent-growth">Rent growth, nominal</label>
+            <div class="control">
+              <input id="rent-growth" type="number" min="-10" max="20" step="0.01" value="4.14" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -251,6 +266,7 @@
             </div>
           </div>
           <p class="hint span-2" id="app-hint"></p>
+          <p class="hint span-2" id="rent-growth-hint"></p>
           <p class="hint span-2" id="tax-hint"></p>
           <p class="hint span-2" id="cost-hint"></p>
           <p class="hint span-2" id="tax-readout"></p>
@@ -292,6 +308,18 @@
     <div class="chart-box tall">
       <canvas id="wealthChart" aria-label="Buy versus rent net worth in today's dollars"></canvas>
     </div>
+    <div class="meta">
+      <div>
+        <div class="k">User cost of owning</div>
+        <div class="v" id="uc-u">—</div>
+      </div>
+      <div>
+        <div class="k">Rent yield</div>
+        <div class="v" id="uc-yield">—</div>
+      </div>
+    </div>
+    <p class="hint" id="uc-note"></p>
+    <p class="hint">The lines are one typical path, not a range. Three things they leave out. At 20% down you hold five dollars of one house for every dollar of equity, so a 10% fall in price takes half of it. A fixed mortgage is also an option: refinance if rates fall, keep the cheap loan if they rise. And owning fixes your housing cost, while the renter's account rides the stock market, so owning can be worth it even when the user cost is above the rent yield.</p>
   </section>
 
   <section class="card" aria-labelledby="math-heading">
@@ -318,23 +346,32 @@
     \]</div>
 
     <h3>The two portfolios</h3>
-    <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. PMI is the original loan times its annual rate, divided by 12, and it is charged only while the balance is above 80% of the purchase price. \(\tau_t\) is the tax saved that month. \(R_t\) is rent. \(s\) is the stock return and \(d\) is the drag, so \(r_s = (1+s-d)^{1/12}-1\).</p>
+    <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. PMI is the original loan times its annual rate, divided by 12, and it is charged only while the balance is above 80% of the purchase price. \(\tau_t\) is the tax saved that month. \(R_t\) is rent, which grows at its own rate. \(\mu\) is the expected stock return, \(\sigma\) its volatility, and \(d\) the drag.</p>
+    <p>Wealth multiplies, so a typical path compounds at less than the expected return. The expected wealth still grows at \(\mu\), but only because a few lucky paths end far above it. The chart follows the typical path:</p>
+    <div class="math">\[ s = (1+\mu)\,e^{-\sigma^2/2} - 1,\qquad r_s = (1+s-d)^{1/12}-1 \]</div>
+    <p>Home appreciation is already a compound rate: FHFA's index growth from 1991 to 2026.</p>
     <div class="math">\[ H_t = H_0 (1+g)^{t/12} \]</div>
     <div class="math">\[ S_0 = D + c_b H_0 \]</div>
-    <div class="math">\[ S_t = S_{t-1}(1+r_s) + (O_t - R_t) \]</div>
-    <div class="math">\[ T_0 = 0,\quad T_t = T_{t-1}(1+r_s) + \tau_t \]</div>
-    <p>\(S\) is the renter's portfolio. \(T\) is the owner's tax savings, invested at the same return. Because those savings sit in \(T\), they are not also subtracted from the renter's deposit.</p>
+    <div class="math">\[ S_t = S_{t-1}(1+r_s) + \max(0,\ O_t - R_t) \]</div>
+    <div class="math">\[ T_0 = 0,\quad T_t = T_{t-1}(1+r_s) + \tau_t + \max(0,\ R_t - O_t) \]</div>
+    <p>\(S\) is the renter's portfolio. \(T\) is the owner's: the tax savings, plus the difference in any month when owning costs less than rent. Whoever pays less for housing invests the difference, so neither account is drawn down. Because the savings sit in \(T\), they are not also subtracted from the renter's deposit. \(\hat S_t\) and \(\hat T_t\) are what went into each account. That is their cost basis.</p>
 
     <h3>If you sold that month</h3>
     <div class="math">\[ \mathrm{Gain}_t = \max\left(0,\ H_t(1-c_s) - H_0(1+c_b)\right) \]</div>
     <div class="math">\[ G_t = \text{tax on }\max(0,\ \mathrm{Gain}_t - X_t)\text{, stacked on top of household income} \]</div>
-    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for a single filer and $500,000 for a joint return. Standard deduction the wages did not use comes off the taxable gain. Before 12 months the federal piece is ordinary income, stacked on the wages. After 12 months it is long-term gain, 0%, 15%, and 20% in the 2026 bands, and the wages fill those bands from the bottom. The 3.8% net investment income tax applies to the smaller of the taxable gain and the amount by which wages plus that gain exceed $250,000 joint or $200,000 single. State tax is the extra state tax from adding the gain on top of wages. Maryland adds 2% of the taxable gain when wages plus the gain exceed $350,000. Minnesota adds 1% of the gain above $1,000,000.</p>
+    <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for a single filer and $500,000 for a joint return. Standard deduction the wages did not use comes off the taxable gain. Through 12 months the federal piece is ordinary income, stacked on the wages. After more than 12 months it is long-term gain, 0%, 15%, and 20% in the 2026 bands, and the wages fill those bands from the bottom. The 3.8% net investment income tax applies to the smaller of the taxable gain and the amount by which wages plus that gain exceed $250,000 joint or $200,000 single. State tax is the extra state tax from adding the gain on top of wages. Maryland adds 2% of the taxable gain when wages plus the gain exceed $350,000. Minnesota adds 1% of the gain above $1,000,000.</p>
+    <p>Both stock accounts are sold the same month, and their gains are taxed too. \(G^T_t\) is the tax on \(T_t - \hat T_t\), stacked on top of the house gain. \(G^S_t\) is the tax on \(S_t - \hat S_t\). Each uses the same rules as the house, without the exclusion. A loss is not credited.</p>
     <div class="math">\[ L_t = H_t(1-c_s) - B_t - G_t \]</div>
     <div class="math">\[
-      W^H_t = \frac{L_t + T_t}{(1+i)^{t/12}},\qquad
-      W^R_t = \frac{S_t}{(1+i)^{t/12}}
+      W^H_t = \frac{L_t + T_t - G^T_t}{(1+i)^{t/12}},\qquad
+      W^R_t = \frac{S_t - G^S_t}{(1+i)^{t/12}}
     \]</div>
     <p>\(i\) is inflation. \(W^H\) is the buy line and \(W^R\) is the rent line, both in today's dollars. \(L_t\) is what's left after the loan, the sale, and tax on the gain.</p>
+
+    <h3>User cost against rent</h3>
+    <p>The same comparison in one line, from Poterba: what owning costs per dollar of house each year. \(s - d\) is what the money would earn in stocks, \(\rho\) the property tax rate, \(m\) maintenance, \(n\) insurance and HOA over the price, and \(T\) the comparison length.</p>
+    <div class="math">\[ u = (s - d) + \rho + m + n - g + \frac{c_b + c_s}{T} \]</div>
+    <p>Buying wins on this measure when the rent yield, \(12R_0/H_0\), is above \(u\). The price-to-rent ratio is the housing market's P/E. The one-line version ignores the loan, taxes, and rent growing at a different rate than the house. The chart does not, so the two can disagree near the line.</p>
 
     <h3>Tax saved</h3>
     <p>Interest is deductible on the portion of the balance under the $750,000 acquisition-debt cap. At the start of month \(t\):</p>
@@ -345,7 +382,7 @@
     <div class="math">\[
       \tau^{\mathrm{fed}} = \mathrm{Tax}(TI_{\mathrm{rent}}) - \mathrm{Tax}(TI_{\mathrm{own}})
     \]</div>
-    <p>\(TI_{\mathrm{rent}}\) is wages minus the larger of the standard deduction and the deductions already on the return: state and local income tax, limited by that year's SALT cap, plus other itemized deductions. \(TI_{\mathrm{own}}\) also subtracts deductible mortgage interest and the property tax that still fits in the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule, so a deduction that crosses a bracket is split across the rates it passes. Federal savings stay $0 until housing deductions push itemizing past the standard deduction. State savings start with the first dollar of deductible interest. Property tax is not deducted on the state return here.</p>
+    <p>\(TI_{\mathrm{rent}}\) is wages minus the larger of the standard deduction and the deductions already on the return: state and local income tax, limited by that year's SALT cap, plus other itemized deductions. \(TI_{\mathrm{own}}\) also subtracts deductible mortgage interest and the property tax that still fits in the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule, so a deduction that crosses a bracket is split across the rates it passes. Federal savings stay $0 until housing deductions push itemizing past the standard deduction. State savings start with the first dollar of deductible interest. California never adopted the $750,000 cap, so its return deducts interest on up to $1,000,000 of the balance. Property tax is not deducted on the state return here.</p>
 
     <h3>Property tax over time</h3>
     <p>\(\rho\) is the rate you entered, applied to the purchase price. California mode grows that assessment with inflation, and never by more than 2% a year. Market mode follows appreciation, so the effective rate stays constant. Inflation mode follows inflation and ignores appreciation. Year 0 is the purchase year, before any of that growth.</p>
@@ -375,7 +412,9 @@
       <li>Most local wage taxes, except New York City and Philadelphia. Those are not applied to the sale.</li>
       <li>Payroll taxes, and the federal-tax deduction in Alabama, Missouri, and Oregon.</li>
       <li>A partial home-sale exclusion, depreciation from a rental period, and improvements added to basis.</li>
-      <li>Irregular repairs, special assessments, and returns that don't arrive in a straight line.</li>
+      <li>Irregular repairs and special assessments.</li>
+      <li>The spread of outcomes. Each line is one typical path. The house is a single, leveraged asset, so its own spread is wider than an index's.</li>
+      <li>Gain on stock deposits made in the last year, which is taxed as long-term along with the rest.</li>
     </ul>
     </details>
   </section>
@@ -387,13 +426,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=9"></script>
-<script src="js/model.js?v=9"></script>
+<script src="js/taxes.js?v=10"></script>
+<script src="js/model.js?v=10"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/redfin.js?v=1"></script>
 <script src="js/charts.js?v=32"></script>
 <script src="js/knobs.js?v=2"></script>
-<script src="js/main.js?v=28"></script>
+<script src="js/main.js?v=29"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

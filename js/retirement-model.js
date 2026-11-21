@@ -10,7 +10,7 @@ export const DEFAULTS = {
   ssAnnual: 24000,
   ssAge: 67,
   inflationPct: 2.5,
-  avgPct: 10,
+  avgPct: 9,
   belowPct: 7,
   badPct: 4,
   account: "traditional",
@@ -155,8 +155,22 @@ export function irsCap(age, mega) {
   return (mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + catchupAmount(age);
 }
 
+/** Federal plus California marginal rate on wages, after pre-tax deferrals. */
+export function marginalRate(wages, filing) {
+  const status = filing === "joint" ? "joint" : "single";
+  const fedTaxable = Math.max(0, wages - FED[status].std);
+  const caTaxable = Math.max(0, wages - CA[status].std);
+  const fed = bracketTax(fedTaxable + 1, FED[status].brackets) - bracketTax(fedTaxable, FED[status].brackets);
+  const ca = bracketTax(caTaxable + 1, CA[status].brackets) - bracketTax(caTaxable, CA[status].brackets);
+  return fed + ca + (caTaxable >= 1000000 ? 0.01 : 0);
+}
+
 /**
  * This year's 401(k) deposit, split into pre-tax and Roth.
+ * The save percent is pre-tax pay set aside. A pre-tax dollar goes in whole. A Roth dollar is
+ * taxed first, so a dollar of pay buys 1 - t of Roth, t the marginal rate on this year's wages.
+ * That is the companion's comparison: the same pre-tax dollars, Roth X(1 - t0) against
+ * traditional X. Without it, Roth at the same percent quietly saves more.
  * The button chooses the elective deferral. Catch-up follows it, except pay
  * over $150,000 makes the catch-up Roth. Mega backdoor fills the rest of the
  * $72,000 additions limit and is Roth. Employer contributions are not included.
@@ -166,22 +180,28 @@ export function contributionSplit(input, yearsWorked, ageAtYearEnd) {
   const extra = catchupAmount(ageAtYearEnd);
   const room = (input.mega ? ANNUAL_ADDITIONS_2026 : DEFERRAL_2026) + extra;
   const want = Math.max(0, salary * input.savePct);
-  const total = Math.max(0, Math.min(want, room, salary));
-  let left = total;
-  const elective = Math.min(left, DEFERRAL_2026);
-  left -= elective;
-  const catchTake = Math.min(left, extra);
-  left -= catchTake;
-  const megaTake = left;
-  const rothCatch = input.account === "roth" || salary > ROTH_CATCHUP_WAGE;
+  const budget = Math.min(want, salary);
+  const rothElective = input.account === "roth";
+  const rothCatch = rothElective || salary > ROTH_CATCHUP_WAGE;
+  const preGuess = rothElective ? 0 : Math.min(budget, DEFERRAL_2026 + (rothCatch ? 0 : extra));
+  const taxRate = Math.min(0.9, marginalRate(salary - preGuess, input.filing));
+  const keep = 1 - taxRate;
+  let left = budget;
   let pre = 0;
   let roth = 0;
-  if (input.account === "roth") roth += elective;
-  else pre += elective;
-  if (rothCatch) roth += catchTake;
-  else pre += catchTake;
-  roth += megaTake;
-  return { salary, want, pre, roth, total, cap: room };
+  const put = (limit, isRoth) => {
+    const per = isRoth ? keep : 1;
+    const dep = Math.max(0, Math.min(left * per, limit));
+    left -= per > 0 ? dep / per : 0;
+    if (isRoth) roth += dep;
+    else pre += dep;
+    return dep;
+  };
+  const elective = put(DEFERRAL_2026, rothElective);
+  const catchTake = put(extra, rothCatch);
+  put(Math.max(0, room - elective - catchTake), true);
+  const total = pre + roth;
+  return { salary, want, pre, roth, total, cap: room, taxRate, payUsed: budget - Math.max(0, left) };
 }
 
 /** Dollars saved that year, in today's dollars, after the IRS cap. */
@@ -200,12 +220,15 @@ function bracketTax(income, brackets) {
   return tax;
 }
 
-/** Federal taxable portion of Social Security. Thresholds are not indexed. */
-export function taxableSocialSecurity(ss, other, filing) {
+/**
+ * Federal taxable portion of Social Security. The thresholds are fixed in law and never indexed,
+ * so in today's dollars they shrink with inflation: `deflate` is 1 / (1 + inflation)^years.
+ */
+export function taxableSocialSecurity(ss, other, filing, deflate = 1) {
   if (ss <= 0) return 0;
   const status = filing === "joint" ? "joint" : "single";
-  const base = SS_BASE[status];
-  const second = SS_SECOND[status];
+  const base = SS_BASE[status] * deflate;
+  const second = SS_SECOND[status] * deflate;
   const provisional = Math.max(0, other) + ss * 0.5;
   if (provisional <= base) return 0;
   if (provisional <= second) return Math.min(ss * 0.5, 0.5 * (provisional - base));
@@ -217,22 +240,23 @@ export function taxableSocialSecurity(ss, other, filing) {
  * Income tax on one year, in today's dollars.
  * Traditional withdrawals are ordinary income. Roth withdrawals are not.
  * California does not tax Social Security. Age 65 adds the extra federal
- * standard deduction. The temporary $6,000 senior deduction is not included.
+ * standard deduction, once per spouse: married means both are the age on the slider.
+ * The temporary $6,000 senior deduction is not included.
  */
 function caExemption(status, age, agi) {
   const credits = [CA[status].credit];
-  if (age >= 65) credits.push(CA_SENIOR);
+  if (age >= 65) credits.push(CA_SENIOR * (status === "joint" ? 2 : 1));
   const phase = CA_PHASE[status];
   const cut = agi > phase.agi ? Math.ceil((agi - phase.agi) / phase.step) * phase.per : 0;
   return credits.reduce((sum, credit) => sum + Math.max(0, credit - cut), 0);
 }
 
-export function taxBill(withdrawal, ss, filing, account, age) {
+export function taxBill(withdrawal, ss, filing, account, age, deflate = 1) {
   const status = filing === "joint" ? "joint" : "single";
   const other = account === "roth" ? 0 : Math.max(0, withdrawal);
-  const ssTaxable = taxableSocialSecurity(Math.max(0, ss), other, status);
+  const ssTaxable = taxableSocialSecurity(Math.max(0, ss), other, status, deflate);
   const fed = FED[status];
-  const std = fed.std + (age >= 65 ? fed.aged : 0);
+  const std = fed.std + (age >= 65 ? fed.aged * (status === "joint" ? 2 : 1) : 0);
   const federal = bracketTax(Math.max(0, other + ssTaxable - std), fed.brackets);
   const ca = CA[status];
   const caTaxable = Math.max(0, other - ca.std);
@@ -243,10 +267,10 @@ export function taxBill(withdrawal, ss, filing, account, age) {
 }
 
 /** Withdrawal that leaves `spend` after tax. `account` may be a pre-tax share from 0 to 1. */
-export function coverSpend(spend, ss, filing, account, age) {
+export function coverSpend(spend, ss, filing, account, age, deflate = 1) {
   const share = typeof account === "number" ? clamp(account, 0, 1) : account === "roth" ? 0 : 1;
   const quote = (w) => {
-    const bill = taxBill(w * share, ss, filing, "traditional", age);
+    const bill = taxBill(w * share, ss, filing, "traditional", age, deflate);
     return { withdrawal: w, bill, net: w + Math.max(0, ss) - bill.total };
   };
   const zero = quote(0);
@@ -269,10 +293,11 @@ export function coverSpend(spend, ss, filing, account, age) {
 export function spendTax(input, share) {
   const frac = share == null ? (input.account === "roth" ? 0 : 1) : clamp(share, 0, 1);
   const steadyAge = Math.max(input.retireAge, input.ssAge);
-  const steady = coverSpend(input.annualSpend, input.ssAnnual, input.filing, frac, steadyAge);
+  const deflate = (age) => Math.pow(1 + input.inflation, -Math.max(0, age - input.age));
+  const steady = coverSpend(input.annualSpend, input.ssAnnual, input.filing, frac, steadyAge, deflate(steadyAge));
   const before =
     input.ssAnnual > 0 && input.retireAge + 0.05 < input.ssAge
-      ? coverSpend(input.annualSpend, 0, input.filing, frac, input.retireAge)
+      ? coverSpend(input.annualSpend, 0, input.filing, frac, input.retireAge, deflate(input.retireAge))
       : null;
   return { steady, before, share: frac };
 }
@@ -366,6 +391,7 @@ function buildSkeleton(input) {
       retiredMonths,
       ssMonths,
       ageAtEnd: input.age + end / 12,
+      deflate: Math.pow(1 + input.inflation, -end / 12),
       saved: contributionSplit(input, yearsWorked, input.age + end / 12),
     });
   }
@@ -383,12 +409,12 @@ function planWithSpend(skel, input) {
 
 let coverCache = null;
 
-function cachedCover(spend, ss, filing, share, age) {
-  if (!coverCache) return coverSpend(spend, ss, filing, share, age);
-  const key = spend + "|" + ss + "|" + filing + "|" + Math.round(age) + "|" + Math.round(share * 1000);
+function cachedCover(spend, ss, filing, share, age, deflate = 1) {
+  if (!coverCache) return coverSpend(spend, ss, filing, share, age, deflate);
+  const key = spend + "|" + ss + "|" + filing + "|" + Math.round(age) + "|" + Math.round(share * 1000) + "|" + Math.round(deflate * 1e4);
   let hit = coverCache.get(key);
   if (!hit) {
-    hit = coverSpend(spend, ss, filing, Math.round(share * 1000) / 1000, age);
+    hit = coverSpend(spend, ss, filing, Math.round(share * 1000) / 1000, age, deflate);
     coverCache.set(key, hit);
   }
   return hit;
@@ -407,6 +433,17 @@ function yearRates(input, years) {
     rates[p] = real;
   }
   return rates;
+}
+
+/**
+ * The return the shifted history actually compounds at: the geometric mean of the yearly real
+ * returns, below the arithmetic mean you type by about half the variance (companion, eq-drag-limit).
+ */
+export function compoundReal(input) {
+  const shift = realAnnual(input.avg, input.inflation) - HIST_REAL;
+  let logs = 0;
+  for (const r of RAW_REAL) logs += Math.log(1 + Math.min(1.2, Math.max(-0.7, r + shift)));
+  return Math.exp(logs / RAW_REAL.length) - 1;
 }
 
 function growPockets(pre, roth, r, addPre, addRoth) {
@@ -470,7 +507,7 @@ function runPath(input, flow, real, stopEarly) {
     } else if (start > retireM && span === 12) {
       const total = pre + roth;
       const share = total > 1 ? pre / total : 0;
-      const bill = cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd);
+      const bill = cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd, slot.deflate);
       const paid = payYear(pre, roth, bill.withdrawal, bill.surplus, r);
       pre = paid.pre;
       roth = paid.roth;
@@ -484,7 +521,7 @@ function runPath(input, flow, real, stopEarly) {
       const monthRoth = slot.saved.roth / 12;
       const total = pre + roth;
       const share = total > 1 ? pre / total : 0;
-      const bill = slot.retiredMonths > 0 ? cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd) : null;
+      const bill = slot.retiredMonths > 0 ? cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd, slot.deflate) : null;
       const each = bill && slot.retiredMonths > 0 ? bill.withdrawal / slot.retiredMonths : 0;
       const extra = bill && slot.ssMonths > 0 ? bill.surplus / slot.ssMonths : 0;
       for (let m = start; m <= end; m++) {
@@ -595,11 +632,14 @@ export function project(input) {
   };
   coverCache = null;
 
+  // The middle line is the median, not the average: wealth multiplies, so the average is pulled
+  // up by a few lucky paths and most paths end below it (companion, eq-mean-median).
   const meta = {
-    avg: { name: "Average", note: "half of markets" },
-    below: { name: "Below average", note: "1 in 4 worse" },
-    bad: { name: "A lot below", note: "1 in 10 worse" },
+    avg: { name: "Median", note: "half of markets" },
+    below: { name: "Lower quarter", note: "1 in 4 worse" },
+    bad: { name: "Lower tenth", note: "1 in 10 worse" },
   };
+  const compound = compoundReal(input);
 
   return ["avg", "below", "bad"].map((key) => {
     const points = ages.map((age, i) => ({ age, balance: Math.max(0, series[key][i]) }));
@@ -617,6 +657,7 @@ export function project(input) {
       note: meta[key].note,
       nominal: input.avg,
       real: realAnnual(input.avg, input.inflation),
+      compound,
       points,
       nest: nestPt ? nestPt.balance : atPercent(nests, pct[key]),
       depletedAge,

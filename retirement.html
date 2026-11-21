@@ -245,14 +245,14 @@
             </div>
           </div>
           <div class="field">
-            <label for="ret-avg">Average stock return, nominal</label>
+            <label for="ret-avg">Expected stock return, nominal</label>
             <div class="control">
-              <input id="ret-avg" type="number" min="-20" max="30" step="0.1" value="10" inputmode="decimal">
+              <input id="ret-avg" type="number" min="-20" max="30" step="0.1" value="9" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
           <p class="hint span-2" id="ss-hint"></p>
-          <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average matches what you type. It is not a return that arrives every year. Fidelity plans off the bottom line, the case 9 in 10 markets beat, not the middle.</p>
+          <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average year matches what you type. It is not a return that arrives every year, and it is not what the money compounds at: with real swings, a typical path grows about two points a year slower. 9% is 4% T-bills plus a 5% equity premium, below the 11.9% U.S. stocks averaged from 1928, since the U.S. was the best market of the century. Fidelity plans off the bottom line, the case 9 in 10 markets beat, not the middle.</p>
         </div>
       </details>
     </div>
@@ -266,45 +266,46 @@
     <p class="sub" id="burn-sub">In the market 9 out of 10 simulations beat.</p>
     <div class="meta">
       <div>
-        <div class="k" id="avg-name">Average</div>
+        <div class="k" id="avg-name">Median</div>
         <div class="v" id="avg-burn">—</div>
         <div class="hint" id="avg-fate"></div>
       </div>
       <div>
-        <div class="k" id="below-name">Below average</div>
+        <div class="k" id="below-name">Lower quarter</div>
         <div class="v" id="below-burn">—</div>
         <div class="hint" id="below-fate"></div>
       </div>
       <div>
-        <div class="k" id="bad-name">A lot below</div>
+        <div class="k" id="bad-name">Lower tenth</div>
         <div class="v" id="bad-burn">—</div>
         <div class="hint" id="bad-fate"></div>
       </div>
     </div>
-    <p class="hint">The big number is the most you could spend after tax and still finish with money in 9 out of 10 simulated markets. Below average lasted in 3 out of 4. Average lasted in half. The after-tax slider does not change these. Saving, age, and the account do. Social Security is included.</p>
+    <p class="hint">The big number is the most you could spend after tax and still finish with money in 9 out of 10 simulated markets. Lower quarter lasted in 3 out of 4. Median lasted in half. The after-tax slider does not change these. Saving, age, and the account do. Social Security is included.</p>
   </section>
 
   <section class="card" aria-labelledby="nest-heading">
     <h2 id="nest-heading">The day you retire</h2>
-    <p class="section-lead">Account value that morning, in today's dollars. Average means half the simulated markets had at least this much.</p>
+    <p class="section-lead">Account value that morning, in today's dollars. Median means half the simulated markets had at least this much. It is not the average: a few lucky markets pull the average up, so most end below it.</p>
     <div class="meta">
       <div>
-        <div class="k">Average</div>
+        <div class="k">Median</div>
         <div class="v" id="avg-nest">—</div>
       </div>
       <div>
-        <div class="k">Below average</div>
+        <div class="k">Lower quarter</div>
         <div class="v" id="below-nest">—</div>
       </div>
       <div>
-        <div class="k">A lot below</div>
+        <div class="k">Lower tenth</div>
         <div class="v" id="bad-nest">—</div>
       </div>
     </div>
     <div class="steps" id="worked">
       <div class="step"><span class="expr">Balance today</span><span class="val" id="year-now">—</span></div>
       <div class="step"><span class="expr">Saved this year, after the cap</span><span class="val" id="year-add">—</span></div>
-      <div class="step"><span class="expr">Long-run real return</span><span class="val" id="year-real">—</span></div>
+      <div class="step"><span class="expr">Average real return, a year</span><span class="val" id="year-real">—</span></div>
+      <div class="step"><span class="expr">Compound real return, what a typical path grows at</span><span class="val" id="year-compound">—</span></div>
       <div class="step"><span class="expr">Median balance in one year</span><span class="val" id="year-next">—</span></div>
     </div>
   </section>
@@ -319,12 +320,15 @@
       <div class="math">\[ r = \frac{1+n}{1+\pi} - 1 \]</div>
       <p>\(\tilde r\) is that historical year's real total return and \(\bar r\) is the average of those years. The block is shifted so the mean matches what you typed, then clamped:</p>
       <div class="math">\[ r_y = \mathrm{clamp}\!\left(\tilde r_{b(y)} + (r - \bar r),\; -0.7,\; 1.2\right) \]</div>
-      <p>A straight 10% every year was the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Fidelity's planner draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
+      <p>\(r\) is the average year, the arithmetic mean. Wealth multiplies the years together, so it grows at the geometric mean instead, about half the variance lower. With these years' 19% volatility that is roughly two points a year:</p>
+      <div class="math">\[ r_{\text{compound}} = \exp\!\Big(\tfrac{1}{98}\textstyle\sum_y \ln(1+r_y)\Big) - 1 \;\approx\; r - \tfrac{\sigma^2}{2} \]</div>
+      <p>A straight 9% every year would be the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Fidelity's planner draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
 
       <h3>While you work</h3>
-      <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of salary saved. This is a 401(k), not an IRA. The 2026 IRA limit is $7,500, and that is not the cap here. \(\mathrm{cap}(a)\) is the 2026 workplace limit at that age, held flat in today's dollars. Elective deferrals are $24,500 and follow the pre-tax or Roth button. From 50 the catch-up adds $8,000, or $11,250 at ages 60 through 63. Pay over $150,000 makes that catch-up Roth even if the button says pre-tax. Mega backdoor fills what is left of the $72,000 annual-additions limit with Roth money, and it assumes the employer contributes nothing. The deposit cannot exceed that year's pay.</p>
+      <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of pay set aside before tax. This is a 401(k), not an IRA. The 2026 IRA limit is $7,500, and that is not the cap here. \(\mathrm{cap}(a)\) is the 2026 workplace limit at that age, held flat in today's dollars. Elective deferrals are $24,500 and follow the pre-tax or Roth button. From 50 the catch-up adds $8,000, or $11,250 at ages 60 through 63. Pay over $150,000 makes that catch-up Roth even if the button says pre-tax. Mega backdoor fills what is left of the $72,000 annual-additions limit with Roth money, and it assumes the employer contributes nothing. The deposit cannot exceed that year's pay.</p>
+      <p>A pre-tax dollar of pay goes in whole. A Roth dollar is taxed first, so a dollar of pay buys \(1-t\) of Roth, where \(t\) is the federal plus California marginal rate on that year's wages. That keeps the two buttons fair. Roth and pre-tax come out equal when \(t\) is the same now and in retirement, because \(X(1-t_0)(1+r)^n = X(1+r)^n(1-t_1)\) when \(t_0 = t_1\). Without the \(1-t\), Roth at the same percent would quietly save more. The pay set aside fills each bucket in order: elective deferral, catch-up, then mega backdoor.</p>
       <div class="math">\[
-        C_y = \min\!\left(S_0(1+g)^y \, p,\; \mathrm{cap}(a),\; S_0(1+g)^y\right)
+        C_y = \min\!\left(\text{pre-tax pay} + (1-t)\,\text{Roth pay},\; \mathrm{cap}(a)\right),\quad \text{pay used} \le S_0(1+g)^y \, p
       \]</div>
       <p>That total is then split into the pre-tax and Roth pockets. A full working year adds the contribution at mid-year:</p>
       <div class="math">\[
@@ -334,7 +338,7 @@
       <h3>After you retire</h3>
       <p>The spending knob is what you keep, not what leaves the account. \(K\) is that after-tax amount. \(SS\) is Social Security once it has started. \(W\) is the withdrawal that still leaves \(K\), and only the pre-tax share of \(W\) is ordinary income:</p>
       <div class="math">\[ W + SS - \mathrm{Tax}(f W, SS) = K \]</div>
-      <p>\(f\) is the pre-tax share of the balance that year. Withdrawals come out of the pre-tax and Roth pockets in proportion. A Roth withdrawal is left out of income, which assumes you are \(59\tfrac{1}{2}\) and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally. Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 or $1,650 from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction, the exemption credit, and another $158 from the year you turn 65. Those credits phase out at high income and do not offset the 1% mental-health tax above $1 million of taxable income. Married means one spouse, the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income. Required minimum distributions are not forced.</p>
+      <p>\(f\) is the pre-tax share of the balance that year. Withdrawals come out of the pre-tax and Roth pockets in proportion. A Roth withdrawal is left out of income, which assumes you are \(59\tfrac{1}{2}\) and the account is five years old. California does not tax Social Security. Up to 85% of the benefit can be taxed federally. The $25,000 and $34,000 thresholds ($32,000 and $44,000 married) are fixed in law and never indexed, so in today's dollars they shrink with inflation every year, and more of the benefit is taxed the later you claim. Brackets are tax year 2026 and stay put, because the chart is already in today's dollars. The federal standard deduction is $16,100 single or $32,200 married, plus $2,050 single or $1,650 per spouse married from the year you turn 65. The extra $6,000 senior deduction ends after 2028, so it is left out. California uses a $5,900 or $11,800 standard deduction, the exemption credit, and another $158 per person from the year you turn 65. Those credits phase out at high income and do not offset the 1% mental-health tax above $1 million of taxable income. Married means both spouses are the age on the slider. No payroll tax on the withdrawal, no Medicare premium surcharge, and no other income. Required minimum distributions are not forced.</p>
       <p>A full retired year takes the withdrawal at mid-year. \(U\) is Social Security not needed that year. It is added to the Roth pocket, so it is not taxed a second time:</p>
       <div class="math">\[
         \begin{gathered}
@@ -352,11 +356,11 @@
 </main>
 
 <footer class="wrap">
-  <p>Historical stock years, not a smooth 10%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
+  <p>Historical stock years, not a smooth 9%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=12"></script>
+<script type="module" src="js/retirement.js?v=13"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

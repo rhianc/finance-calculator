@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=10";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=11";
 
 const STORAGE = "retire-plan-v2";
 
@@ -264,6 +264,7 @@ export function boot(root) {
     $("year-add").textContent = money(savedNow.total);
     $("year-next").textContent = year ? money(year.balance) : "—";
     $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
+    $("year-compound").textContent = (median.compound * 100).toFixed(1) + "%";
     $("save-note").textContent = saveSentence(input, savedNow);
     $("ss-hint").textContent =
       "Social Security is " +
@@ -668,8 +669,12 @@ function saveSentence(input, split) {
   } else {
     text += " pre-tax";
   }
-  if (split.want > split.total + 1) {
+  if (split.want > split.payUsed + 1) {
     text += ". " + pct + "% of " + money(split.salary) + " is " + money(split.want) + ", so the cap binds";
+  }
+  if (split.roth > 0) {
+    text += ". Roth is paid with taxed pay: at your " + Math.round(split.taxRate * 100) + "% marginal rate, a dollar of pay puts " +
+      money(100 * (1 - split.taxRate)).replace("$", "") + " cents in";
   }
   return text + ".";
 }
