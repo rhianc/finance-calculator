@@ -120,6 +120,21 @@
       </div>
       <p class="hint span-2" id="income-hint"></p>
       <p class="hint span-2" id="rent-hint"></p>
+      <div class="field">
+        <label for="basis">Growth rates</label>
+        <select id="basis" class="bare">
+          <option value="forecast" selected>Forecast</option>
+          <option value="history">Last 35 years</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="exit">At the end</label>
+        <select id="exit" class="bare">
+          <option value="sell" selected>Sell everything</option>
+          <option value="keep">Keep it all</option>
+        </select>
+      </div>
+      <p class="hint span-2" id="basis-hint"></p>
 
       <details class="span-2 fold">
         <summary>Typical assumptions</summary>
@@ -211,7 +226,7 @@
           <div class="field">
             <label for="land">Land share of the price</label>
             <div class="control">
-              <input id="land" type="number" min="0" max="90" step="1" value="20" inputmode="decimal">
+              <input id="land" type="number" min="0" max="90" step="1" value="58" inputmode="decimal">
               <span class="unit">%</span>
             </div>
           </div>
@@ -223,6 +238,7 @@
             </div>
           </div>
           <p class="hint span-2">Vacancy is rent you don't collect. Management is a share of the rent you do. The building, not the land, depreciates over 27.5 years. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate.</p>
+          <p class="hint span-2" id="land-hint"></p>
           <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return.</p>
         </div>
       </details>
@@ -336,7 +352,7 @@
       \]</div>
 
       <h3>Cash flow</h3>
-      <p>Collected rent is the asking rent times \(1-v\), where \(v\) is vacancy. The asking rent starts from the local gross yield and moves with price to the power of 0.85. Management is a share of collected rent. Depreciation is the building basis divided by 27.5 years. It does not leave the bank, but it does change the tax.</p>
+      <p>Collected rent is the asking rent times \(1-v\), where \(v\) is vacancy. The asking rent starts from the local gross yield and moves with price to the power of 0.85. Management is a share of collected rent. Depreciation is the building basis divided by 27.5 years. The building is the price plus closing costs, less the land. Land share starts at FHFA's estimate for the place (Working Paper 19-01, 2022): 58% across California, 68% in Los Angeles and San Jose, 30% in Texas. A 20% rule of thumb would more than double a California landlord's write-off. Depreciation does not leave the bank, but it does change the tax.</p>
       <div class="math">\[
         \mathrm{CF} = \text{collected} - \text{operating costs} - M - \text{income tax}
       \]</div>
@@ -351,7 +367,11 @@
         T_t = T_{t-1}(1+r_s) + \max(0,\mathrm{CF}_t)
       \]</div>
 
+      <h3>Growth rates</h3>
+      <p><em>Forecast</em> grows the home and its rent at inflation plus how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence), so the yield holds, and stocks at 9% expected. <em>Last 35 years</em> uses each one's own history: FHFA home prices from 1991, the BLS rent index from 1990, and the S&amp;P 500's 1991–2025 average of 12.6%, which compounds at its actual 11.1%. Either way, the rental and the stocks are on the same footing.</p>
+
       <h3>If you sold that month</h3>
+      <p>This is <em>Sell everything</em>. <em>Keep it all</em> sells nothing: the rental is the home's market value less the loan plus \(T\), and the stock line is \(S\), with no selling costs, recapture, or tax. That is closer to holding until a step-up at death. Losses still suspended at the end are left unused.</p>
       <div class="math">\[
         \mathrm{Gain} = \max\left(0,\ H(1-c_s) - (\mathrm{basis} - \mathrm{depreciation})\right)
       \]</div>
@@ -372,17 +392,17 @@
 </main>
 
 <footer class="wrap">
-  <p>For a rental, not a home you live in. Brackets are tax year 2026. Depreciation is 27.5 years. The loss allowance is the federal active-participation limit. Appreciation is FHFA, 1991–2026. Rent follows Zillow's typical rent and home value as of May 2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
+  <p>For a rental, not a home you live in. Brackets are tax year 2026. Depreciation is 27.5 years. The loss allowance is the federal active-participation limit. Appreciation is FHFA, 1991–2026. Rent growth is BLS, 1990–2025. Land share is FHFA, 2022. Rent follows Zillow's typical rent and home value as of May 2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script src="js/taxes.js?v=13"></script>
-<script src="js/markets.js?v=15"></script>
+<script src="js/markets.js?v=16"></script>
 <script src="js/redfin.js?v=1"></script>
-<script src="js/rental-model.js?v=15"></script>
+<script src="js/rental-model.js?v=16"></script>
 <script src="js/knobs.js?v=2"></script>
-<script src="js/rental-page.js?v=45"></script>
+<script src="js/rental-page.js?v=46"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;

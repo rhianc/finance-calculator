@@ -419,6 +419,16 @@ check('San Jose uses the Bay Area index', MK.place('CA', '41940').rentCpi.name =
 check('California statewide uses the West', MK.place('CA', '').rentCpi.name === 'the West');
 check('Texas statewide uses the South', MK.place('TX', '').rentCpi.name === 'the South');
 
+check('California land share is FHFA 2022', Math.abs(HomeMarkets.place('CA', '').landShare - 0.58) < 1e-9);
+check('San Jose land share is its own metro', Math.abs(HomeMarkets.place('CA', '41940').landShare - 0.684) < 1e-9);
+var rKeep = RM.project(Object.assign({}, rentalBase, { horizonYears: 10, exit: 'keep' }));
+var rSell = RM.project(Object.assign({}, rentalBase, { horizonYears: 10 }));
+var rk = rKeep.points[rKeep.points.length - 1];
+var rs = rSell.points[rSell.points.length - 1];
+check('kept rental pays no sale or stock tax', rk.saleTax === 0 && rk.sideTax === 0 && rk.stockTax === 0);
+near('kept rental is market value less loan plus side account', rk.rentalNominal, rk.home - rk.balance + rk.side, 1e-6);
+check('selling the rental costs more than keeping it', rs.rentalNominal < rk.rentalNominal);
+
 if (failed) {
   print(failed + ' failed');
   quit(1);

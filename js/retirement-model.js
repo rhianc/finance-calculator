@@ -23,7 +23,7 @@ export const DEFAULTS = {
   otherSaveMonth: 0,
   home: "own",
   ownCarry: 15000,
-  spendMode: "life",
+  spendAdjust: 0,
 };
 
 // Tax year 2026. Held fixed because balances are already in today's dollars.
@@ -132,8 +132,8 @@ export function normalize(raw) {
     otherSaveMonth: clamp(num(raw.otherSaveMonth, DEFAULTS.otherSaveMonth), 0, 1000000),
     home: raw.home === "rent" ? "rent" : "own",
     ownCarry: clamp(num(raw.ownCarry, DEFAULTS.ownCarry), 0, 1000000),
-    // "life": spending follows what you live on now. "custom": the After tax knob is yours.
-    spendMode: raw.spendMode === "custom" ? "custom" : "life",
+    // Added to what you live on now to get retirement spending. Negative spends less.
+    spendAdjust: clamp(num(raw.spendAdjust, DEFAULTS.spendAdjust), -5000000, 5000000),
   };
 }
 
@@ -732,6 +732,11 @@ function roundAge(age) {
 /** Retirement spending that keeps today's life: take-home now, with housing swapped by retireNeed. */
 export function lifeNeed(input) {
   return retireNeed(input, takeHome(input, 0, input.age + 1).live).need;
+}
+
+/** Retirement spending: what you live on now, to the nearest $1,000, plus your change. */
+export function planSpend(input) {
+  return Math.max(0, Math.round(lifeNeed(input) / 1000) * 1000 + (input.spendAdjust || 0));
 }
 
 /**

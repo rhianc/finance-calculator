@@ -24,6 +24,9 @@
     var growth = src.taxGrowth;
     if (growth !== 'prop13' && growth !== 'inflation') growth = 'market';
     return {
+      // 'sell': cash out at the end, with selling costs, recapture, and tax on both sides' gains.
+      // 'keep': hold everything at market value, nothing sold, no tax at the end.
+      exit: src.exit === 'keep' ? 'keep' : 'sell',
       price: price,
       downPayment: clamp(finite(src.downPayment, 0), 0, price),
       annualRate: clamp(finite(src.annualRate, 0), 0, 0.5),
@@ -220,12 +223,13 @@
       var recapture = Math.min(accumDep, gain);
       var capGain = Math.max(0, gain - recapture);
       var heldLong = month > 12;
-      var sale = saleTax(spec, recapture, capGain, pos.suspended, heldLong);
+      var keep = spec.exit === 'keep';
+      var sale = keep ? { tax: 0, base: spec.income } : saleTax(spec, recapture, capGain, pos.suspended, heldLong);
       var tax = sale.tax;
       // The side account is sold the same year, on top of the rental gain.
-      var sideTax = stockTax(spec, side - sideBasis, sale.base, heldLong);
-      var stockOnlyTax = stockTax(spec, stock - stockBasis, spec.income, heldLong);
-      var proceeds = realized - balance - tax;
+      var sideTax = keep ? 0 : stockTax(spec, side - sideBasis, sale.base, heldLong);
+      var stockOnlyTax = keep ? 0 : stockTax(spec, stock - stockBasis, spec.income, heldLong);
+      var proceeds = (keep ? home : realized) - balance - tax;
       var rentalNominal = proceeds + side - sideTax;
       var stockNominal = stock - stockOnlyTax;
       var discount = Math.pow(1 + spec.inflation, month / 12);
@@ -406,6 +410,7 @@
     var spec = normalize(input);
     var next = price > 0 ? price : 0;
     return normalize({
+      exit: spec.exit,
       price: next,
       downPayment: spec.price > 0 ? spec.downPayment * next / spec.price : spec.downPayment,
       annualRate: spec.annualRate,

@@ -1,4 +1,4 @@
-import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, DEFAULTS } from "../js/retirement-model.js";
+import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, DEFAULTS } from "../js/retirement-model.js";
 
 let failed = 0;
 function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond) failed += 1; }
@@ -47,4 +47,12 @@ if (failed) { print(failed + " failed"); } else print("all passed");
   if (Math.abs(a.live - b.live - 24000) > 1e-6 || b.other !== 24000) throw new Error("outside saving should come off take-home");
   if (normalize({ otherSaveMonth: "1500" }).otherSaveMonth !== 1500) throw new Error("otherSaveMonth parse");
   print("ok  saving outside the 401(k) comes off what you live on");
+}
+
+{
+  const base = normalize({});
+  const life = Math.round(lifeNeed(base) / 1000) * 1000;
+  if (planSpend(base) !== life) throw new Error("planSpend should default to what you live on now");
+  if (planSpend(normalize({ spendAdjust: -10000 })) !== life - 10000) throw new Error("planSpend adjustment");
+  print("ok  spending is what you live on now plus your change");
 }

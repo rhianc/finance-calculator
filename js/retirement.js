@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planCheck } from "./retirement-model.js?v=16";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck } from "./retirement-model.js?v=17";
 
 const STORAGE = "retire-plan-v2";
 
@@ -18,7 +18,6 @@ export function boot(root) {
       retireAge: sliderNum("retire"),
       endAge: fieldNum("end"),
       balance: fieldNum("balance-amt"),
-      annualSpend: fieldNum("spend-amt"),
       salary: fieldNum("salary"),
       savePct: sliderNum("savepct"),
       raisePct: fieldNum("raise"),
@@ -33,7 +32,7 @@ export function boot(root) {
       otherSaveMonth: fieldNum("other-save"),
       home: pressed("home"),
       ownCarry: fieldNum("own-carry"),
-      spendMode: $("spend-mode").value,
+      spendAdjust: signedNum($("spend-adj").value),
     };
   }
 
@@ -72,7 +71,6 @@ export function boot(root) {
     setMoney("salary", input.salary);
     set("raise", trimNum(input.raise * 100));
     setChoice("mega", input.mega ? "1" : "0");
-    setMoney("spend-amt", input.annualSpend);
     setMoney("ss", input.ssAnnual);
     set("ss-age", String(input.ssAge));
     set("inflation", trimNum(input.inflation * 100));
@@ -84,21 +82,19 @@ export function boot(root) {
     setChoice("home", input.home);
     setMoney("own-carry", input.ownCarry);
     $("own-carry-field").hidden = input.home !== "own";
-    $("spend-mode").value = input.spendMode;
-    fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
-    if (fromSlider === "spend") $("spend").value = String(input.annualSpend);
+    const adj = $("spend-adj");
+    if (document.activeElement !== adj) adj.value = signedText(input.spendAdjust);
     fitSlider("savepct", Math.round(input.savePct * 100), [40, 60, 100]);
     if (fromSlider === "savepct") $("savepct").value = String(Math.round(input.savePct * 100));
     paintSlider($("retire"));
-    paintSlider($("spend"));
     paintSlider($("savepct"));
   }
 
   function commitKnob(id, n) {
     const el = $(id);
     if (!el) return;
-    if (id === "spend" || id === "savepct") {
-      const ceilings = id === "spend" ? [150000, 300000, 600000, 1500000] : [40, 60, 100];
+    if (id === "savepct") {
+      const ceilings = [40, 60, 100];
       let cap = ceilings[ceilings.length - 1];
       for (const c of ceilings) {
         if (n <= c) {
@@ -134,7 +130,6 @@ export function boot(root) {
 
   function sliderLabel(el) {
     const val = parseFloat(el.value);
-    if (el.id === "spend") return moneyShort(val);
     if (el.id === "savepct") return trimNum(val) + "%";
     return String(Math.round(val));
   }
@@ -175,21 +170,15 @@ export function boot(root) {
     let input;
     try {
       const raw = readRaw();
-      if (document.activeElement && document.activeElement.id === "spend") {
-        raw.annualSpend = parseFloat($("spend").value);
-      }
       if (document.activeElement && document.activeElement.id === "savepct") {
         raw.savePct = parseFloat($("savepct").value);
       }
       input = normalize(raw);
-      // Unless you set it yourself, spending follows the life you have now.
-      if (input.spendMode === "life") input = { ...input, annualSpend: Math.round(lifeNeed(input) / 1000) * 1000 };
+      // Spending is the life you have now, plus whatever change you typed.
+      input = { ...input, annualSpend: planSpend(input) };
       const editing = document.activeElement;
       const skipFormat = editing && editing.classList && editing.classList.contains("money");
       applyNormalized(input, null);
-      if (skipFormat && (editing.id === "balance-amt" || editing.id === "salary" || editing.id === "spend-amt" || editing.id === "ss")) {
-        // leave the in-progress typing alone
-      }
     } catch (err) {
       $("path-note").textContent = "Could not read the inputs. " + (err && err.message ? err.message : "");
       return;
@@ -234,21 +223,8 @@ export function boot(root) {
     const need = retireNeed(input, now.live);
     const lastYear = Math.max(0, input.retireAge - input.age - 1);
     const later = retireNeed(input, takeHome(input, lastYear, input.retireAge).live);
-    const life = input.spendMode === "life";
     $("burn-avg").textContent = money(plan);
     $("burn-mo").textContent = money(plan / 12) + " a month after tax, in today's dollars";
-    const housing = input.home === "own"
-      ? "with today's " + money(need.housingNow) + " of housing swapped for " + money(need.housingThen) +
-        " to keep a paid-off home"
-      : "with today's " + money(need.housingNow) + " of rent still paid";
-    $("burn-sub").textContent = (life
-      ? "What you live on now, " + money(now.live) + " after tax and saving, " + housing + ". Itemized in step 3."
-      : "The number you set. Keeping the life you have now would take about " + money(Math.round(need.need / 1000) * 1000) + ".") +
-      (lastYear > 0 && later.need - need.need > 2000
-        ? " If your spending grows with your raises, the life you have at " + (input.retireAge - 1) + " would take about " +
-          money(Math.round(later.need / 1000) * 1000) + "."
-        : "");
-    $("use-live").hidden = life;
     const rows = [
       ["Salary", now.salary],
       ["Federal and California income tax", -(now.federal + now.state)],
@@ -256,14 +232,20 @@ export function boot(root) {
       ["Into the 401(k)", -now.saved],
     ];
     if (now.other > 0) rows.push(["Saved outside the 401(k)", -now.other]);
-    rows.push(["You live on now", now.live, true]);
-    rows.push([input.home === "own" ? "Less today's housing" : "Rent, kept", input.home === "own" ? -need.housingNow : 0]);
-    if (input.home === "own") rows.push(["Plus the paid-off home", need.housingThen]);
-    rows.push(["To keep that life in retirement", need.need, true]);
+    rows.push(["You live on now", now.live, "total"]);
+    if (input.home === "own") {
+      rows.push(["Less today's housing", -need.housingNow]);
+      rows.push(["Plus the paid-off home", need.housingThen]);
+    }
+    const base = Math.round(need.need / 1000) * 1000;
+    if (input.spendAdjust) {
+      rows.push(["Same life in retirement", base, "total"]);
+      rows.push(["Your change", input.spendAdjust]);
+    }
+    rows.push(["What you'll spend", plan, "total"]);
     const box = $("live-steps");
     box.innerHTML = "";
     rows.forEach(([label, v, total]) => {
-      if (label === "Rent, kept") return;
       const row = document.createElement("div");
       row.className = "step" + (total ? " total" : "");
       const e = document.createElement("span");
@@ -275,50 +257,34 @@ export function boot(root) {
       row.append(e, val);
       box.appendChild(row);
     });
+    if (lastYear > 0 && later.need - need.need > 2000) {
+      const note = document.createElement("p");
+      note.className = "hint";
+      note.textContent = "If your spending grows with your raises, the life you have at " + (input.retireAge - 1) +
+        " would take about " + money(Math.round(later.need / 1000) * 1000) + ".";
+      box.appendChild(note);
+    }
 
     const check = planCheck(input);
     const pct = Math.round(check.success * 100);
     const ok = check.success >= 0.9;
     $("burn-avg").classList.toggle("pos", ok);
     $("burn-avg").classList.toggle("neg", !ok);
-    const verdict = $("verdict");
-    verdict.className = "verdict " + (ok ? "pos" : "neg");
-    verdict.textContent = (ok ? "Lasts. " : "Falls short. ") + "Money lasts to " + input.endAge + " in " + pct +
-      " of 100 simulated markets; the plan is 90.";
-    let fix;
     const ways = [];
-    if (ok) {
-      fix = "You could spend up to " + money(cautious.burn) + " and still last in 9 of 10.";
-    } else {
+    if (!ok) {
       if (check.retireAt !== Infinity && check.retireAt != null) ways.push("retire at " + check.retireAt);
       if (check.saveAt != null && !check.saveCapped) ways.push("save " + Math.round(check.saveAt * 100) + "% of pay");
       ways.push("spend " + money(cautious.burn));
-      fix = "To last in 9 of 10: " + ways.join(", or ") + ".";
-      if (check.saveCapped) {
-        fix += " Saving more won't help: the 401(k) limit is already full" + (input.mega ? "." : ", and the mega backdoor raises it.");
-      }
-      if (check.retireAt === Infinity) fix += " Retiring later alone doesn't get there.";
     }
-    $("fix-note").textContent = fix;
     const quick = $("quick");
     quick.className = "quick " + (ok ? "pos" : "neg");
     quick.textContent = (ok ? "Lasts: " : "Falls short: ") + money(plan) + " a year lasts to " + input.endAge +
-      " in " + pct + " of 100 markets. The plan is 90. " + (ok ? "Up to " + money(cautious.burn) + " would." : "Fix: " + ways.join(", or ") + ".");
-    $("spend-note").textContent = life
-      ? "Starts at what you live on now, with housing swapped for your home then. Drag to set your own."
-      : "Your number. Living as you do now would take about " + money(Math.round(need.need / 1000) * 1000) + ".";
+      " in " + pct + " of 100 markets. The plan is 90. " + (ok ? "Up to " + money(cautious.burn) + " would." : "Fix: " + ways.join(", or ") + "." +
+        (check.saveCapped ? " Saving more can't help: the 401(k) is full" + (input.mega ? "." : " unless you use the mega backdoor.") : ""));
 
     paths.forEach((p) => {
       $(p.key + "-burn").textContent = money(p.burn);
       $(p.key + "-nest").textContent = money(p.nest);
-      const el = $(p.key + "-fate");
-      if (p.depletedAge == null) {
-        el.textContent = "In a market " + p.note.replace(" did better", " beat") + ", your plan lasts to " + input.endAge + ".";
-        el.className = "hint pos";
-      } else {
-        el.textContent = "In a market " + p.note.replace(" did better", " beat") + ", your plan runs out at " + ageLabel(p.depletedAge) + ".";
-        el.className = "hint neg";
-      }
     });
 
     $("path-note").textContent = "Dotted line is retirement.";
@@ -331,12 +297,6 @@ export function boot(root) {
     $("year-real").textContent = (median.real * 100).toFixed(1) + "%";
     $("year-compound").textContent = (median.compound * 100).toFixed(1) + "%";
     $("save-note").textContent = saveSentence(input, savedNow);
-    $("ss-hint").textContent =
-      "Social Security is " +
-      money(input.ssAnnual) +
-      " a year in today's dollars, starting at " +
-      Math.max(input.ssAge, input.retireAge) +
-      ". It counts toward the after-tax spending. Set it to 0 to leave it out.";
     $("tax-note").textContent = taxSentence(input, spendTax(input, median.taxShare));
   }
 
@@ -478,12 +438,11 @@ export function boot(root) {
       ["pct", Math.round(input.savePct * 100), DEFAULTS.savePct],
       ["raise", trimNum(input.raise * 100), String(DEFAULTS.raisePct)],
       ["mega", input.mega ? "1" : "0", "0"],
-      ["spend", Math.round(input.annualSpend), DEFAULTS.annualSpend],
+      ["adj", Math.round(input.spendAdjust), DEFAULTS.spendAdjust],
       ["house", Math.round(input.housingMonth), DEFAULTS.housingMonth],
       ["osave", Math.round(input.otherSaveMonth), DEFAULTS.otherSaveMonth],
       ["home", input.home, DEFAULTS.home],
       ["carry", Math.round(input.ownCarry), DEFAULTS.ownCarry],
-      ["smode", input.spendMode, DEFAULTS.spendMode],
       ["ss", Math.round(input.ssAnnual), DEFAULTS.ssAnnual],
       ["ssage", input.ssAge, DEFAULTS.ssAge],
       ["infl", trimNum(input.inflation * 100), String(DEFAULTS.inflationPct)],
@@ -501,21 +460,10 @@ export function boot(root) {
     }
   }
 
-  const useLive = $("use-live");
-  if (useLive) {
-    useLive.addEventListener("click", () => {
-      $("spend-mode").value = "life";
-      schedule();
-    });
-  }
-
   function onEdit(event) {
     const t = event.target;
     if (!(t instanceof HTMLElement) || !root.contains(t)) return;
-    if (t.id === "spend") {
-      $("spend-mode").value = "custom";
-      setMoney("spend-amt", parseFloat(t.value));
-    } else if (t.classList.contains("money") && event.type === "input") {
+    if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
     }
     if (t.type === "range") paintSlider(t);
@@ -536,6 +484,11 @@ export function boot(root) {
 
   function onBlur(event) {
     const t = event.target;
+    if (t && t.id === "spend-adj") {
+      t.value = signedText(signedNum(t.value));
+      schedule();
+      return;
+    }
     if (!(t instanceof HTMLElement) || !t.classList.contains("money")) return;
     if (!t.value.trim()) return;
     setMoney(t.id, parseMoney(t.value));
@@ -597,7 +550,7 @@ export function boot(root) {
 
   function loadInitial() {
     const q = new URLSearchParams(location.search);
-    const fromUrl = q.has("age") || q.has("bal") || q.has("spend") || q.has("retire");
+    const fromUrl = q.has("age") || q.has("bal") || q.has("adj") || q.has("retire");
     let stored = null;
     if (!fromUrl) {
       try {
@@ -616,7 +569,7 @@ export function boot(root) {
           savePct: q.get("pct"),
           raisePct: q.get("raise"),
           mega: q.get("mega"),
-          annualSpend: q.get("spend"),
+          spendAdjust: q.get("adj"),
           ssAnnual: q.get("ss"),
           ssAge: q.get("ssage"),
           inflationPct: q.get("infl"),
@@ -629,7 +582,6 @@ export function boot(root) {
           otherSaveMonth: q.get("osave"),
           home: q.get("home"),
           ownCarry: q.get("carry"),
-          spendMode: q.get("smode") || (q.has("spend") ? "custom" : "life"),
         }
       : stored
         ? {
@@ -641,7 +593,7 @@ export function boot(root) {
             savePct: stored.savePct != null ? stored.savePct * 100 : undefined,
             raisePct: stored.raise != null ? stored.raise * 100 : undefined,
             mega: stored.mega == null ? undefined : stored.mega ? "1" : "0",
-            annualSpend: stored.annualSpend,
+            spendAdjust: stored.spendAdjust,
             ssAnnual: stored.ssAnnual,
             ssAge: stored.ssAge,
             inflationPct: stored.inflation * 100,
@@ -654,13 +606,11 @@ export function boot(root) {
             otherSaveMonth: stored.otherSaveMonth,
             home: stored.home,
             ownCarry: stored.ownCarry,
-            spendMode: stored.spendMode || "life",
           }
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });
     applyNormalized(input, null);
     setMoney("balance-amt", input.balance);
-    setMoney("spend-amt", input.annualSpend);
   }
 }
 
@@ -715,6 +665,21 @@ function bindKnobs(root) {
       el.dispatchEvent(new Event("change", { bubbles: true }));
     });
   });
+}
+
+// A signed dollar amount: "-10k", "−10,000", "+5000".
+function signedNum(s) {
+  const text = String(s == null ? "" : s).trim().replace(/[−–]/g, "-");
+  const neg = /^-/.test(text);
+  let n = parseFloat(text.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(n)) return 0;
+  if (/k\s*$/i.test(text)) n *= 1000;
+  return neg ? -n : n;
+}
+
+function signedText(n) {
+  if (!n) return "0";
+  return (n < 0 ? "−" : "+") + Math.round(Math.abs(n)).toLocaleString("en-US");
 }
 
 function parseMoney(s) {

@@ -136,11 +136,33 @@
     return opt && sel.value ? opt.textContent : '';
   }
 
+  // Same footing as the buy page. "Forecast": home and rent both grow at inflation plus the real rent
+  // growth the place saw since 1990, so the yield holds. "Last 35 years": each at its own history.
+  function growthFor(place) {
+    if ($('basis').value === 'history') return { home: place.rate, rent: place.rentCpi.rate };
+    var infl = readNum('inflation') / 100;
+    var g = ((1 + infl) * (1 + place.rentCpi.real / 100) - 1) * 100;
+    return { home: g, rent: g };
+  }
+
   function applyAppreciation() {
     var place = HomeMarkets.place(marketCode(), $('city').value);
     if (!place) return;
-    $('home-app').value = place.rate.toFixed(2);
-    $('rent-growth').value = place.rate.toFixed(2);
+    var g = growthFor(place);
+    $('home-app').value = g.home.toFixed(2);
+    $('rent-growth').value = g.rent.toFixed(2);
+  }
+
+  function applyStocks() {
+    var history = $('basis').value === 'history';
+    $('stock-return').value = history ? String(HomeMarkets.STOCK_HISTORY.expected) : '9';
+    $('stock-vol').value = String(HomeMarkets.STOCK_HISTORY.vol);
+  }
+
+  function applyLand() {
+    var place = HomeMarkets.place(marketCode(), $('city').value);
+    if (!place || place.landShare == null) return;
+    $('land').value = String(Math.round(place.landShare * 100));
   }
 
   function applyInsurance() {
@@ -201,6 +223,7 @@
       stockReturn: readNum('stock-return') / 100,
       stockVol: readNum('stock-vol') / 100,
       rentGrowth: readNum('rent-growth') / 100,
+      exit: $('exit').value,
       investmentDrag: readNum('drag') / 100,
       inflation: readNum('inflation') / 100,
       rentMonth: Math.max(0, readNum('rent')),
@@ -651,12 +674,32 @@
 
     $('stock-hint').textContent = 'A ' + rateText(input.stockReturn) + '% expected return with ' + rateText(input.stockVol)
       + '% volatility compounds at ' + rateText(result.stockTypical) + '% on a typical path, '
-      + rateText(result.stockTypical - input.investmentDrag) + '% after drag. 9% is 4% T-bills plus a 5% equity premium.';
+      + rateText(result.stockTypical - input.investmentDrag) + '% after drag. '
+      + ($('basis').value === 'history' ? 'The S&P 500 averaged 12.6% from 1991 to 2025 and compounded 11.1%.' : '9% is 4% T-bills plus a 5% equity premium.');
+    var gPlace = HomeMarkets.place(marketCode(), $('city').value);
+    var rentArea = gPlace ? gPlace.rentCpi : null;
     var rg = input.rentGrowth;
-    $('rent-growth-hint').textContent = Math.abs(rg - input.homeAppreciation) < 0.00005
-      ? 'Rent grows with the home, so the gross yield holds. Lower it if you expect rents to lag.'
+    $('rent-growth-hint').textContent = (Math.abs(rg - input.homeAppreciation) < 0.00005
+      ? 'Rent grows with the home, so the gross yield holds.'
       : 'Rent grows ' + rateText(rg) + '% a year against ' + rateText(input.homeAppreciation) + '% for the home, so the yield '
-        + (rg < input.homeAppreciation ? 'falls' : 'rises') + ' every year.';
+        + (rg < input.homeAppreciation ? 'falls' : 'rises') + ' every year.')
+      + (rentArea ? ' Rents in ' + rentArea.name + ' grew ' + rentArea.rate.toFixed(2) + '% a year from 1990 to 2025 (BLS).' : '');
+    var gLabel = gPlace ? (gPlace.kind === 'city' ? gPlace.city.name : gPlace.state.name) : '';
+    $('basis-hint').textContent = ($('basis').value === 'history'
+      ? 'Last 35 years: the home, rent, and stocks each at what they did in ' + gLabel + ' from about 1991.'
+      : 'Forecast: stocks at 9% expected (7.6% on a typical path), the home and rent at inflation plus real rent growth.')
+      + (input.exit === 'keep'
+        ? ' Keep it all: nothing is sold, so no selling costs, no depreciation recapture, and no tax on either side\'s gains. Losses still suspended at the end are left unused.'
+        : ' Sell everything: the rental pays selling costs, 25% recapture on depreciation, and tax on its gain; the stocks pay tax on theirs.');
+    var landPct = Math.round(input.landFraction * 100);
+    if (gPlace && gPlace.landShare != null) {
+      var landWhere = gPlace.landFrom === 'city' ? gPlace.city.name : gPlace.state.name;
+      var fhfaLand = Math.round(gPlace.landShare * 100);
+      $('land-hint').textContent = (landPct === fhfaLand
+        ? 'Land is ' + fhfaLand + '% of a single-family home\'s value in ' + landWhere + ' (FHFA, 2022).'
+        : landPct + '% land instead of the ' + fhfaLand + '% FHFA estimate for ' + landWhere + '.')
+        + ' Only the other ' + (100 - landPct) + '% depreciates. A county assessor\'s land and improvement split is what the IRS usually accepts.';
+    }
 
     var profile = TaxRules.profile(input.stateCode, input.filingStatus, input.income, input.cityName);
     var filing = input.filingStatus === 'single' ? 'single' : 'joint';
@@ -669,13 +712,19 @@
     }
     var typed = input.homeAppreciation * 100;
     if (!place) $('app-hint').textContent = '';
-    else if (Math.abs(typed - place.rate) < 0.005 && place.kind === 'city') {
-      $('app-hint').textContent = place.city.name + ', ' + place.rate.toFixed(2) + '% a year since 1991. Statewide was ' + place.state.rate.toFixed(2) + '%.';
-    } else if (Math.abs(typed - place.rate) < 0.005) {
-      $('app-hint').textContent = place.state.name + ', ' + place.rate.toFixed(2) + '% a year since 1991. Not a forecast.';
-    } else {
-      var label = place.kind === 'city' ? place.city.name : place.state.name;
-      $('app-hint').textContent = formatNumber(typed, 2) + '% instead of the ' + place.rate.toFixed(2) + '% history for ' + label + '.';
+    else {
+      var want = growthFor(place);
+      var appWhere = place.kind === 'city' ? place.city.name : place.state.name;
+      if (Math.abs(typed - want.home) >= 0.005) {
+        $('app-hint').textContent = formatNumber(typed, 2) + '% instead of ' + want.home.toFixed(2) + '% for ' + appWhere + '.';
+      } else if ($('basis').value === 'history') {
+        $('app-hint').textContent = appWhere + ' home prices grew ' + place.rate.toFixed(2) + '% a year since 1991 (FHFA).'
+          + (place.kind === 'city' ? ' Statewide was ' + place.state.rate.toFixed(2) + '%.' : '') + ' History, not a forecast.';
+      } else {
+        $('app-hint').textContent = 'Forecast: inflation plus the ' + place.rentCpi.real.toFixed(2) + '% a year that rents in '
+          + place.rentCpi.name + ' beat inflation from 1990 to 2025, so the home grows with its rent. ' + appWhere
+          + ' prices did grow ' + place.rate.toFixed(2) + '% a year since 1991.';
+      }
     }
     $('tax-hint').textContent = {
       prop13: 'Starts at the purchase price and rises with inflation, capped at 2% a year.',
@@ -744,7 +793,9 @@
     { key: 'inc', id: 'income', def: 300000 },
     { key: 'file', id: 'filing', def: 'mfj', text: true },
     { key: 'st', id: 'state', def: 'CA', text: true },
-    { key: 'city', id: 'city', def: '', text: true }
+    { key: 'city', id: 'city', def: '', text: true },
+    { key: 'basis', id: 'basis', def: 'forecast', text: true },
+    { key: 'exit', id: 'exit', def: 'sell', text: true }
   ];
 
   function writeQuery() {
@@ -800,6 +851,8 @@
     if (q.has('rate')) setRange('loan-rate', parseNum(q.get('rate')));
     if (q.has('inc')) setMoney('income', parseNum(q.get('inc')));
     if (q.get('file') === 'single' || q.get('file') === 'mfj') $('filing').value = q.get('file');
+    if (q.get('basis') === 'history') $('basis').value = 'history';
+    if (q.get('exit') === 'keep') $('exit').value = 'keep';
     return q;
   }
 
@@ -814,10 +867,17 @@
       applyInsurance();
       applyPropertyTax();
       applyRent();
+      applyLand();
     } else if (id === 'city') {
       applyAppreciation();
       applyInsurance();
       applyRent();
+      applyLand();
+    } else if (id === 'basis') {
+      applyAppreciation();
+      applyStocks();
+    } else if (id === 'inflation' && $('basis').value === 'forecast') {
+      applyAppreciation();
     } else if (id === 'down-pct' || id === 'home-price') {
       syncDownFromPct();
       if (id === 'home-price') {
@@ -892,6 +952,8 @@
     buildStates();
     applyQuery();
     try { applyAppreciation(); } catch (err) { console.error(err); }
+    try { applyStocks(); } catch (err) { console.error(err); }
+    try { applyLand(); } catch (err) { console.error(err); }
     try { applyInsurance(); } catch (err) { console.error(err); }
     try { applyPropertyTax(); } catch (err) { console.error(err); }
     try { syncDownFromPct(); } catch (err) { console.error(err); }
