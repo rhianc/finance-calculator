@@ -14,7 +14,7 @@ export function boot(root) {
 
   function readRaw() {
     return {
-      age: sliderNum("age"),
+      age: fieldNum("age"),
       retireAge: sliderNum("retire"),
       endAge: fieldNum("end"),
       balance: fieldNum("balance-amt"),
@@ -83,15 +83,11 @@ export function boot(root) {
     setMoney("own-carry", input.ownCarry);
     $("own-carry-field").hidden = input.home !== "own";
     $("spend-mode").value = input.spendMode;
-    fitSlider("balance", input.balance, [200000, 500000, 1000000, 2500000, 10000000]);
     fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
-    if (fromSlider === "balance") $("balance").value = String(input.balance);
     if (fromSlider === "spend") $("spend").value = String(input.annualSpend);
     fitSlider("savepct", Math.round(input.savePct * 100), [40, 60, 100]);
     if (fromSlider === "savepct") $("savepct").value = String(Math.round(input.savePct * 100));
-    paintSlider($("age"));
     paintSlider($("retire"));
-    paintSlider($("balance"));
     paintSlider($("spend"));
     paintSlider($("savepct"));
   }
@@ -99,12 +95,8 @@ export function boot(root) {
   function commitKnob(id, n) {
     const el = $(id);
     if (!el) return;
-    if (id === "balance" || id === "spend" || id === "savepct") {
-      const ceilings = id === "balance"
-        ? [200000, 500000, 1000000, 2500000, 10000000]
-        : id === "spend"
-          ? [150000, 300000, 600000, 1500000]
-          : [40, 60, 100];
+    if (id === "spend" || id === "savepct") {
+      const ceilings = id === "spend" ? [150000, 300000, 600000, 1500000] : [40, 60, 100];
       let cap = ceilings[ceilings.length - 1];
       for (const c of ceilings) {
         if (n <= c) {
@@ -140,7 +132,7 @@ export function boot(root) {
 
   function sliderLabel(el) {
     const val = parseFloat(el.value);
-    if (el.id === "balance" || el.id === "spend") return moneyShort(val);
+    if (el.id === "spend") return moneyShort(val);
     if (el.id === "savepct") return trimNum(val) + "%";
     return String(Math.round(val));
   }
@@ -181,9 +173,6 @@ export function boot(root) {
     let input;
     try {
       const raw = readRaw();
-      if (document.activeElement && document.activeElement.id === "balance") {
-        raw.balance = parseFloat($("balance").value);
-      }
       if (document.activeElement && document.activeElement.id === "spend") {
         raw.annualSpend = parseFloat($("spend").value);
       }
@@ -270,10 +259,10 @@ export function boot(root) {
     verdict.textContent = (ok ? "Lasts. " : "Falls short. ") + "Money lasts to " + input.endAge + " in " + pct +
       " of 100 simulated markets; the plan is 90.";
     let fix;
+    const ways = [];
     if (ok) {
       fix = "You could spend up to " + money(cautious.burn) + " and still last in 9 of 10.";
     } else {
-      const ways = [];
       if (check.retireAt !== Infinity && check.retireAt != null) ways.push("retire at " + check.retireAt);
       if (check.saveAt != null && !check.saveCapped) ways.push("save " + Math.round(check.saveAt * 100) + "% of pay");
       ways.push("spend " + money(cautious.burn));
@@ -284,6 +273,13 @@ export function boot(root) {
       if (check.retireAt === Infinity) fix += " Retiring later alone doesn't get there.";
     }
     $("fix-note").textContent = fix;
+    const quick = $("quick");
+    quick.className = "quick " + (ok ? "pos" : "neg");
+    quick.textContent = (ok ? "Lasts: " : "Falls short: ") + money(plan) + " a year lasts to " + input.endAge +
+      " in " + pct + " of 100 markets. The plan is 90. " + (ok ? "Up to " + money(cautious.burn) + " would." : "Fix: " + ways.join(", or ") + ".");
+    $("spend-note").textContent = life
+      ? "Starts at what you live on now, with housing swapped for your home then. Drag to set your own."
+      : "Your number. Living as you do now would take about " + money(Math.round(need.need / 1000) * 1000) + ".";
 
     paths.forEach((p) => {
       $(p.key + "-burn").textContent = money(p.burn);
@@ -488,9 +484,7 @@ export function boot(root) {
   function onEdit(event) {
     const t = event.target;
     if (!(t instanceof HTMLElement) || !root.contains(t)) return;
-    if (t.id === "balance") {
-      setMoney("balance-amt", parseFloat(t.value));
-    } else if (t.id === "spend") {
+    if (t.id === "spend") {
       $("spend-mode").value = "custom";
       setMoney("spend-amt", parseFloat(t.value));
     } else if (t.classList.contains("money") && event.type === "input") {
