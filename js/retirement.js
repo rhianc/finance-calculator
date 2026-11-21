@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planCheck } from "./retirement-model.js?v=15";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planCheck } from "./retirement-model.js?v=16";
 
 const STORAGE = "retire-plan-v2";
 
@@ -30,6 +30,7 @@ export function boot(root) {
       account: pressed("account"),
       filing: pressed("filing"),
       housingMonth: fieldNum("housing"),
+      otherSaveMonth: fieldNum("other-save"),
       home: pressed("home"),
       ownCarry: fieldNum("own-carry"),
       spendMode: $("spend-mode").value,
@@ -79,6 +80,7 @@ export function boot(root) {
     setChoice("account", input.account);
     setChoice("filing", input.filing);
     setMoney("housing", input.housingMonth);
+    setMoney("other-save", input.otherSaveMonth);
     setChoice("home", input.home);
     setMoney("own-carry", input.ownCarry);
     $("own-carry-field").hidden = input.home !== "own";
@@ -240,14 +242,39 @@ export function boot(root) {
         " to keep a paid-off home"
       : "with today's " + money(need.housingNow) + " of rent still paid";
     $("burn-sub").textContent = (life
-      ? "What you live on now: " + money(now.salary) + " of pay, less " + money(now.federal + now.state) +
-        " income tax, " + money(now.payroll) + " payroll tax, and " + money(now.saved) + " of saving, " + housing + "."
+      ? "What you live on now, " + money(now.live) + " after tax and saving, " + housing + ". Itemized in step 3."
       : "The number you set. Keeping the life you have now would take about " + money(Math.round(need.need / 1000) * 1000) + ".") +
       (lastYear > 0 && later.need - need.need > 2000
         ? " If your spending grows with your raises, the life you have at " + (input.retireAge - 1) + " would take about " +
           money(Math.round(later.need / 1000) * 1000) + "."
         : "");
     $("use-live").hidden = life;
+    const rows = [
+      ["Salary", now.salary],
+      ["Federal and California income tax", -(now.federal + now.state)],
+      ["Payroll tax", -now.payroll],
+      ["Into the 401(k)", -now.saved],
+    ];
+    if (now.other > 0) rows.push(["Saved outside the 401(k)", -now.other]);
+    rows.push(["You live on now", now.live, true]);
+    rows.push([input.home === "own" ? "Less today's housing" : "Rent, kept", input.home === "own" ? -need.housingNow : 0]);
+    if (input.home === "own") rows.push(["Plus the paid-off home", need.housingThen]);
+    rows.push(["To keep that life in retirement", need.need, true]);
+    const box = $("live-steps");
+    box.innerHTML = "";
+    rows.forEach(([label, v, total]) => {
+      if (label === "Rent, kept") return;
+      const row = document.createElement("div");
+      row.className = "step" + (total ? " total" : "");
+      const e = document.createElement("span");
+      e.className = "expr";
+      e.textContent = label;
+      const val = document.createElement("span");
+      val.className = "val";
+      val.textContent = (v < 0 ? "− " : !total && label !== "Salary" ? "+ " : "") + money(Math.abs(v));
+      row.append(e, val);
+      box.appendChild(row);
+    });
 
     const check = planCheck(input);
     const pct = Math.round(check.success * 100);
@@ -453,6 +480,7 @@ export function boot(root) {
       ["mega", input.mega ? "1" : "0", "0"],
       ["spend", Math.round(input.annualSpend), DEFAULTS.annualSpend],
       ["house", Math.round(input.housingMonth), DEFAULTS.housingMonth],
+      ["osave", Math.round(input.otherSaveMonth), DEFAULTS.otherSaveMonth],
       ["home", input.home, DEFAULTS.home],
       ["carry", Math.round(input.ownCarry), DEFAULTS.ownCarry],
       ["smode", input.spendMode, DEFAULTS.spendMode],
@@ -598,6 +626,7 @@ export function boot(root) {
           account: q.get("acct"),
           filing: q.get("file"),
           housingMonth: q.get("house"),
+          otherSaveMonth: q.get("osave"),
           home: q.get("home"),
           ownCarry: q.get("carry"),
           spendMode: q.get("smode") || (q.has("spend") ? "custom" : "life"),
@@ -622,6 +651,7 @@ export function boot(root) {
             account: stored.account,
             filing: stored.filing,
             housingMonth: stored.housingMonth,
+            otherSaveMonth: stored.otherSaveMonth,
             home: stored.home,
             ownCarry: stored.ownCarry,
             spendMode: stored.spendMode || "life",

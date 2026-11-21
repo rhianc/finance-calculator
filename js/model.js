@@ -48,6 +48,9 @@
     var growth = src.taxGrowth;
     if (growth !== 'prop13' && growth !== 'inflation') growth = 'market';
     return {
+      // 'sell': both sides cash out at the end and pay selling costs and tax on their gains.
+      // 'keep': both keep what they have, valued at market, with nothing sold.
+      exit: src.exit === 'keep' ? 'keep' : 'sell',
       price: price,
       downPayment: clamp(finite(src.downPayment, 0), 0, price),
       annualRate: clamp(finite(src.annualRate, 0), 0, 0.5),
@@ -246,6 +249,16 @@
     }
 
     function mark(month) {
+      if (input.exit === 'keep') {
+        var keepHouse = home - balance + taxPort;
+        var keepDiscount = Math.pow(1 + input.inflation, month / 12);
+        return {
+          month: month, home: home, balance: balance, gain: Math.max(0, home - basis), gainsTax: 0,
+          taxPortfolio: taxPort, rentPortfolio: rentPort, ownerStockTax: 0, renterStockTax: 0,
+          houseNominal: keepHouse, rentNominal: rentPort,
+          houseReal: keepHouse / keepDiscount, rentReal: rentPort / keepDiscount
+        };
+      }
       var realized = home * (1 - input.sellingCostRate);
       var gain = Math.max(0, realized - basis);
       var heldLong = month > 12;
@@ -402,7 +415,8 @@
       insurance: price > 0 ? input.insuranceYear / price : 0,
       hoa: price > 0 ? input.hoaMonth * 12 / price : 0,
       appreciation: input.homeAppreciation,
-      transactions: input.horizonYears > 0 ? (input.closingCostRate + input.sellingCostRate) / input.horizonYears : 0
+      transactions: input.horizonYears > 0
+        ? (input.closingCostRate + (input.exit === 'keep' ? 0 : input.sellingCostRate)) / input.horizonYears : 0
     };
     var userCost = userParts.opportunity + userParts.propertyTax + userParts.maintenance + userParts.insurance
       + userParts.hoa - userParts.appreciation + userParts.transactions;

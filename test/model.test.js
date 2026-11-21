@@ -396,6 +396,29 @@ check('the stock alternative pays tax on its gain when sold', rp.points[36].stoc
 near('rental stocks compound at the typical rate', rp.stockTypical, 1.09 * Math.exp(-0.0128) - 1, 1e-12);
 near('rental rent grows at its own rate', rp.points[13].rent / rp.points[12].rent, 1.04, 1e-9);
 
+var keepBase = {
+  price: 1500000, downPayment: 300000, annualRate: 0.065, years: 30, horizonYears: 30, propertyTaxRate: 0.011,
+  taxGrowth: 'prop13', insuranceYear: 6100, maintenanceRate: 0.01, closingCostRate: 0.02, sellingCostRate: 0.06,
+  homeAppreciation: 0.035, inflation: 0.025, rentMonth: 4500, rentGrowth: 0.035, stockReturn: 0.09, stockVol: 0.16,
+  filingStatus: 'mfj', income: 300000, stateCode: 'CA', cityName: ''
+};
+var sold = FinanceModel.project(keepBase);
+var kept = FinanceModel.project(Object.assign({}, keepBase, { exit: 'keep' }));
+var sEnd = sold.points[sold.points.length - 1];
+var kEnd = kept.points[kept.points.length - 1];
+check('keeping pays no tax on either side', kEnd.gainsTax === 0 && kEnd.renterStockTax === 0 && kEnd.ownerStockTax === 0);
+near('kept house is market value less the loan plus the owner account', kEnd.houseNominal, kEnd.home - kEnd.balance + kEnd.taxPortfolio, 1e-6);
+near('kept renter side is the whole portfolio', kEnd.rentNominal, kEnd.rentPortfolio, 1e-6);
+check('selling taxes the renter portfolio', sEnd.renterStockTax > 0 && sEnd.rentNominal < sEnd.rentPortfolio);
+check('keep drops selling costs from user cost', kept.userCost.parts.transactions < sold.userCost.parts.transactions);
+check('exit defaults to sell', FinanceModel.normalize({}).exit === 'sell');
+
+var MK = HomeMarkets;
+check('LA metro rents use the LA index', MK.place('CA', '31084').rentCpi.name === 'Los Angeles');
+check('San Jose uses the Bay Area index', MK.place('CA', '41940').rentCpi.name === 'the Bay Area');
+check('California statewide uses the West', MK.place('CA', '').rentCpi.name === 'the West');
+check('Texas statewide uses the South', MK.place('TX', '').rentCpi.name === 'the South');
+
 if (failed) {
   print(failed + ' failed');
   quit(1);

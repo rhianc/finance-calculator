@@ -109,6 +109,8 @@
   .quick.pos { color: var(--good); }
   .quick.neg { color: var(--rent); }
   .field .hint { margin-top: 0.3rem; }
+  #live-steps .step { padding: 0.32rem 0; }
+  #live-steps .step.total .expr, #live-steps .step.total .val { color: var(--ink); font-weight: 650; }
 </style>
 </head>
 <body>
@@ -167,7 +169,7 @@
           <input id="balance-amt" class="money" inputmode="decimal" autocomplete="off" value="50,000">
         </div>
       </div>
-      <div class="field span-2">
+      <div class="field">
         <label for="housing">Housing: rent, or mortgage with tax and insurance</label>
         <div class="control">
           <span class="unit prefix">$</span>
@@ -175,6 +177,15 @@
           <span class="unit">/mo</span>
         </div>
       </div>
+      <div class="field">
+        <label for="other-save">Saved or invested outside the 401(k)</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="other-save" class="money" inputmode="decimal" autocomplete="off" value="0">
+          <span class="unit">/mo</span>
+        </div>
+      </div>
+      <p class="hint span-2">Brokerage, IRA, cash you put away. It comes out of what you live on. It isn't added to the 401(k) balance, so the plan is a little cautious if that money will also pay for retirement.</p>
     </div>
   </section>
 
@@ -266,6 +277,7 @@
       </div>
     </div>
     <p class="fine" id="spend-note"></p>
+    <div class="steps" id="live-steps"></div>
     <div class="actions">
       <button type="button" class="textbtn" id="use-live" hidden>Go back to what you live on now</button>
     </div>
@@ -429,7 +441,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=21"></script>
+<script type="module" src="js/retirement.js?v=22"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

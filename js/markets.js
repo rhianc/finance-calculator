@@ -308,6 +308,61 @@
     US: [{ id: 'US', label: 'U.S. median', rate: 1.02, growth: 'market' }],
   };
 
+  // Rent growth: BLS CPI rent of primary residence (CUUR____SEHA), annual average 1990 to 2025, 35 years.
+  // 2025 averages 11 months, since October 2025 was never collected. rate is nominal %/yr; real is over
+  // CPI-U all items (2.61%/yr over the same years). A metro uses its own index where BLS has it back to
+  // 1990; anywhere else uses its Census region.
+  var RENT_CPI = {
+    US: { name: 'the U.S.', rate: 3.27, real: 0.65 },
+    NE: { name: 'the Northeast', rate: 3.19, real: 0.56 },
+    MW: { name: 'the Midwest', rate: 2.94, real: 0.32 },
+    S: { name: 'the South', rate: 3.32, real: 0.69 },
+    W: { name: 'the West', rate: 3.45, real: 0.82 },
+    BOS: { name: 'Boston', rate: 3.24, real: 0.61 },
+    NYC: { name: 'New York', rate: 3.36, real: 0.73 },
+    PHL: { name: 'Philadelphia', rate: 2.84, real: 0.22 },
+    CHI: { name: 'Chicago', rate: 3.22, real: 0.59 },
+    DET: { name: 'Detroit', rate: 2.76, real: 0.14 },
+    STL: { name: 'St. Louis', rate: 2.59, real: -0.02 },
+    MIA: { name: 'Miami', rate: 4.04, real: 1.39 },
+    DFW: { name: 'Dallas-Fort Worth', rate: 3.37, real: 0.74 },
+    HOU: { name: 'Houston', rate: 3.25, real: 0.63 },
+    LA: { name: 'Los Angeles', rate: 3.37, real: 0.74 },
+    SF: { name: 'the Bay Area', rate: 3.54, real: 0.91 }
+  };
+  var REGION = {};
+  'CT ME MA NH RI VT NJ NY PA'.split(' ').forEach(function (c) { REGION[c] = 'NE'; });
+  'IL IN MI OH WI IA KS MN MO NE ND SD'.split(' ').forEach(function (c) { REGION[c] = 'MW'; });
+  'DE DC FL GA MD NC SC VA WV AL KY MS TN AR LA OK TX'.split(' ').forEach(function (c) { REGION[c] = 'S'; });
+  'AZ CO ID MT NV NM UT WY AK CA HI OR WA'.split(' ').forEach(function (c) { REGION[c] = 'W'; });
+  var RENT_METRO = [
+    [/^(Boston|Cambridge-Newton)/, 'BOS'],
+    [/^(New York|Newark|Nassau)/, 'NYC'],
+    [/^(Philadelphia|Camden|Wilmington)/, 'PHL'],
+    [/^(Chicago|Elgin)/, 'CHI'],
+    [/^(Detroit|Warren-Troy)/, 'DET'],
+    [/^St\. Louis/, 'STL'],
+    [/^(Miami|Fort Lauderdale|West Palm)/, 'MIA'],
+    [/^(Dallas|Fort Worth)/, 'DFW'],
+    [/^Houston/, 'HOU'],
+    [/^(Los Angeles|Anaheim)/, 'LA'],
+    [/^(San Francisco|Oakland|San Jose)/, 'SF']
+  ];
+
+  function rentGrowth(code, city) {
+    var i;
+    if (city && city.fhfa) {
+      for (i = 0; i < RENT_METRO.length; i++) {
+        if (RENT_METRO[i][0].test(city.fhfa)) return RENT_CPI[RENT_METRO[i][1]];
+      }
+    }
+    return RENT_CPI[REGION[code] || 'US'];
+  }
+
+  // S&P 500 total return over the same years as the house prices, 1991 to 2025 (Damodaran, histretSP):
+  // 12.58% a year on average and 11.12% compounded, which a 16% volatility reproduces.
+  var STOCK_HISTORY = { expected: 12.6, vol: 16, compound: 11.1 };
+
   // Gross yield (annual rent / value) at a typical price. Zillow ZHVI and ZORI, May 2026.
   // A house priced away from that typical value does not keep the same yield:
   // the rental page raises rent with price^0.85.
@@ -472,6 +527,7 @@
             insFrom: list[i].ins ? 'city' : 'state',
             grossYield: rent.y,
             yieldAnchor: rent.anchor,
+            rentCpi: rentGrowth(code, list[i]),
             city: list[i],
             state: state,
             code: code
@@ -487,6 +543,7 @@
       insFrom: 'state',
       grossYield: rent.y,
       yieldAnchor: rent.anchor,
+      rentCpi: rentGrowth(code, null),
       city: null,
       state: state,
       code: code
@@ -498,6 +555,8 @@
     DWELLING: DWELLING,
     STATES: STATES,
     CITIES: CITIES,
+    RENT_CPI: RENT_CPI,
+    STOCK_HISTORY: STOCK_HISTORY,
     options: options,
     cities: cities,
     place: place

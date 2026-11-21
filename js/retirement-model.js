@@ -20,6 +20,7 @@ export const DEFAULTS = {
   raisePct: 1,
   mega: false,
   housingMonth: 3000,
+  otherSaveMonth: 0,
   home: "own",
   ownCarry: 15000,
   spendMode: "life",
@@ -127,6 +128,8 @@ export function normalize(raw) {
     account: raw.account === "roth" ? "roth" : "traditional",
     filing: raw.filing === "joint" ? "joint" : "single",
     housingMonth: clamp(num(raw.housingMonth, DEFAULTS.housingMonth), 0, 100000),
+    // Saved or invested outside the 401(k), a month. Not spent, and not added to the balance.
+    otherSaveMonth: clamp(num(raw.otherSaveMonth, DEFAULTS.otherSaveMonth), 0, 1000000),
     home: raw.home === "rent" ? "rent" : "own",
     ownCarry: clamp(num(raw.ownCarry, DEFAULTS.ownCarry), 0, 1000000),
     // "life": spending follows what you live on now. "custom": the After tax knob is yours.
@@ -236,8 +239,9 @@ export function takeHome(input, yearsWorked, ageAtYearEnd) {
   const payroll = 0.062 * Math.min(salary, SS_WAGE_BASE_2026) + 0.0145 * salary
     + 0.009 * Math.max(0, salary - ADD_MEDICARE[status]) + CA_SDI_2026 * salary;
   const saved = split.pre + split.roth;
-  const live = Math.max(0, salary - federal - state - payroll - saved);
-  return { salary, federal, state, payroll, saved, live };
+  const other = Math.min((input.otherSaveMonth || 0) * 12, Math.max(0, salary - federal - state - payroll - saved));
+  const live = Math.max(0, salary - federal - state - payroll - saved - other);
+  return { salary, federal, state, payroll, saved, other, live };
 }
 
 /**

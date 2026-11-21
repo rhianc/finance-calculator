@@ -39,3 +39,12 @@ near("owning outright swaps rent for carrying costs", retireNeed(normalize({ hou
 near("still renting keeps the rent", retireNeed(normalize({ housingMonth: 3000, home: "rent", ownCarry: 15000 }), 100000).need, 100000, 0.01);
 
 if (failed) { print(failed + " failed"); } else print("all passed");
+
+{
+  const base = normalize({ salary: 200000, savePct: 15 });
+  const a = takeHome(base, 0, 29);
+  const b = takeHome({ ...base, otherSaveMonth: 2000 }, 0, 29);
+  if (Math.abs(a.live - b.live - 24000) > 1e-6 || b.other !== 24000) throw new Error("outside saving should come off take-home");
+  if (normalize({ otherSaveMonth: "1500" }).otherSaveMonth !== 1500) throw new Error("otherSaveMonth parse");
+  print("ok  saving outside the 401(k) comes off what you live on");
+}

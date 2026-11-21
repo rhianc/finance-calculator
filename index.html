@@ -119,6 +119,21 @@
         </select>
       </div>
       <p class="hint span-2" id="income-hint"></p>
+      <div class="field">
+        <label for="basis">Growth rates</label>
+        <select id="basis" class="bare">
+          <option value="forecast" selected>Forecast</option>
+          <option value="history">Last 35 years</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="exit">At the end</label>
+        <select id="exit" class="bare">
+          <option value="sell" selected>Sell everything</option>
+          <option value="keep">Keep it all</option>
+        </select>
+      </div>
+      <p class="hint span-2" id="basis-hint"></p>
 
       <details class="span-2 fold">
         <summary>Typical assumptions</summary>
@@ -270,7 +285,7 @@
           <p class="hint span-2" id="tax-hint"></p>
           <p class="hint span-2" id="cost-hint"></p>
           <p class="hint span-2" id="tax-readout"></p>
-          <p class="hint span-2">Filled in from the place, price, and income. A change here sticks until you change one of those.</p>
+          <p class="hint span-2">Filled in from the place, price, income, and growth rates. A change here sticks until you change one of those.</p>
         </div>
       </details>
     </div>
@@ -349,7 +364,12 @@
     <p>\(H_t\) is the home value and \(g\) is appreciation. \(D\) is the down payment. \(c_b\) is buyer closing costs and \(c_s\) is the cost to sell, each as a fraction of price. \(O_t\) is that month's housing cash: principal, interest, property tax, insurance, maintenance, HOA, and PMI. PMI is the original loan times its annual rate, divided by 12, and it is charged only while the balance is above 80% of the purchase price. \(\tau_t\) is the tax saved that month. \(R_t\) is rent, which grows at its own rate. \(\mu\) is the expected stock return, \(\sigma\) its volatility, and \(d\) the drag.</p>
     <p>Wealth multiplies, so a typical path compounds at less than the expected return. The expected wealth still grows at \(\mu\), but only because a few lucky paths end far above it. The chart follows the typical path:</p>
     <div class="math">\[ s = (1+\mu)\,e^{-\sigma^2/2} - 1,\qquad r_s = (1+s-d)^{1/12}-1 \]</div>
-    <p>Home appreciation is already a compound rate: FHFA's index growth from 1991 to 2026.</p>
+    <p>Home appreciation is already a compound rate. <em>Growth rates</em> picks where \(g\), rent growth, and \(\mu\) come from, and keeps all three on the same footing, so neither side gets history while the other gets a forecast:</p>
+    <ul class="left-out">
+      <li><strong>Forecast.</strong> \(\mu = 9\%\), 4% T-bills plus a 5% equity premium. The home and rent both grow at \((1+i)(1+q)-1\), where \(q\) is how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence, against CPI-U). A price can't outrun the rent it could earn forever, so price-to-rent holds.</li>
+      <li><strong>Last 35 years.</strong> \(g\) is the FHFA index growth from 1991 to 2026, rent growth is the BLS rent index from 1990 to 2025, and \(\mu = 12.6\%\), the S&amp;P 500's 1991–2025 average, which compounds at its actual 11.1% with \(\sigma = 16\%\). Prices beat rents in most places over those years, so price-to-rent rises.</li>
+    </ul>
+    <p>A metro uses its own BLS rent index where one goes back to 1990 (Boston, New York, Philadelphia, Chicago, Detroit, St. Louis, Miami, Dallas–Fort Worth, Houston, Los Angeles, the Bay Area); anywhere else uses its Census region.</p>
     <div class="math">\[ H_t = H_0 (1+g)^{t/12} \]</div>
     <div class="math">\[ S_0 = D + c_b H_0 \]</div>
     <div class="math">\[ S_t = S_{t-1}(1+r_s) + \max(0,\ O_t - R_t) \]</div>
@@ -357,6 +377,7 @@
     <p>\(S\) is the renter's portfolio. \(T\) is the owner's: the tax savings, plus the difference in any month when owning costs less than rent. Whoever pays less for housing invests the difference, so neither account is drawn down. Because the savings sit in \(T\), they are not also subtracted from the renter's deposit. \(\hat S_t\) and \(\hat T_t\) are what went into each account. That is their cost basis.</p>
 
     <h3>If you sold that month</h3>
+    <p>This is <em>Sell everything</em>. <em>Keep it all</em> sells nothing: \(W^H_t = (H_t - B_t + T_t)/(1+i)^{t/12}\) and \(W^R_t = S_t/(1+i)^{t/12}\), with no cost to sell and no tax on either side. Selling taxes the whole gain in one year at top rates, so it is the harsher case; keeping is closer to holding until a step-up at death.</p>
     <div class="math">\[ \mathrm{Gain}_t = \max\left(0,\ H_t(1-c_s) - H_0(1+c_b)\right) \]</div>
     <div class="math">\[ G_t = \text{tax on }\max(0,\ \mathrm{Gain}_t - X_t)\text{, stacked on top of household income} \]</div>
     <p>\(X_t\) is 0 until the home has been held 24 months, then $250,000 for a single filer and $500,000 for a joint return. Standard deduction the wages did not use comes off the taxable gain. Through 12 months the federal piece is ordinary income, stacked on the wages. After more than 12 months it is long-term gain, 0%, 15%, and 20% in the 2026 bands, and the wages fill those bands from the bottom. The 3.8% net investment income tax applies to the smaller of the taxable gain and the amount by which wages plus that gain exceed $250,000 joint or $200,000 single. State tax is the extra state tax from adding the gain on top of wages. Maryland adds 2% of the taxable gain when wages plus the gain exceed $350,000. Minnesota adds 1% of the gain above $1,000,000.</p>
@@ -421,18 +442,18 @@
 </main>
 
 <footer class="wrap">
-  <p>For a home you live in. Brackets are tax year 2026. Appreciation is FHFA, 1991–2026. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
+  <p>For a home you live in. Brackets are tax year 2026. Appreciation is FHFA, 1991–2026. Rent growth is BLS, 1990–2025. Insurance is an Insurify average scaled to the price, without flood. Not a quote, and not tax or investment advice.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script src="js/taxes.js?v=11"></script>
-<script src="js/model.js?v=11"></script>
-<script src="js/markets.js?v=14"></script>
+<script src="js/model.js?v=12"></script>
+<script src="js/markets.js?v=15"></script>
 <script src="js/redfin.js?v=1"></script>
 <script src="js/charts.js?v=32"></script>
 <script src="js/knobs.js?v=2"></script>
-<script src="js/main.js?v=29"></script>
+<script src="js/main.js?v=30"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (!window.renderMathInElement) return;
