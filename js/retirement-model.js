@@ -600,7 +600,10 @@ function successSpend(input, rates, skel, threshold) {
   return Math.floor(lo / 100) * 100;
 }
 
-/** Historical-block paths. Lines are the 50th, 25th, and 10th percentile balances. */
+/**
+ * Historical-block paths. Lines are the 10th and 25th percentile balances.
+ * The median is not drawn: spending it supports runs out in half of markets, which is no plan.
+ */
 export function project(input) {
   const years = Math.max(1, Math.ceil(input.endAge - input.age));
   const rates = yearRates(input, years);
@@ -613,11 +616,10 @@ export function project(input) {
   const ages = [];
   for (let i = 0; i < markIndex.length; i += 2) ages.push(roundAge(input.age + markIndex[i] / 12));
 
-  const series = { avg: [], below: [], bad: [] };
-  const pct = { avg: 0.5, below: 0.25, bad: 0.1 };
+  const series = { below: [], bad: [] };
+  const pct = { below: 0.25, bad: 0.1 };
   for (let i = 1; i < markIndex.length; i += 2) {
     const vals = ran.map((r) => r.marks[i]).sort((a, b) => a - b);
-    series.avg.push(atPercent(vals, pct.avg));
     series.below.push(atPercent(vals, pct.below));
     series.bad.push(atPercent(vals, pct.bad));
   }
@@ -626,22 +628,20 @@ export function project(input) {
   const byNest = ran.slice().sort((a, b) => a.nest - b.nest);
   const taxShare = byNest[Math.round(0.5 * (byNest.length - 1))].steadyShare;
   const burns = {
-    avg: successSpend(input, rates, skel, 0.5),
     below: successSpend(input, rates, skel, 0.75),
     bad: successSpend(input, rates, skel, 0.9),
   };
   coverCache = null;
 
-  // The middle line is the median, not the average: wealth multiplies, so the average is pulled
-  // up by a few lucky paths and most paths end below it (companion, eq-mean-median).
+  // Plan on the 9-in-10 line for spending you cannot cut. The 3-in-4 line is what you could spend
+  // if you will trim in a bad decade. Size by the bad outcomes you would sit through (companion, @home).
   const meta = {
-    avg: { name: "Median", note: "half of markets" },
-    below: { name: "Lower quarter", note: "1 in 4 worse" },
-    bad: { name: "Lower tenth", note: "1 in 10 worse" },
+    bad: { name: "Plan on this", note: "lasted in 9 of 10 markets" },
+    below: { name: "If you can cut back", note: "lasted in 3 of 4" },
   };
   const compound = compoundReal(input);
 
-  return ["avg", "below", "bad"].map((key) => {
+  return ["bad", "below"].map((key) => {
     const points = ages.map((age, i) => ({ age, balance: Math.max(0, series[key][i]) }));
     let depletedAge = null;
     for (const pt of points) {

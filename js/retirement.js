@@ -1,11 +1,10 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=11";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=12";
 
 const STORAGE = "retire-plan-v2";
 
 const SCENES = [
-  { key: "avg", color: "--good" },
+  { key: "bad", color: "--good" },
   { key: "below", color: "--house" },
-  { key: "bad", color: "--rent" },
 ];
 
 export function boot(root) {
@@ -225,7 +224,7 @@ export function boot(root) {
 
   function paintReadout(paths, input) {
     const cautious = paths.find((p) => p.key === "bad");
-    const median = paths.find((p) => p.key === "avg");
+    const median = cautious;
     $("burn-avg").textContent = money(cautious.burn);
     $("burn-mo").textContent = money(cautious.burn / 12) + " a month";
     const plan = input.annualSpend;
@@ -293,9 +292,8 @@ export function boot(root) {
     const ink = style.getPropertyValue("--muted").trim() || "#6b625b";
     const line = style.getPropertyValue("--line").trim() || "#e4dcd0";
     const colors = {
-      avg: style.getPropertyValue("--good").trim(),
+      bad: style.getPropertyValue("--good").trim(),
       below: style.getPropertyValue("--house").trim(),
-      bad: style.getPropertyValue("--rent").trim(),
     };
 
     let maxV = 1;
@@ -361,7 +359,7 @@ export function boot(root) {
     fiveYears.forEach(paintAge);
     [input.age, input.endAge].forEach(paintAge);
 
-    ["bad", "below", "avg"].forEach((key) => {
+    ["below", "bad"].forEach((key) => {
       const path = paths.find((p) => p.key === key);
       ctx.beginPath();
       ctx.strokeStyle = colors[key];

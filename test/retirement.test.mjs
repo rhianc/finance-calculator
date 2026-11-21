@@ -28,8 +28,8 @@ const ar = (1.09 / 1.025) - 1;
 check("compound real return sits about 2 points under the average", ar - cr > 0.015 && ar - cr < 0.025);
 
 const lines = project(base);
-check("the middle line is named the median", lines[0].name === "Median" && lines[1].name === "Lower quarter" && lines[2].name === "Lower tenth");
-check("the burn ordering holds", lines[0].burn >= lines[1].burn && lines[1].burn >= lines[2].burn);
+check("two lines, the plan first", lines.length === 2 && lines[0].key === "bad" && lines[1].key === "below");
+check("cutting back allows more spending", lines[1].burn >= lines[0].burn);
 print("burns " + lines.map((l) => l.burn).join(", ") + "; compound real " + (cr * 100).toFixed(2) + "%");
 
 if (failed) { print(failed + " failed"); } else print("all passed");

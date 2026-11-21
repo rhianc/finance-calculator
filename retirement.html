@@ -186,13 +186,9 @@
     </div>
 
     <div class="fields">
-      <div class="field">
-        <label for="balance-amt">Balance today</label>
-        <div class="control">
-          <span class="unit prefix">$</span>
-          <input id="balance-amt" class="money" inputmode="decimal" autocomplete="off" value="50,000">
-        </div>
-      </div>
+      <!-- The Balance and After tax sliders write here; type exact amounts in the slider boxes. -->
+      <input type="hidden" id="balance-amt" value="50,000">
+      <input type="hidden" id="spend-amt" value="70,000">
       <div class="field">
         <label for="salary">Salary today</label>
         <div class="control">
@@ -205,13 +201,6 @@
         <div class="control">
           <input id="raise" type="number" min="-5" max="20" step="0.1" value="1" inputmode="decimal">
           <span class="unit">%/yr</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="spend-amt">To live on each year, after tax</label>
-        <div class="control">
-          <span class="unit prefix">$</span>
-          <input id="spend-amt" class="money" inputmode="decimal" autocomplete="off" value="70,000">
         </div>
       </div>
       <div class="field">
@@ -252,7 +241,7 @@
             </div>
           </div>
           <p class="hint span-2" id="ss-hint"></p>
-          <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average year matches what you type. It is not a return that arrives every year, and it is not what the money compounds at: with real swings, a typical path grows about two points a year slower. 9% is 4% T-bills plus a 5% equity premium, below the 11.9% U.S. stocks averaged from 1928, since the U.S. was the best market of the century. Fidelity plans off the bottom line, the case 9 in 10 markets beat, not the middle.</p>
+          <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average year matches what you type. It is not a return that arrives every year, and it is not what the money compounds at: with real swings, a typical path grows about two points a year slower. 9% is 4% T-bills plus a 5% equity premium, below the 11.9% U.S. stocks averaged from 1928, since the U.S. was the best market of the century. The plan is the case 9 in 10 markets beat, the same one Fidelity plans from.</p>
         </div>
       </details>
     </div>
@@ -260,45 +249,37 @@
   </div>
 
   <section class="card" aria-labelledby="burn-heading">
-    <h2 id="burn-heading">Burn that still lasts</h2>
+    <h2 id="burn-heading">Plan on this</h2>
+    <p class="section-lead">The most you can spend each year after tax and still have money left in 9 out of 10 simulated markets. Fund the spending you can't cut, like housing, food, and health care, from this number.</p>
     <p class="big" id="burn-avg">—</p>
     <p class="burn-mo" id="burn-mo"></p>
     <p class="sub" id="burn-sub">In the market 9 out of 10 simulations beat.</p>
     <div class="meta">
       <div>
-        <div class="k" id="avg-name">Median</div>
-        <div class="v" id="avg-burn">—</div>
-        <div class="hint" id="avg-fate"></div>
-      </div>
-      <div>
-        <div class="k" id="below-name">Lower quarter</div>
-        <div class="v" id="below-burn">—</div>
-        <div class="hint" id="below-fate"></div>
-      </div>
-      <div>
-        <div class="k" id="bad-name">Lower tenth</div>
+        <div class="k" id="bad-name">Plan on this</div>
         <div class="v" id="bad-burn">—</div>
         <div class="hint" id="bad-fate"></div>
       </div>
+      <div>
+        <div class="k" id="below-name">If you can cut back</div>
+        <div class="v" id="below-burn">—</div>
+        <div class="hint" id="below-fate"></div>
+      </div>
     </div>
-    <p class="hint">The big number is the most you could spend after tax and still finish with money in 9 out of 10 simulated markets. Lower quarter lasted in 3 out of 4. Median lasted in half. The after-tax slider does not change these. Saving, age, and the account do. Social Security is included.</p>
+    <p class="hint">If you would trim spending after a bad decade, the second number is closer to what you could spend: it lasted in 3 out of 4 markets. There is no middle line. Spending that lasts in half of markets runs out in the other half, and running out can't be undone. Planning to 100 is cautious already, since few people live that long. Using only U.S. stocks from 1928 is not cautious, since the U.S. was the best market of the century. The after-tax slider does not change these numbers. Saving, age, and the account do. Social Security is included.</p>
   </section>
 
   <section class="card" aria-labelledby="nest-heading">
     <h2 id="nest-heading">The day you retire</h2>
-    <p class="section-lead">Account value that morning, in today's dollars. Median means half the simulated markets had at least this much. It is not the average: a few lucky markets pull the average up, so most end below it.</p>
+    <p class="section-lead">Account value that morning, in today's dollars, in the market 9 in 10 beat and the one 3 in 4 beat.</p>
     <div class="meta">
       <div>
-        <div class="k">Median</div>
-        <div class="v" id="avg-nest">—</div>
-      </div>
-      <div>
-        <div class="k">Lower quarter</div>
-        <div class="v" id="below-nest">—</div>
-      </div>
-      <div>
-        <div class="k">Lower tenth</div>
+        <div class="k">Plan on this</div>
         <div class="v" id="bad-nest">—</div>
+      </div>
+      <div>
+        <div class="k">If you can cut back</div>
+        <div class="v" id="below-nest">—</div>
       </div>
     </div>
     <div class="steps" id="worked">
@@ -306,7 +287,7 @@
       <div class="step"><span class="expr">Saved this year, after the cap</span><span class="val" id="year-add">—</span></div>
       <div class="step"><span class="expr">Average real return, a year</span><span class="val" id="year-real">—</span></div>
       <div class="step"><span class="expr">Compound real return, what a typical path grows at</span><span class="val" id="year-compound">—</span></div>
-      <div class="step"><span class="expr">Median balance in one year</span><span class="val" id="year-next">—</span></div>
+      <div class="step"><span class="expr">Balance in one year, 9 in 10 beat</span><span class="val" id="year-next">—</span></div>
     </div>
   </section>
 
@@ -347,8 +328,9 @@
         \end{gathered}
       \]</div>
 
-      <h3>The three lines</h3>
-      <p>The lines are not three rates, and none of them is one person's life. At each age they are a cutoff across the 280 balances: the level half the histories beat, the level 3 in 4 beat, and the level 9 in 10 beat. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
+      <h3>The two lines</h3>
+      <p>The lines are not two rates, and neither is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
+      <p>The median is left out on purpose. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
       <p>Left out: fees, an employer match, bonds, required minimum distributions, any pension besides the Social Security number, and the chance that future stocks do worse than 1928–2025 even after you lower the average. Not a quote, and not tax or investment advice.</p>
     </details>
@@ -360,7 +342,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=13"></script>
+<script type="module" src="js/retirement.js?v=15"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;
