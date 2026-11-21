@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed } from "./retirement-model.js?v=14";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planCheck } from "./retirement-model.js?v=15";
 
 const STORAGE = "retire-plan-v2";
 
@@ -32,6 +32,7 @@ export function boot(root) {
       housingMonth: fieldNum("housing"),
       home: pressed("home"),
       ownCarry: fieldNum("own-carry"),
+      spendMode: $("spend-mode").value,
     };
   }
 
@@ -81,6 +82,7 @@ export function boot(root) {
     setChoice("home", input.home);
     setMoney("own-carry", input.ownCarry);
     $("own-carry-field").hidden = input.home !== "own";
+    $("spend-mode").value = input.spendMode;
     fitSlider("balance", input.balance, [200000, 500000, 1000000, 2500000, 10000000]);
     fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
     if (fromSlider === "balance") $("balance").value = String(input.balance);
@@ -189,6 +191,8 @@ export function boot(root) {
         raw.savePct = parseFloat($("savepct").value);
       }
       input = normalize(raw);
+      // Unless you set it yourself, spending follows the life you have now.
+      if (input.spendMode === "life") input = { ...input, annualSpend: Math.round(lifeNeed(input) / 1000) * 1000 };
       const editing = document.activeElement;
       const skipFormat = editing && editing.classList && editing.classList.contains("money");
       applyNormalized(input, null);
@@ -235,56 +239,66 @@ export function boot(root) {
     $("burn-avg").textContent = money(cautious.burn);
     $("burn-mo").textContent = money(cautious.burn / 12) + " a month";
     const plan = input.annualSpend;
-    const over = plan > cautious.burn + 50;
-    $("burn-avg").classList.toggle("pos", !over && cautious.burn > 0);
-    $("burn-avg").classList.toggle("neg", over);
-    $("burn-sub").textContent = over
-      ? "a year after tax that lasted in 9 out of 10 simulated markets, until " +
-        input.endAge +
-        ". Your " +
-        money(plan) +
-        " plan needs a kinder market than that."
-      : "a year after tax that lasted in 9 out of 10 simulated markets, in today's dollars, until " +
-        input.endAge +
-        ".";
+    const now = takeHome(input, 0, input.age + 1);
+    const need = retireNeed(input, now.live);
+    const lastYear = Math.max(0, input.retireAge - input.age - 1);
+    const later = retireNeed(input, takeHome(input, lastYear, input.retireAge).live);
+    const life = input.spendMode === "life";
+    $("burn-avg").textContent = money(plan);
+    $("burn-mo").textContent = money(plan / 12) + " a month after tax, in today's dollars";
+    const housing = input.home === "own"
+      ? "with today's " + money(need.housingNow) + " of housing swapped for " + money(need.housingThen) +
+        " to keep a paid-off home"
+      : "with today's " + money(need.housingNow) + " of rent still paid";
+    $("burn-sub").textContent = (life
+      ? "What you live on now: " + money(now.salary) + " of pay, less " + money(now.federal + now.state) +
+        " income tax, " + money(now.payroll) + " payroll tax, and " + money(now.saved) + " of saving, " + housing + "."
+      : "The number you set. Keeping the life you have now would take about " + money(Math.round(need.need / 1000) * 1000) + ".") +
+      (lastYear > 0 && later.need - need.need > 2000
+        ? " If your spending grows with your raises, the life you have at " + (input.retireAge - 1) + " would take about " +
+          money(Math.round(later.need / 1000) * 1000) + "."
+        : "");
+    $("use-live").hidden = life;
+
+    const check = planCheck(input);
+    const pct = Math.round(check.success * 100);
+    const ok = check.success >= 0.9;
+    $("burn-avg").classList.toggle("pos", ok);
+    $("burn-avg").classList.toggle("neg", !ok);
+    const verdict = $("verdict");
+    verdict.className = "verdict " + (ok ? "pos" : "neg");
+    verdict.textContent = (ok ? "Lasts. " : "Falls short. ") + "Money lasts to " + input.endAge + " in " + pct +
+      " of 100 simulated markets; the plan is 90.";
+    let fix;
+    if (ok) {
+      fix = "You could spend up to " + money(cautious.burn) + " and still last in 9 of 10.";
+    } else {
+      const ways = [];
+      if (check.retireAt !== Infinity && check.retireAt != null) ways.push("retire at " + check.retireAt);
+      if (check.saveAt != null && !check.saveCapped) ways.push("save " + Math.round(check.saveAt * 100) + "% of pay");
+      ways.push("spend " + money(cautious.burn));
+      fix = "To last in 9 of 10: " + ways.join(", or ") + ".";
+      if (check.saveCapped) {
+        fix += " Saving more won't help: the 401(k) limit is already full" + (input.mega ? "." : ", and the mega backdoor raises it.");
+      }
+      if (check.retireAt === Infinity) fix += " Retiring later alone doesn't get there.";
+    }
+    $("fix-note").textContent = fix;
 
     paths.forEach((p) => {
       $(p.key + "-burn").textContent = money(p.burn);
       $(p.key + "-nest").textContent = money(p.nest);
-      $(p.key + "-name").textContent = p.name;
       const el = $(p.key + "-fate");
       if (p.depletedAge == null) {
-        el.textContent = p.note + ". Lasts to " + input.endAge;
+        el.textContent = "In a market " + p.note.replace(" did better", " beat") + ", your plan lasts to " + input.endAge + ".";
         el.className = "hint pos";
       } else {
-        el.textContent = p.note + ". Empty at " + ageLabel(p.depletedAge);
+        el.textContent = "In a market " + p.note.replace(" did better", " beat") + ", your plan runs out at " + ageLabel(p.depletedAge) + ".";
         el.className = "hint neg";
       }
     });
 
     $("path-note").textContent = "Dotted line is retirement.";
-
-    // What you live on now: the anchor for a comfortable spending number.
-    const now = takeHome(input, 0, input.age + 1);
-    const lastYear = Math.max(0, input.retireAge - input.age - 1);
-    const later = takeHome(input, lastYear, input.retireAge);
-    const needNow = retireNeed(input, now.live);
-    const needLater = retireNeed(input, later.live);
-    liveNow = Math.round(needNow.need / 1000) * 1000;
-    const share = needNow.need > 0 ? cautious.burn / needNow.need : 0;
-    const housingLine = input.home === "own"
-      ? "Swap today's " + money(needNow.housingNow) + " of housing for " + money(needNow.housingThen) +
-        " of property tax, insurance, and upkeep on a paid-off home"
-      : "You still rent, so today's " + money(needNow.housingNow) + " of housing stays";
-    $("live-note").textContent =
-      "Today you live on about " + money(now.live) + " a year: " + money(now.salary) + " of pay, less " +
-      money(now.federal + now.state) + " income tax, " + money(now.payroll) + " payroll tax, and " +
-      money(now.saved) + " into the 401(k). " + housingLine + ", and the same life costs about " +
-      money(needNow.need) + " in retirement. " +
-      (needNow.need > 0 ? "Plan on this covers " + Math.round(share * 100) + "% of it. " : "") +
-      (lastYear > 0 && Math.abs(needLater.need - needNow.need) > 1000
-        ? "With your raises, living as you will the year before you retire would cost about " + money(needLater.need) + ". "
-        : "");
 
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
     const savedNow = contributionSplit(input, 0, input.age + 1);
@@ -325,8 +339,9 @@ export function boot(root) {
       below: style.getPropertyValue("--house").trim(),
     };
 
+    // Only the lines you plan on are drawn. The median is a note in the cards, not a line.
     let maxV = 1;
-    paths.forEach((p) => {
+    paths.filter((p) => p.key !== "mid").forEach((p) => {
       p.points.forEach((pt) => {
         if (pt.balance > maxV) maxV = pt.balance;
       });
@@ -406,7 +421,7 @@ export function boot(root) {
 
     const legend = $("legend");
     legend.innerHTML = "";
-    paths.forEach((p) => {
+    paths.filter((p) => p.key !== "mid").forEach((p) => {
       const item = document.createElement("span");
       const sw = document.createElement("i");
       sw.style.background = colors[p.key];
@@ -444,6 +459,7 @@ export function boot(root) {
       ["house", Math.round(input.housingMonth), DEFAULTS.housingMonth],
       ["home", input.home, DEFAULTS.home],
       ["carry", Math.round(input.ownCarry), DEFAULTS.ownCarry],
+      ["smode", input.spendMode, DEFAULTS.spendMode],
       ["ss", Math.round(input.ssAnnual), DEFAULTS.ssAnnual],
       ["ssage", input.ssAge, DEFAULTS.ssAge],
       ["infl", trimNum(input.inflation * 100), String(DEFAULTS.inflationPct)],
@@ -461,12 +477,10 @@ export function boot(root) {
     }
   }
 
-  let liveNow = 0;
   const useLive = $("use-live");
   if (useLive) {
     useLive.addEventListener("click", () => {
-      if (!(liveNow > 0)) return;
-      setMoney("spend-amt", liveNow);
+      $("spend-mode").value = "life";
       schedule();
     });
   }
@@ -477,6 +491,7 @@ export function boot(root) {
     if (t.id === "balance") {
       setMoney("balance-amt", parseFloat(t.value));
     } else if (t.id === "spend") {
+      $("spend-mode").value = "custom";
       setMoney("spend-amt", parseFloat(t.value));
     } else if (t.classList.contains("money") && event.type === "input") {
       formatMoneyLive(t);
@@ -591,6 +606,7 @@ export function boot(root) {
           housingMonth: q.get("house"),
           home: q.get("home"),
           ownCarry: q.get("carry"),
+          spendMode: q.get("smode") || (q.has("spend") ? "custom" : "life"),
         }
       : stored
         ? {
@@ -614,6 +630,7 @@ export function boot(root) {
             housingMonth: stored.housingMonth,
             home: stored.home,
             ownCarry: stored.ownCarry,
+            spendMode: stored.spendMode || "life",
           }
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });

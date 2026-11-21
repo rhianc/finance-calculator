@@ -75,6 +75,10 @@
     background: var(--field);
   }
   #tax-note { margin-top: 0.35rem; }
+  .verdict { margin: 0.55rem 0 0.2rem; font-weight: 600; }
+  .for-fun { opacity: 0.6; }
+  .verdict.pos { color: var(--good); }
+  .verdict.neg { color: var(--rent); }
   .field > .label {
     display: block;
     margin-bottom: 0.28rem;
@@ -200,6 +204,7 @@
       <!-- The Balance and After tax sliders write here; type exact amounts in the slider boxes. -->
       <input type="hidden" id="balance-amt" value="50,000">
       <input type="hidden" id="spend-amt" value="70,000">
+      <input type="hidden" id="spend-mode" value="life">
       <div class="field">
         <label for="salary">Salary today</label>
         <div class="control">
@@ -284,33 +289,38 @@
   </div>
 
   <section class="card" aria-labelledby="burn-heading">
-    <h2 id="burn-heading">Plan on this</h2>
-    <p class="section-lead">The most you can spend each year after tax and still have money left in 9 out of 10 simulated markets. Fund the spending you can't cut, like housing, food, and health care, from this number.</p>
+    <h2 id="burn-heading">Spending in retirement</h2>
     <p class="big" id="burn-avg">—</p>
     <p class="burn-mo" id="burn-mo"></p>
-    <p class="sub" id="burn-sub">In the market 9 out of 10 simulations beat.</p>
-    <p class="hint" id="live-note"></p>
+    <p class="sub" id="burn-sub"></p>
+    <p class="verdict" id="verdict"></p>
+    <p class="hint" id="fix-note"></p>
     <div class="actions">
-      <button type="button" class="textbtn" id="use-live">Set spending to this</button>
+      <button type="button" class="textbtn" id="use-live" hidden>Go back to what you live on now</button>
     </div>
     <div class="meta">
       <div>
-        <div class="k" id="bad-name">Plan on this</div>
+        <div class="k">Most you can spend, 9 in 10</div>
         <div class="v" id="bad-burn">—</div>
         <div class="hint" id="bad-fate"></div>
       </div>
       <div>
-        <div class="k" id="below-name">If you can cut back</div>
+        <div class="k">If you'd cut back in a bad decade, 3 in 4</div>
         <div class="v" id="below-burn">—</div>
         <div class="hint" id="below-fate"></div>
       </div>
+      <div class="for-fun">
+        <div class="k">Median market, for fun</div>
+        <div class="v" id="mid-burn">—</div>
+        <div class="hint" id="mid-fate"></div>
+      </div>
     </div>
-    <p class="hint">If you would trim spending after a bad decade, the second number is closer to what you could spend: it lasted in 3 out of 4 markets. There is no middle line. Spending that lasts in half of markets runs out in the other half, and running out can't be undone. Planning to 100 is cautious already, since few people live that long. Using only U.S. stocks from 1928 is not cautious, since the U.S. was the best market of the century. The after-tax slider does not change these numbers. Saving, age, and the account do. Social Security is included.</p>
+    <p class="hint">Spending starts at what you live on now, so you don't have to guess it. Drag After tax to set your own, or change your housing below. The plan is to last in 9 of 10 simulated markets: running out can't be undone, and that is the bar Fidelity plans to. Planning to 100 is already cautious, since few people live that long. Using only U.S. stocks from 1928 is not, since the U.S. was the best market of the century. Social Security is included.</p>
   </section>
 
   <section class="card" aria-labelledby="nest-heading">
     <h2 id="nest-heading">The day you retire</h2>
-    <p class="section-lead">Account value that morning, in today's dollars, in the market 9 in 10 beat and the one 3 in 4 beat.</p>
+    <p class="section-lead">Account value that morning, in today's dollars, in the market 9 in 10 beat and the one 3 in 4 beat. The median is there for fun: half of markets end below it.</p>
     <div class="meta">
       <div>
         <div class="k">Plan on this</div>
@@ -319,6 +329,10 @@
       <div>
         <div class="k">If you can cut back</div>
         <div class="v" id="below-nest">—</div>
+      </div>
+      <div class="for-fun">
+        <div class="k">Median market, for fun</div>
+        <div class="v" id="mid-nest">—</div>
       </div>
     </div>
     <div class="steps" id="worked">
@@ -367,9 +381,9 @@
         \end{gathered}
       \]</div>
 
-      <h3>The two lines</h3>
-      <p>The lines are not two rates, and neither is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
-      <p>The median is left out on purpose. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
+      <h3>The lines</h3>
+      <p>The lines are not rates, and none is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. The spending you set is checked against all 280: the verdict counts how many never run out, and the fix is the retirement age or save rate that gets that count to 252, 9 in 10. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. Your slider is a separate plan. If a line reaches the floor, that fraction of markets had already run out.</p>
+      <p>The median is noted in the cards for fun, not drawn, and not to plan on. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
       <p>Left out: fees, an employer match, bonds, required minimum distributions, any pension besides the Social Security number, and the chance that future stocks do worse than 1928–2025 even after you lower the average. Not a quote, and not tax or investment advice.</p>
     </details>
@@ -381,7 +395,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=17"></script>
+<script type="module" src="js/retirement.js?v=20"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

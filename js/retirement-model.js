@@ -22,6 +22,7 @@ export const DEFAULTS = {
   housingMonth: 3000,
   home: "own",
   ownCarry: 15000,
+  spendMode: "life",
 };
 
 // Tax year 2026. Held fixed because balances are already in today's dollars.
@@ -128,6 +129,8 @@ export function normalize(raw) {
     housingMonth: clamp(num(raw.housingMonth, DEFAULTS.housingMonth), 0, 100000),
     home: raw.home === "rent" ? "rent" : "own",
     ownCarry: clamp(num(raw.ownCarry, DEFAULTS.ownCarry), 0, 1000000),
+    // "life": spending follows what you live on now. "custom": the After tax knob is yours.
+    spendMode: raw.spendMode === "custom" ? "custom" : "life",
   };
 }
 
@@ -662,11 +665,12 @@ export function project(input) {
   const ages = [];
   for (let i = 0; i < markIndex.length; i += 2) ages.push(roundAge(input.age + markIndex[i] / 12));
 
-  const series = { below: [], bad: [] };
-  const pct = { below: 0.25, bad: 0.1 };
+  const series = { below: [], bad: [], mid: [] };
+  const pct = { below: 0.25, bad: 0.1, mid: 0.5 };
   for (let i = 1; i < markIndex.length; i += 2) {
     const vals = ran.map((r) => r.marks[i]).sort((a, b) => a - b);
     series.below.push(atPercent(vals, pct.below));
+    series.mid.push(atPercent(vals, pct.mid));
     series.bad.push(atPercent(vals, pct.bad));
   }
 
@@ -676,18 +680,21 @@ export function project(input) {
   const burns = {
     below: successSpend(input, rates, skel, 0.75),
     bad: successSpend(input, rates, skel, 0.9),
+    mid: successSpend(input, rates, skel, 0.5),
   };
   coverCache = null;
 
   // Plan on the 9-in-10 line for spending you cannot cut. The 3-in-4 line is what you could spend
   // if you will trim in a bad decade. Size by the bad outcomes you would sit through (companion, @home).
   const meta = {
-    bad: { name: "Plan on this", note: "lasted in 9 of 10 markets" },
-    below: { name: "If you can cut back", note: "lasted in 3 of 4" },
+    bad: { name: "Bad market", note: "9 in 10 did better" },
+    below: { name: "Below-average market", note: "3 in 4 did better" },
+    // Shown for fun, not to plan on: spending it supports runs out in half of markets.
+    mid: { name: "Median market, for fun", note: "half did better" },
   };
   const compound = compoundReal(input);
 
-  return ["bad", "below"].map((key) => {
+  return ["bad", "below", "mid"].map((key) => {
     const points = ages.map((age, i) => ({ age, balance: Math.max(0, series[key][i]) }));
     let depletedAge = null;
     for (const pt of points) {
@@ -716,4 +723,61 @@ export function project(input) {
 
 function roundAge(age) {
   return Math.round(age * 1000) / 1000;
+}
+
+/** Retirement spending that keeps today's life: take-home now, with housing swapped by retireNeed. */
+export function lifeNeed(input) {
+  return retireNeed(input, takeHome(input, 0, input.age + 1).live).need;
+}
+
+/**
+ * How often `input.annualSpend` lasts, and if it falls short of 9 in 10 markets, the retirement age or
+ * save rate that would get it there. Each check runs the same 280 histories, stopping a path once it runs out.
+ */
+export function planCheck(input, threshold = 0.9) {
+  const years = Math.max(1, Math.ceil(input.endAge - input.age));
+  const rates = yearRates(input, years);
+  coverCache = new Map();
+  const share = (inp) => {
+    const flow = planWithSpend(buildSkeleton(inp), inp);
+    let live = 0;
+    for (let p = 0; p < N_PATHS; p++) {
+      if (runPath(inp, flow, rates[p], true).depletedAge == null) live += 1;
+    }
+    return live / N_PATHS;
+  };
+  const success = share(input);
+  let retireAt = null;
+  let saveAt = null;
+  let saveCapped = false;
+  if (success < threshold) {
+    const at = (r) => share({ ...input, retireAge: r });
+    let lo = input.retireAge;
+    let hi = Math.min(85, input.endAge - 1);
+    if (hi > lo && at(hi) >= threshold) {
+      while (hi - lo > 1) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (at(mid) >= threshold) hi = mid;
+        else lo = mid;
+      }
+      retireAt = hi;
+    } else {
+      retireAt = Infinity;
+    }
+    const full = { ...input, savePct: 1 };
+    if (share(full) >= threshold) {
+      let a = input.savePct;
+      let b = 1;
+      for (let i = 0; i < 8; i++) {
+        const mid = (a + b) / 2;
+        if (share({ ...input, savePct: mid }) >= threshold) b = mid;
+        else a = mid;
+      }
+      saveAt = Math.ceil(b * 100) / 100;
+    }
+    // Saving more does nothing once the 401(k) limit is full.
+    saveCapped = contributionSplit(input, 0, input.age + 1).payUsed + 1 < input.salary * input.savePct;
+  }
+  coverCache = null;
+  return { success, retireAt, saveAt, saveCapped };
 }
