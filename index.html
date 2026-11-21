@@ -208,7 +208,7 @@
             </div>
           </div>
           <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return, so the stocks grow at the rate shown here, then the drag comes off.</p>
-          <p class="hint span-2">PMI applies only while the loan is above 80% of the price. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate. Costs step up with inflation each year.</p>
+          <p class="hint span-2">PMI is charged until the balance reaches 80% of the price, when you can ask to cancel it. By law it ends on its own at 78%. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate. Costs step up with inflation each year.</p>
         </div>
       </details>
 
@@ -382,7 +382,7 @@
     <div class="math">\[
       \tau^{\mathrm{fed}} = \mathrm{Tax}(TI_{\mathrm{rent}}) - \mathrm{Tax}(TI_{\mathrm{own}})
     \]</div>
-    <p>\(TI_{\mathrm{rent}}\) is wages minus the larger of the standard deduction and the deductions already on the return: state and local income tax, limited by that year's SALT cap, plus other itemized deductions. \(TI_{\mathrm{own}}\) also subtracts deductible mortgage interest and the property tax that still fits in the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule, so a deduction that crosses a bracket is split across the rates it passes. Federal savings stay $0 until housing deductions push itemizing past the standard deduction. State savings start with the first dollar of deductible interest. California never adopted the $750,000 cap, so its return deducts interest on up to $1,000,000 of the balance. Property tax is not deducted on the state return here.</p>
+    <p>\(TI_{\mathrm{rent}}\) is wages minus the larger of the standard deduction and the deductions already on the return: state and local income tax, limited by that year's SALT cap, plus other itemized deductions. \(TI_{\mathrm{own}}\) also subtracts deductible mortgage interest and the property tax that still fits in the cap. \(\mathrm{Tax}\) is the 2026 ordinary schedule, so a deduction that crosses a bracket is split across the rates it passes. Federal savings stay $0 until housing deductions push itemizing past the standard deduction. The state benefit is the state tax on the renter's return minus the owner's. The owner's state return adds mortgage interest and the whole property tax bill, since state returns have no SALT cap. Itemizing replaces the state standard deduction rather than adding to it, so the first several thousand dollars of interest save nothing on a California return. California never adopted the $750,000 cap, so it deducts interest on up to $1,000,000 of the balance. Connecticut, Illinois, Indiana, Massachusetts, Michigan, New Jersey, Ohio, Pennsylvania, Rhode Island, and West Virginia allow no mortgage-interest deduction. North Carolina caps interest plus property tax at $20,000. Utah gives a 6% credit on deductions that phases out with income.</p>
 
     <h3>Property tax over time</h3>
     <p>\(\rho\) is the rate you entered, applied to the purchase price. California mode grows that assessment with inflation, and never by more than 2% a year. Market mode follows appreciation, so the effective rate stays constant. Inflation mode follows inflation and ignores appreciation. Year 0 is the purchase year, before any of that growth.</p>
@@ -406,7 +406,7 @@
     <h3>Left out on purpose</h3>
     <ul class="left-out">
       <li>Extra principal payments, refinancing, and adjustable rates.</li>
-      <li>Deducting PMI, and FHA loans that keep a premium for the life of the loan.</li>
+      <li>Deducting PMI, which returns in 2026 but phases out from $100,000 of income and is gone above $109,000. FHA loans that keep a premium for the life of the loan.</li>
       <li>Income and the 2026 brackets are not inflated.</li>
       <li>Dependents, the alternative minimum tax, and New York's tax-benefit recapture.</li>
       <li>Most local wage taxes, except New York City and Philadelphia. Those are not applied to the sale.</li>
@@ -426,8 +426,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="js/taxes.js?v=10"></script>
-<script src="js/model.js?v=10"></script>
+<script src="js/taxes.js?v=11"></script>
+<script src="js/model.js?v=11"></script>
 <script src="js/markets.js?v=14"></script>
 <script src="js/redfin.js?v=1"></script>
 <script src="js/charts.js?v=32"></script>

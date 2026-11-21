@@ -1,4 +1,4 @@
-import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, DEFAULTS } from "../js/retirement-model.js";
+import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, DEFAULTS } from "../js/retirement-model.js";
 
 let failed = 0;
 function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond) failed += 1; }
@@ -31,5 +31,10 @@ const lines = project(base);
 check("two lines, the plan first", lines.length === 2 && lines[0].key === "bad" && lines[1].key === "below");
 check("cutting back allows more spending", lines[1].burn >= lines[0].burn);
 print("burns " + lines.map((l) => l.burn).join(", ") + "; compound real " + (cr * 100).toFixed(2) + "%");
+
+const th = takeHome(normalize({ salary: 200000, savePct: 15, account: "traditional" }), 0, 29);
+near("take-home at $200k single, CA: pay less tax, payroll, and the 401(k)", th.live, 200000 - 30854 - 11932.36 - 16939 - 24500, 1);
+near("owning outright swaps rent for carrying costs", retireNeed(normalize({ housingMonth: 3000, home: "own", ownCarry: 15000 }), 100000).need, 100000 - 36000 + 15000, 0.01);
+near("still renting keeps the rent", retireNeed(normalize({ housingMonth: 3000, home: "rent", ownCarry: 15000 }), 100000).need, 100000, 0.01);
 
 if (failed) { print(failed + " failed"); } else print("all passed");

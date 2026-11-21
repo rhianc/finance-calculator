@@ -136,6 +136,8 @@
       ytdHousing: 0,
       ytdProp: 0,
       ytdInterest: 0,
+      ytdStateProp: 0,
+      otherItemized: input.otherItemized,
       saltRoom: Math.max(0, salt - input.otherSalt),
       prevBenefit: Math.max(0, other - std) * input.federalRate,
       prevStateBenefit: 0,
@@ -147,7 +149,8 @@
     if (input.income != null) {
       var taxableRent = Math.max(0, input.income - Math.max(std, other));
       tax.rentFederal = TaxRules.ordinaryTax(input.filingStatus, taxableRent);
-      tax.stateBase = TaxRules.stateIncomeTax(input.stateCode, input.filingStatus, input.income, 0, input.cityName);
+      // The renter's state return: other itemized deductions, or the state standard deduction.
+      tax.stateBase = TaxRules.stateIncomeTax(input.stateCode, input.filingStatus, input.income, input.otherItemized, input.cityName, 0);
       tax.prevBenefit = 0;
     }
     return tax;
@@ -179,8 +182,13 @@
     if (tax.income == null) {
       stateSavings = stateInterest * tax.stateRate;
     } else {
+      // The owner's state return adds mortgage interest and the whole property tax bill (state
+      // returns have no SALT cap). Itemizing replaces the state standard deduction.
       tax.ytdInterest += stateInterest;
-      var stateBenefit = tax.stateBase - TaxRules.stateIncomeTax(tax.stateCode, tax.filingStatus, tax.income, tax.ytdInterest, tax.cityName);
+      tax.ytdStateProp += Math.max(0, propertyTaxMonth);
+      var home = tax.ytdInterest + tax.ytdStateProp;
+      var stateBenefit = tax.stateBase - TaxRules.stateIncomeTax(tax.stateCode, tax.filingStatus, tax.income,
+        tax.otherItemized + home, tax.cityName, home);
       stateSavings = stateBenefit - tax.prevStateBenefit;
       tax.prevStateBenefit = stateBenefit;
     }

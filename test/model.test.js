@@ -331,7 +331,13 @@ near('that income is the 24% bracket', T.federalMarginal('mfj', 217800), 0.24, 0
 near('California marginal rate at $250,000', T.stateMarginal('CA', 'mfj', 250000, ''), 0.093, 0.0001);
 near('California tax at $250,000 joint, 2026 schedule', T.saltBill('CA', 'mfj', 250000, ''), 14471.72, 1);
 near('Texas has no income tax', T.saltBill('TX', 'mfj', 250000, ''), 0, 0.01);
-near('a dollar of California interest saves 9.3 cents', T.stateIncomeTax('CA', 'mfj', 250000, 0, '') - T.stateIncomeTax('CA', 'mfj', 250000, 1, ''), 0.093, 0.0001);
+near('a dollar of California itemized deductions past the standard saves 9.3 cents', T.stateIncomeTax('CA', 'mfj', 250000, 20000, '') - T.stateIncomeTax('CA', 'mfj', 250000, 20001, ''), 0.093, 0.0001);
+near('itemizing below the California standard deduction saves nothing', T.stateIncomeTax('CA', 'mfj', 250000, 0, '') - T.stateIncomeTax('CA', 'mfj', 250000, 11000, ''), 0, 0.0001);
+near('Illinois allows no mortgage interest', T.stateIncomeTax('IL', 'mfj', 250000, 0, '', 0) - T.stateIncomeTax('IL', 'mfj', 250000, 30000, '', 30000), 0, 0.0001);
+near('North Carolina caps home deductions at $20,000', T.stateIncomeTax('NC', 'mfj', 250000, 0, '', 0) - T.stateIncomeTax('NC', 'mfj', 250000, 40000, '', 40000), (20000 - 25500 > 0 ? 0 : 0) , 0.0001);
+near('Utah: a mortgage moves the credit, and at $300,000 the credit is gone', T.stateIncomeTax('UT', 'mfj', 300000, 0, '') - T.stateIncomeTax('UT', 'mfj', 300000, 40000, ''), 0, 0.0001);
+near('Utah at $60,000: 6% of the deductions past the standard', T.stateIncomeTax('UT', 'mfj', 60000, 0, '') - T.stateIncomeTax('UT', 'mfj', 60000, 40000, ''), 0.06 * (40000 - 32200), 0.01);
+near('Georgia 2026 is 4.99% past a $30,000 joint deduction', T.stateIncomeTax('GA', 'mfj', 130000, 0, ''), 100000 * 0.0499, 0.01);
 near('long-term gain at the NIIT threshold', T.taxOnGain({
   income: 250000, status: 'mfj', state: 'TX', city: '', taxableGain: 100000, longTerm: true
 }), 18800, 0.05);

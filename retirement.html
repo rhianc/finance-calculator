@@ -75,6 +75,17 @@
     background: var(--field);
   }
   #tax-note { margin-top: 0.35rem; }
+  .field > .label {
+    display: block;
+    margin-bottom: 0.28rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.25;
+    min-height: 2.4em;
+  }
+  .field .pills { width: fit-content; }
+  @media (max-width: 700px) { .field > .label { min-height: 0; } }
   .stage .chart-box.tall { height: 188px; }
   @media (max-width: 700px) {
     .stage .chart-box.tall { height: 148px; }
@@ -204,6 +215,30 @@
         </div>
       </div>
       <div class="field">
+        <label for="housing">Housing today: rent, or mortgage with tax and insurance</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="housing" class="money" inputmode="decimal" autocomplete="off" value="3,000">
+          <span class="unit">/mo</span>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">When you retire</span>
+        <div class="pills" role="radiogroup" aria-label="Housing when you retire">
+          <button type="button" data-home="own" aria-pressed="true">Own it, paid off</button>
+          <button type="button" data-home="rent" aria-pressed="false">Still renting</button>
+        </div>
+      </div>
+      <div class="field" id="own-carry-field">
+        <label for="own-carry">Owning it then: property tax, insurance, upkeep</label>
+        <div class="control">
+          <span class="unit prefix">$</span>
+          <input id="own-carry" class="money" inputmode="decimal" autocomplete="off" value="15,000">
+          <span class="unit">/yr</span>
+        </div>
+      </div>
+      <p class="hint span-2">A paid-off California home costs about 2.5–3% of its purchase price a year: property tax near 1.1% of what you paid (Proposition 13 keeps it tied to the purchase price), insurance near 0.7%, and upkeep near 1%. The house itself is not counted in the balance.</p>
+      <div class="field">
         <label for="end">Plan through age</label>
         <div class="control">
           <input id="end" type="number" min="50" max="110" step="1" value="100" inputmode="numeric">
@@ -254,6 +289,10 @@
     <p class="big" id="burn-avg">—</p>
     <p class="burn-mo" id="burn-mo"></p>
     <p class="sub" id="burn-sub">In the market 9 out of 10 simulations beat.</p>
+    <p class="hint" id="live-note"></p>
+    <div class="actions">
+      <button type="button" class="textbtn" id="use-live">Set spending to this</button>
+    </div>
     <div class="meta">
       <div>
         <div class="k" id="bad-name">Plan on this</div>
@@ -294,7 +333,7 @@
   <section class="card">
     <details class="sheet" id="formulas">
       <summary>How the lines are counted</summary>
-      <p class="section-lead">280 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches.</p>
+      <p class="section-lead">280 simulated lives. Each year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches. Returns are Damodaran's (NYU Stern). Inflation is the BLS CPI-U from December to December, so each year's inflation covers the same months as its return.</p>
 
       <h3>Today's dollars</h3>
       <p>\(n\) is the stock return you type and \(\pi\) is inflation. The target real return is</p>
@@ -303,7 +342,7 @@
       <div class="math">\[ r_y = \mathrm{clamp}\!\left(\tilde r_{b(y)} + (r - \bar r),\; -0.7,\; 1.2\right) \]</div>
       <p>\(r\) is the average year, the arithmetic mean. Wealth multiplies the years together, so it grows at the geometric mean instead, about half the variance lower. With these years' 19% volatility that is roughly two points a year:</p>
       <div class="math">\[ r_{\text{compound}} = \exp\!\Big(\tfrac{1}{98}\textstyle\sum_y \ln(1+r_y)\Big) - 1 \;\approx\; r - \tfrac{\sigma^2}{2} \]</div>
-      <p>A straight 9% every year would be the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Fidelity's planner draws a new return each year, not each month. Month versus year changes a lifetime very little next to whether a crash lands early in retirement.</p>
+      <p>A straight 9% every year would be the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Drawing a return each year instead of each month changes a lifetime very little next to whether a crash lands early in retirement.</p>
 
       <h3>While you work</h3>
       <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of pay set aside before tax. This is a 401(k), not an IRA. The 2026 IRA limit is $7,500, and that is not the cap here. \(\mathrm{cap}(a)\) is the 2026 workplace limit at that age, held flat in today's dollars. Elective deferrals are $24,500 and follow the pre-tax or Roth button. From 50 the catch-up adds $8,000, or $11,250 at ages 60 through 63. Pay over $150,000 makes that catch-up Roth even if the button says pre-tax. Mega backdoor fills what is left of the $72,000 annual-additions limit with Roth money, and it assumes the employer contributes nothing. The deposit cannot exceed that year's pay.</p>
@@ -342,7 +381,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=15"></script>
+<script type="module" src="js/retirement.js?v=17"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

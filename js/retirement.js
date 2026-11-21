@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit } from "./retirement-model.js?v=12";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed } from "./retirement-model.js?v=14";
 
 const STORAGE = "retire-plan-v2";
 
@@ -29,6 +29,9 @@ export function boot(root) {
       avgPct: fieldNum("ret-avg"),
       account: pressed("account"),
       filing: pressed("filing"),
+      housingMonth: fieldNum("housing"),
+      home: pressed("home"),
+      ownCarry: fieldNum("own-carry"),
     };
   }
 
@@ -74,6 +77,10 @@ export function boot(root) {
     set("ret-avg", trimNum(input.avg * 100));
     setChoice("account", input.account);
     setChoice("filing", input.filing);
+    setMoney("housing", input.housingMonth);
+    setChoice("home", input.home);
+    setMoney("own-carry", input.ownCarry);
+    $("own-carry-field").hidden = input.home !== "own";
     fitSlider("balance", input.balance, [200000, 500000, 1000000, 2500000, 10000000]);
     fitSlider("spend", input.annualSpend, [150000, 300000, 600000, 1500000]);
     if (fromSlider === "balance") $("balance").value = String(input.balance);
@@ -257,6 +264,28 @@ export function boot(root) {
 
     $("path-note").textContent = "Dotted line is retirement.";
 
+    // What you live on now: the anchor for a comfortable spending number.
+    const now = takeHome(input, 0, input.age + 1);
+    const lastYear = Math.max(0, input.retireAge - input.age - 1);
+    const later = takeHome(input, lastYear, input.retireAge);
+    const needNow = retireNeed(input, now.live);
+    const needLater = retireNeed(input, later.live);
+    liveNow = Math.round(needNow.need / 1000) * 1000;
+    const share = needNow.need > 0 ? cautious.burn / needNow.need : 0;
+    const housingLine = input.home === "own"
+      ? "Swap today's " + money(needNow.housingNow) + " of housing for " + money(needNow.housingThen) +
+        " of property tax, insurance, and upkeep on a paid-off home"
+      : "You still rent, so today's " + money(needNow.housingNow) + " of housing stays";
+    $("live-note").textContent =
+      "Today you live on about " + money(now.live) + " a year: " + money(now.salary) + " of pay, less " +
+      money(now.federal + now.state) + " income tax, " + money(now.payroll) + " payroll tax, and " +
+      money(now.saved) + " into the 401(k). " + housingLine + ", and the same life costs about " +
+      money(needNow.need) + " in retirement. " +
+      (needNow.need > 0 ? "Plan on this covers " + Math.round(share * 100) + "% of it. " : "") +
+      (lastYear > 0 && Math.abs(needLater.need - needNow.need) > 1000
+        ? "With your raises, living as you will the year before you retire would cost about " + money(needLater.need) + ". "
+        : "");
+
     const year = median.points.find((pt) => Math.abs(pt.age - (input.age + 1)) < 0.02) || median.points[1];
     const savedNow = contributionSplit(input, 0, input.age + 1);
     $("year-now").textContent = money(input.balance);
@@ -412,6 +441,9 @@ export function boot(root) {
       ["raise", trimNum(input.raise * 100), String(DEFAULTS.raisePct)],
       ["mega", input.mega ? "1" : "0", "0"],
       ["spend", Math.round(input.annualSpend), DEFAULTS.annualSpend],
+      ["house", Math.round(input.housingMonth), DEFAULTS.housingMonth],
+      ["home", input.home, DEFAULTS.home],
+      ["carry", Math.round(input.ownCarry), DEFAULTS.ownCarry],
       ["ss", Math.round(input.ssAnnual), DEFAULTS.ssAnnual],
       ["ssage", input.ssAge, DEFAULTS.ssAge],
       ["infl", trimNum(input.inflation * 100), String(DEFAULTS.inflationPct)],
@@ -427,6 +459,16 @@ export function boot(root) {
     if (url !== location.pathname + location.search + location.hash) {
       history.replaceState(null, "", url);
     }
+  }
+
+  let liveNow = 0;
+  const useLive = $("use-live");
+  if (useLive) {
+    useLive.addEventListener("click", () => {
+      if (!(liveNow > 0)) return;
+      setMoney("spend-amt", liveNow);
+      schedule();
+    });
   }
 
   function onEdit(event) {
@@ -467,9 +509,9 @@ export function boot(root) {
   root.addEventListener("change", onEdit);
   root.addEventListener("blur", onBlur, true);
   const onPick = (event) => {
-    const btn = event.target.closest("[data-account], [data-filing], [data-mega]");
+    const btn = event.target.closest("[data-account], [data-filing], [data-mega], [data-home]");
     if (!btn || !root.contains(btn)) return;
-    const name = btn.hasAttribute("data-account") ? "account" : btn.hasAttribute("data-filing") ? "filing" : "mega";
+    const name = ["account", "filing", "mega", "home"].find((n) => btn.hasAttribute("data-" + n));
     setChoice(name, btn.getAttribute("data-" + name));
     schedule();
   };
@@ -546,6 +588,9 @@ export function boot(root) {
           badPct: q.get("r3"),
           account: q.get("acct"),
           filing: q.get("file"),
+          housingMonth: q.get("house"),
+          home: q.get("home"),
+          ownCarry: q.get("carry"),
         }
       : stored
         ? {
@@ -566,6 +611,9 @@ export function boot(root) {
             badPct: stored.bad * 100,
             account: stored.account,
             filing: stored.filing,
+            housingMonth: stored.housingMonth,
+            home: stored.home,
+            ownCarry: stored.ownCarry,
           }
         : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });

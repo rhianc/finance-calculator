@@ -19,6 +19,9 @@ export const DEFAULTS = {
   savePct: 15,
   raisePct: 1,
   mega: false,
+  housingMonth: 3000,
+  home: "own",
+  ownCarry: 15000,
 };
 
 // Tax year 2026. Held fixed because balances are already in today's dollars.
@@ -122,6 +125,9 @@ export function normalize(raw) {
     bad: clamp(num(raw.badPct, DEFAULTS.badPct), -20, 30) / 100,
     account: raw.account === "roth" ? "roth" : "traditional",
     filing: raw.filing === "joint" ? "joint" : "single",
+    housingMonth: clamp(num(raw.housingMonth, DEFAULTS.housingMonth), 0, 100000),
+    home: raw.home === "rent" ? "rent" : "own",
+    ownCarry: clamp(num(raw.ownCarry, DEFAULTS.ownCarry), 0, 1000000),
   };
 }
 
@@ -202,6 +208,44 @@ export function contributionSplit(input, yearsWorked, ageAtYearEnd) {
   put(Math.max(0, room - elective - catchTake), true);
   const total = pre + roth;
   return { salary, want, pre, roth, total, cap: room, taxRate, payUsed: budget - Math.max(0, left) };
+}
+
+// 2026 payroll taxes. Social Security wage base: SSA, $184,500. California SDI: EDD, 1.3% of all wages.
+// Additional Medicare tax thresholds are fixed in law (IRC section 3101(b)(2)).
+const SS_WAGE_BASE_2026 = 184500;
+const CA_SDI_2026 = 0.013;
+const ADD_MEDICARE = { single: 200000, joint: 250000 };
+
+/**
+ * What one year of pay leaves to live on: salary minus federal and California income tax, Social
+ * Security, Medicare, California SDI, and every 401(k) deposit. One earner. Pre-tax deposits come off
+ * income tax, not payroll tax. This is the spending a plan would have to replace.
+ */
+export function takeHome(input, yearsWorked, ageAtYearEnd) {
+  const status = input.filing === "joint" ? "joint" : "single";
+  const split = contributionSplit(input, yearsWorked, ageAtYearEnd);
+  const salary = split.salary;
+  const wages = Math.max(0, salary - split.pre);
+  const federal = bracketTax(Math.max(0, wages - FED[status].std), FED[status].brackets);
+  const caTaxable = Math.max(0, wages - CA[status].std);
+  const state = Math.max(0, bracketTax(caTaxable, CA[status].brackets) - caExemption(status, ageAtYearEnd, wages))
+    + (caTaxable > 1000000 ? (caTaxable - 1000000) * 0.01 : 0);
+  const payroll = 0.062 * Math.min(salary, SS_WAGE_BASE_2026) + 0.0145 * salary
+    + 0.009 * Math.max(0, salary - ADD_MEDICARE[status]) + CA_SDI_2026 * salary;
+  const saved = split.pre + split.roth;
+  const live = Math.max(0, salary - federal - state - payroll - saved);
+  return { salary, federal, state, payroll, saved, live };
+}
+
+/**
+ * Spending to plan for in retirement, from what you live on now. Today's housing (rent, or a mortgage
+ * with its tax and insurance) comes out. If the home is paid off by then, owning it costs only property
+ * tax, insurance, and upkeep. If you still rent, the rent stays, in today's dollars.
+ */
+export function retireNeed(input, live) {
+  const housingNow = input.housingMonth * 12;
+  const housingThen = input.home === "own" ? input.ownCarry : housingNow;
+  return { housingNow, housingThen, need: Math.max(0, live - housingNow + housingThen) };
 }
 
 /** Dollars saved that year, in today's dollars, after the IRS cap. */
@@ -302,8 +346,10 @@ export function spendTax(input, share) {
   return { steady, before, share: frac };
 }
 
-// S&P 500 total return and CPI, calendar years 1928–2025.
-// Damodaran, NYU Stern. Real return pairs the two, so 1974 stays a bad year.
+// S&P 500 total return, calendar years 1928–2025: Damodaran, NYU Stern, histretSP (January 2026).
+// CPI: BLS CPI-U, all items, not seasonally adjusted (CUUR0000SA0), December over December, so each
+// year's inflation covers the same twelve months as its return. Real return pairs the two, so 1974
+// stays a bad year.
 const STOCK = [
   0.4381, -0.0830, -0.2512, -0.4384, -0.0864, 0.4998, -0.0119, 0.4674,
   0.3194, -0.3534, 0.2928, -0.0110, -0.1067, -0.1277, 0.1917, 0.2506,
@@ -320,19 +366,19 @@ const STOCK = [
   0.2488, 0.1778,
 ];
 const CPI = [
-  0.0643, 0.0077, -0.0234, -0.0566, -0.1030, -0.0513, 0.0307, 0.0227,
-  0.0146, 0.0360, -0.0211, 0.0808, 0.0120, 0.0556, 0.1088, 0.0190,
-  0.0170, 0.0234, 0.0833, 0.1459, 0.0244, -0.0211, 0.0123, 0.0790,
-  0.0153, 0.0076, -0.0073, 0.0244, 0.0300, 0.0334, 0.0285, 0.0070,
-  0.0174, 0.0100, 0.0107, 0.0124, 0.0131, 0.0160, 0.0290, 0.0308,
-  0.0427, 0.0546, 0.0584, 0.0430, 0.0327, 0.0616, 0.1103, 0.0913,
-  0.0486, 0.0650, 0.0763, 0.1122, 0.1358, 0.1035, 0.0616, 0.0379,
-  0.0430, 0.0356, 0.0190, 0.0365, 0.0443, 0.0483, 0.0540, 0.0424,
-  0.0295, 0.0297, 0.0267, 0.0281, 0.0333, 0.0229, 0.0156, 0.0268,
-  0.0341, 0.0283, 0.0159, 0.0227, 0.0326, 0.0339, 0.0254, 0.0408,
-  0.0384, -0.0036, 0.0150, 0.0316, 0.0174, 0.0146, 0.0076, 0.0012,
-  0.0207, 0.0213, 0.0191, 0.0181, 0.0123, 0.0704, 0.0650, 0.0340,
-  0.0289, 0.0290,
+  -0.0116, 0.0058, -0.0640, -0.0932, -0.1027, 0.0076, 0.0152, 0.0299,
+  0.0145, 0.0286, -0.0278, 0.0000, 0.0071, 0.0993, 0.0903, 0.0296,
+  0.0230, 0.0225, 0.1813, 0.0884, 0.0299, -0.0207, 0.0593, 0.0600,
+  0.0075, 0.0075, -0.0074, 0.0037, 0.0299, 0.0290, 0.0176, 0.0173,
+  0.0136, 0.0067, 0.0133, 0.0164, 0.0097, 0.0192, 0.0346, 0.0304,
+  0.0472, 0.0620, 0.0557, 0.0327, 0.0341, 0.0871, 0.1234, 0.0694,
+  0.0486, 0.0670, 0.0902, 0.1329, 0.1252, 0.0892, 0.0383, 0.0379,
+  0.0395, 0.0380, 0.0110, 0.0443, 0.0442, 0.0465, 0.0611, 0.0306,
+  0.0290, 0.0275, 0.0267, 0.0254, 0.0332, 0.0170, 0.0161, 0.0268,
+  0.0339, 0.0155, 0.0238, 0.0188, 0.0326, 0.0342, 0.0254, 0.0408,
+  0.0009, 0.0272, 0.0150, 0.0296, 0.0174, 0.0150, 0.0076, 0.0073,
+  0.0207, 0.0211, 0.0191, 0.0229, 0.0136, 0.0704, 0.0645, 0.0335,
+  0.0289, 0.0268,
 ];
 
 const RAW_REAL = STOCK.map((s, i) => (1 + s) / (1 + CPI[i]) - 1);
