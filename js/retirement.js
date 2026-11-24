@@ -1,6 +1,12 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck } from "./retirement-model.js?v=17";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck } from "./retirement-model.js?v=18";
 
 const STORAGE = "retire-plan-v2";
+// The market assumptions are defaults the page updates (the stock forecast, expected inflation), not your choices:
+// a saved value equal to the default in force when it was saved is dropped on load, so the current default applies.
+// Plans saved before this was recorded used 9% and 2.5%.
+const MARKET_DEFAULTS = { avgPct: DEFAULTS.avgPct, inflationPct: DEFAULTS.inflationPct };
+const MARKET_DEFAULTS_V2 = { avgPct: 9, inflationPct: 2.5 };
+const keptIf = (frac, pct) => (frac == null || Math.abs(frac * 100 - pct) < 1e-9 ? undefined : frac * 100);
 
 const SCENES = [
   { key: "bad", color: "--good" },
@@ -419,7 +425,8 @@ export function boot(root) {
     clearTimeout(frame);
     frame = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE, JSON.stringify(input));
+        // remember the market defaults in force, so a saved plan that never changed them follows later updates
+        localStorage.setItem(STORAGE, JSON.stringify({ ...input, defaultsAt: MARKET_DEFAULTS }));
       } catch (err) {
         /* private mode */
       }
@@ -596,8 +603,8 @@ export function boot(root) {
             spendAdjust: stored.spendAdjust,
             ssAnnual: stored.ssAnnual,
             ssAge: stored.ssAge,
-            inflationPct: stored.inflation * 100,
-            avgPct: stored.avg * 100,
+            inflationPct: keptIf(stored.inflation, (stored.defaultsAt || MARKET_DEFAULTS_V2).inflationPct),
+            avgPct: keptIf(stored.avg, (stored.defaultsAt || MARKET_DEFAULTS_V2).avgPct),
             belowPct: stored.below * 100,
             badPct: stored.bad * 100,
             account: stored.account,
