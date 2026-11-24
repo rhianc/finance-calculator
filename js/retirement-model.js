@@ -9,8 +9,8 @@ export const DEFAULTS = {
   annualSpend: 70000,
   ssAnnual: 24000,
   ssAge: 67,
-  inflationPct: 2.5,
-  avgPct: 9,
+  inflationPct: 2.2,     // the 10-year breakeven (FRED T10YIE), November 2026
+  avgPct: 7.9,           // the building-block forecast: the shifted history compounds at 3.7% after inflation
   belowPct: 7,
   badPct: 4,
   account: "traditional",

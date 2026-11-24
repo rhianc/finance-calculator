@@ -150,8 +150,9 @@
   // Stocks follow the same basis as the house, so neither side gets history while the other gets a forecast.
   function applyStocks() {
     var history = $('basis').value === 'history';
-    $('stock-return').value = history ? String(HomeMarkets.STOCK_HISTORY.expected) : '9';
-    $('stock-vol').value = String(HomeMarkets.STOCK_HISTORY.vol);
+    var s = history ? HomeMarkets.STOCK_HISTORY : HomeMarkets.STOCK_FORECAST;
+    $('stock-return').value = String(s.expected);
+    $('stock-vol').value = String(s.vol);
   }
 
   function cityName() {
@@ -465,7 +466,8 @@
     }
     $('basis-hint').textContent = (history
       ? 'Last 35 years: homes, rents, and stocks each at what they did in ' + label + ' from about 1991. Stocks compounded 11.1% then, homes ' + (place ? place.rate.toFixed(2) : '') + '%.'
-      : 'Forecast: stocks at 9% expected (7.6% on a typical path), homes and rent at inflation plus real rent growth.')
+      : 'Forecast: stocks at ' + rateText(input.stockReturn) + '% expected (' + rateText(result.stockTypical)
+        + '% on a typical path), homes and rent at inflation plus real rent growth.')
       + (input.exit === 'keep'
         ? ' Keep it all: nothing is sold at the end, so no selling costs and no tax on either side\'s gains.'
         : ' Sell everything: both sides cash out at the end and pay tax on their gains, the house after its exclusion.');
@@ -473,7 +475,7 @@
     $('stock-hint').textContent = 'A ' + rateText(input.stockReturn) + '% expected return with ' + rateText(input.stockVol)
       + '% volatility compounds at ' + rateText(result.stockTypical) + '% on a typical path, '
       + rateText(result.stockAnnual) + '% after drag. '
-      + (history ? 'The S&P 500 averaged 12.6% from 1991 to 2025 and compounded 11.1%.' : '9% is 4% T-bills plus a 5% equity premium.');
+      + (history ? 'The S&P 500 averaged 12.6% from 1991 to 2025 and compounded 11.1%.' : HomeMarkets.STOCK_FORECAST.note);
     var rg = input.rentGrowth;
     var rentSource = rentArea ? ' Rents in ' + rentArea.name + ' grew ' + rentArea.rate.toFixed(2) + '% a year from 1990 to 2025 (BLS).' : '';
     $('rent-growth-hint').textContent = (Math.abs(rg - input.homeAppreciation) < 0.00005

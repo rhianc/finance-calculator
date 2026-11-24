@@ -369,6 +369,18 @@
   // 12.58% a year on average and 11.12% compounded, which a 16% volatility reproduces.
   var STOCK_HISTORY = { expected: 12.6, vol: 16, compound: 11.1 };
 
+  // Stocks, forecast: building blocks, the method behind published capital market assumptions (AQR, "2026 Capital
+  // Market Assumptions"): dividend yield + real earnings growth, valuations held flat. Shiller's S&P data
+  // (shillerdata.com) through September 2026: dividend yield 1.1%; real growth of 10-year-average earnings 4.0% over
+  // the last 25 years, taken halfway back to the 1.9% since 1881, so 3.0%; payout view 4.0%. Earnings view: half of
+  // the 2.5% earnings yield (CAPE 39.5), grown, plus 1.9%: 3.3%. Averaged: 3.7% a year after inflation. Plus the
+  // 10-year breakeven inflation rate, 2.2% (FRED T10YIE, November 2026): 6.0% compounded. The S&P 500's real
+  // returns swung 19% a year from 1928 to 2025, so the average year is (1.060)e^(0.19^2/2) - 1 = 7.9%. Forecasts
+  // made this way from data published at the time beat the historical average 10 and 20 years ahead on every
+  // month since 1906; 8 in 10 decades still landed 6.5 points below to 8.1 above them.
+  var STOCK_FORECAST = { expected: 7.9, vol: 19, compound: 6.0, real: 3.7, inflation: 2.2, asOf: 'November 2026',
+    note: "7.9% is the building-block forecast for November 2026, the method behind published long-run forecasts: the S&P 500's 1.1% dividend yield plus 3.0% real earnings growth, cross-checked against its 2.5% earnings yield, with valuations held where they are. That compounds at about 3.7% a year after inflation, 6.0% with the 2.2% inflation the bond market expects. The past's 10% came with 3.7% dividend yields and valuations that tripled." };
+
   // Gross yield (annual rent / value) at a typical price. Zillow ZHVI and ZORI, May 2026.
   // A house priced away from that typical value does not keep the same yield:
   // the rental page raises rent with price^0.85.
@@ -567,6 +579,7 @@
     CITIES: CITIES,
     RENT_CPI: RENT_CPI,
     STOCK_HISTORY: STOCK_HISTORY,
+    STOCK_FORECAST: STOCK_FORECAST,
     options: options,
     cities: cities,
     place: place

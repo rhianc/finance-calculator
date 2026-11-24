@@ -5,7 +5,9 @@ function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond)
 function near(name, a, b, tol) { if (Math.abs(a - b) > tol) print("     got " + a + " expected " + b); check(name, Math.abs(a - b) <= tol); }
 
 const base = normalize({});
-check("the default expected return is the companion's 9%", base.avg === 0.09);
+check("the default expected return is the building-block 7.9%", base.avg === 0.079);
+check("which the shifted history compounds at about 3.7% after inflation",
+  Math.abs(compoundReal(base) - 0.037) < 0.001);
 
 const pre = contributionSplit(normalize({ salary: 100000, savePct: 10, account: "traditional" }), 0, 30);
 near("pre-tax: a dollar of pay is a dollar in", pre.pre, 10000, 0.01);
@@ -24,7 +26,7 @@ const one = taxBill(60000, 0, "joint", "traditional", 66).federal;
 near("married 65+ gets the extra deduction for both spouses", one, (60000 - 32200 - 3300) * 0.1 + 0 , 0.01);
 
 const cr = compoundReal(base);
-const ar = (1.09 / 1.025) - 1;
+const ar = (1 + base.avg) / (1 + base.inflation) - 1;
 check("compound real return sits about 2 points under the average", ar - cr > 0.015 && ar - cr < 0.025);
 
 const lines = project(base);

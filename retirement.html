@@ -282,18 +282,18 @@
         <div class="field">
           <label for="ret-avg">Expected stock return, nominal</label>
           <div class="control">
-            <input id="ret-avg" type="number" min="-20" max="30" step="0.1" value="9" inputmode="decimal">
+            <input id="ret-avg" type="number" min="-20" max="30" step="0.1" value="7.9" inputmode="decimal">
             <span class="unit">%/yr</span>
           </div>
         </div>
         <div class="field">
           <label for="inflation">Inflation</label>
           <div class="control">
-            <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+            <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.2" inputmode="decimal">
             <span class="unit">%/yr</span>
           </div>
         </div>
-        <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average year matches what you type. With real swings a typical path grows about two points a year slower. 9% is 4% T-bills plus a 5% equity premium, below the 11.9% U.S. stocks averaged from 1928.</p>
+        <p class="hint span-2">Each simulated year is a real S&P 500 year, dividends included, from 1928 through 2025, kept in 5-year stretches so a crash that lasted still lasts. This box shifts that history so the average year matches what you type. With real swings a typical path grows about two points a year slower. 7.9% is today's building-block forecast: it compounds at about 3.7% a year after inflation (the S&amp;P 500's 1.1% dividend yield plus 3.0% real earnings growth, valuations held flat; Shiller's data, November 2026). U.S. stocks averaged 11.9% from 1928, when dividends paid 3–4% and valuations tripled. Inflation defaults to the 2.2% the bond market expects (10-year breakeven).</p>
       </div>
     </details>
   </section>
@@ -370,7 +370,7 @@
       <div class="math">\[ r_y = \mathrm{clamp}\!\left(\tilde r_{b(y)} + (r - \bar r),\; -0.7,\; 1.2\right) \]</div>
       <p>\(r\) is the average year, the arithmetic mean. Wealth multiplies the years together, so it grows at the geometric mean instead, about half the variance lower. With these years' 19% volatility that is roughly two points a year:</p>
       <div class="math">\[ r_{\text{compound}} = \exp\!\Big(\tfrac{1}{98}\textstyle\sum_y \ln(1+r_y)\Big) - 1 \;\approx\; r - \tfrac{\sigma^2}{2} \]</div>
-      <p>A straight 9% every year would be the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Drawing a return each year instead of each month changes a lifetime very little next to whether a crash lands early in retirement.</p>
+      <p>A straight 7.9% every year would be the optimistic version of this chart. The same average, with 1931 and 1974 and 2008 still in the deck, leaves a lower balance. Drawing a return each year instead of each month changes a lifetime very little next to whether a crash lands early in retirement.</p>
 
       <h3>While you work</h3>
       <p>\(S_0\) is salary today, \(g\) is the raise above inflation, and \(p\) is the fraction of pay set aside before tax. This is a 401(k), not an IRA. The 2026 IRA limit is $7,500, and that is not the cap here. \(\mathrm{cap}(a)\) is the 2026 workplace limit at that age, held flat in today's dollars. Elective deferrals are $24,500 and follow the pre-tax or Roth button. From 50 the catch-up adds $8,000, or $11,250 at ages 60 through 63. Pay over $150,000 makes that catch-up Roth even if the button says pre-tax. Mega backdoor fills what is left of the $72,000 annual-additions limit with Roth money, and it assumes the employer contributes nothing. The deposit cannot exceed that year's pay.</p>
@@ -405,7 +405,7 @@
 </main>
 
 <footer class="wrap">
-  <p>Historical stock years, not a smooth 9%. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
+  <p>Historical stock years, not a smooth average. The cautious number is the one Fidelity plans from. Not tax or investment advice.</p>
 </footer>
 
 <script src="js/knobs.js?v=2"></script>

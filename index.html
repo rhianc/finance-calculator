@@ -141,21 +141,21 @@
           <div class="field">
             <label for="stock-return">Stock return, expected, nominal</label>
             <div class="control">
-              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="9" inputmode="decimal">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="7.9" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
           <div class="field">
             <label for="stock-vol">Stock volatility</label>
             <div class="control">
-              <input id="stock-vol" type="number" min="0" max="60" step="1" value="16" inputmode="decimal">
+              <input id="stock-vol" type="number" min="0" max="60" step="1" value="19" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
           <div class="field">
             <label for="inflation">Inflation</label>
             <div class="control">
-              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.2" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -222,7 +222,7 @@
               <span class="unit">$/yr</span>
             </div>
           </div>
-          <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return, so the stocks grow at the rate shown here, then the drag comes off.</p>
+          <p class="hint span-2" id="stock-hint">7.9% is the building-block forecast: dividends plus real earnings growth, valuations held flat, plus expected inflation. A typical path compounds below the expected return, so the stocks grow at the rate shown here, then the drag comes off.</p>
           <p class="hint span-2">PMI is charged until the balance reaches 80% of the price, when you can ask to cancel it. By law it ends on its own at 78%. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate. Costs step up with inflation each year.</p>
         </div>
       </details>
@@ -366,7 +366,7 @@
     <div class="math">\[ s = (1+\mu)\,e^{-\sigma^2/2} - 1,\qquad r_s = (1+s-d)^{1/12}-1 \]</div>
     <p>Home appreciation is already a compound rate. <em>Growth rates</em> picks where \(g\), rent growth, and \(\mu\) come from, and keeps all three on the same footing, so neither side gets history while the other gets a forecast:</p>
     <ul class="left-out">
-      <li><strong>Forecast.</strong> \(\mu = 9\%\), 4% T-bills plus a 5% equity premium. The home and rent both grow at \((1+i)(1+q)-1\), where \(q\) is how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence, against CPI-U). A price can't outrun the rent it could earn forever, so price-to-rent holds.</li>
+      <li><strong>Forecast.</strong> \(\mu = 7.9\%\) with \(\sigma = 19\%\), which compounds at 6.0%: the building-block forecast for November 2026. The S&amp;P 500's 1.1% dividend yield plus 3.0% real earnings growth, averaged with an earnings-yield view, is 3.7% a year after inflation, valuations held flat. The 2.2% inflation the bond market expects (10-year breakeven) makes it 6.0%. Inflation \(i\) defaults to that 2.2%. The home and rent both grow at \((1+i)(1+q)-1\), where \(q\) is how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence, against CPI-U). A price can't outrun the rent it could earn forever, so price-to-rent holds.</li>
       <li><strong>Last 35 years.</strong> \(g\) is the FHFA index growth from 1991 to 2026, rent growth is the BLS rent index from 1990 to 2025, and \(\mu = 12.6\%\), the S&amp;P 500's 1991–2025 average, which compounds at its actual 11.1% with \(\sigma = 16\%\). Prices beat rents in most places over those years, so price-to-rent rises.</li>
     </ul>
     <p>A metro uses its own BLS rent index where one goes back to 1990 (Boston, New York, Philadelphia, Chicago, Detroit, St. Louis, Miami, Dallas–Fort Worth, Houston, Los Angeles, the Bay Area); anywhere else uses its Census region.</p>

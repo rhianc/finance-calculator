@@ -142,21 +142,21 @@
           <div class="field">
             <label for="stock-return">Stock return, expected, nominal</label>
             <div class="control">
-              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="9" inputmode="decimal">
+              <input id="stock-return" type="number" min="-20" max="20" step="0.1" value="7.9" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
           <div class="field">
             <label for="stock-vol">Stock volatility</label>
             <div class="control">
-              <input id="stock-vol" type="number" min="0" max="60" step="1" value="16" inputmode="decimal">
+              <input id="stock-vol" type="number" min="0" max="60" step="1" value="19" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
           <div class="field">
             <label for="inflation">Inflation</label>
             <div class="control">
-              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.5" inputmode="decimal">
+              <input id="inflation" type="number" min="0" max="15" step="0.1" value="2.2" inputmode="decimal">
               <span class="unit">%/yr</span>
             </div>
           </div>
@@ -239,7 +239,7 @@
           </div>
           <p class="hint span-2">Vacancy is rent you don't collect. Management is a share of the rent you do. The building, not the land, depreciates over 27.5 years. Drag is the tax on dividends each year, about 0.4% for an index fund at a high California rate.</p>
           <p class="hint span-2" id="land-hint"></p>
-          <p class="hint span-2" id="stock-hint">9% is 4% T-bills plus a 5% equity premium. A typical path compounds below the expected return.</p>
+          <p class="hint span-2" id="stock-hint">7.9% is the building-block forecast: dividends plus real earnings growth, valuations held flat, plus expected inflation. A typical path compounds below the expected return.</p>
         </div>
       </details>
 
@@ -368,7 +368,7 @@
       \]</div>
 
       <h3>Growth rates</h3>
-      <p><em>Forecast</em> grows the home and its rent at inflation plus how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence), so the yield holds, and stocks at 9% expected. <em>Last 35 years</em> uses each one's own history: FHFA home prices from 1991, the BLS rent index from 1990, and the S&amp;P 500's 1991–2025 average of 12.6%, which compounds at its actual 11.1%. Either way, the rental and the stocks are on the same footing.</p>
+      <p><em>Forecast</em> grows the home and its rent at inflation plus how much the area's rents beat inflation from 1990 to 2025 (BLS CPI rent of primary residence), so the yield holds, and stocks at 7.9% expected with 19% volatility, which compounds at 6.0%: the building-block forecast (dividend yield plus real earnings growth, valuations held flat, plus the bond market's 2.2% expected inflation). <em>Last 35 years</em> uses each one's own history: FHFA home prices from 1991, the BLS rent index from 1990, and the S&amp;P 500's 1991–2025 average of 12.6%, which compounds at its actual 11.1%. Either way, the rental and the stocks are on the same footing.</p>
 
       <h3>If you sold that month</h3>
       <p>This is <em>Sell everything</em>. <em>Keep it all</em> sells nothing: the rental is the home's market value less the loan plus \(T\), and the stock line is \(S\), with no selling costs, recapture, or tax. That is closer to holding until a step-up at death. Losses still suspended at the end are left unused.</p>

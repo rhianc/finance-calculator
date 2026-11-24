@@ -155,8 +155,8 @@
 
   function applyStocks() {
     var history = $('basis').value === 'history';
-    $('stock-return').value = history ? String(HomeMarkets.STOCK_HISTORY.expected) : '9';
-    $('stock-vol').value = String(HomeMarkets.STOCK_HISTORY.vol);
+    $('stock-return').value = String((history ? HomeMarkets.STOCK_HISTORY : HomeMarkets.STOCK_FORECAST).expected);
+    $('stock-vol').value = String((history ? HomeMarkets.STOCK_HISTORY : HomeMarkets.STOCK_FORECAST).vol);
   }
 
   function applyLand() {
@@ -675,7 +675,7 @@
     $('stock-hint').textContent = 'A ' + rateText(input.stockReturn) + '% expected return with ' + rateText(input.stockVol)
       + '% volatility compounds at ' + rateText(result.stockTypical) + '% on a typical path, '
       + rateText(result.stockTypical - input.investmentDrag) + '% after drag. '
-      + ($('basis').value === 'history' ? 'The S&P 500 averaged 12.6% from 1991 to 2025 and compounded 11.1%.' : '9% is 4% T-bills plus a 5% equity premium.');
+      + ($('basis').value === 'history' ? 'The S&P 500 averaged 12.6% from 1991 to 2025 and compounded 11.1%.' : HomeMarkets.STOCK_FORECAST.note);
     var gPlace = HomeMarkets.place(marketCode(), $('city').value);
     var rentArea = gPlace ? gPlace.rentCpi : null;
     var rg = input.rentGrowth;
@@ -687,7 +687,8 @@
     var gLabel = gPlace ? (gPlace.kind === 'city' ? gPlace.city.name : gPlace.state.name) : '';
     $('basis-hint').textContent = ($('basis').value === 'history'
       ? 'Last 35 years: the home, rent, and stocks each at what they did in ' + gLabel + ' from about 1991.'
-      : 'Forecast: stocks at 9% expected (7.6% on a typical path), the home and rent at inflation plus real rent growth.')
+      : 'Forecast: stocks at ' + rateText(input.stockReturn) + '% expected (' + rateText(result.stockTypical)
+        + '% on a typical path), the home and rent at inflation plus real rent growth.')
       + (input.exit === 'keep'
         ? ' Keep it all: nothing is sold, so no selling costs, no depreciation recapture, and no tax on either side\'s gains. Losses still suspended at the end are left unused.'
         : ' Sell everything: the rental pays selling costs, 25% recapture on depreciation, and tax on its gain; the stocks pay tax on theirs.');
