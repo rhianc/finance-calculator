@@ -1,12 +1,8 @@
 import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck } from "./retirement-model.js?v=18";
 
-const STORAGE = "retire-plan-v2";
-// The market assumptions are defaults the page updates (the stock forecast, expected inflation), not your choices:
-// a saved value equal to the default in force when it was saved is dropped on load, so the current default applies.
-// Plans saved before this was recorded used 9% and 2.5%.
-const MARKET_DEFAULTS = { avgPct: DEFAULTS.avgPct, inflationPct: DEFAULTS.inflationPct };
-const MARKET_DEFAULTS_V2 = { avgPct: 9, inflationPct: 2.5 };
-const keptIf = (frac, pct) => (frac == null || Math.abs(frac * 100 - pct) < 1e-9 ? undefined : frac * 100);
+// Nothing is remembered between visits: every visit starts from the defaults (or a shared link's values).
+// Earlier versions saved the plan in the browser; that copy is cleared on load.
+const OLD_STORAGE = ["retire-plan-v2", "retire-plan-v1", "retire-plan"];
 
 const SCENES = [
   { key: "bad", color: "--good" },
@@ -424,12 +420,6 @@ export function boot(root) {
   function scheduleSave(input) {
     clearTimeout(frame);
     frame = setTimeout(() => {
-      try {
-        // remember the market defaults in force, so a saved plan that never changed them follows later updates
-        localStorage.setItem(STORAGE, JSON.stringify({ ...input, defaultsAt: MARKET_DEFAULTS }));
-      } catch (err) {
-        /* private mode */
-      }
       writeQuery(input);
     }, 200);
   }
@@ -558,13 +548,10 @@ export function boot(root) {
   function loadInitial() {
     const q = new URLSearchParams(location.search);
     const fromUrl = q.has("age") || q.has("bal") || q.has("adj") || q.has("retire");
-    let stored = null;
-    if (!fromUrl) {
-      try {
-        stored = JSON.parse(localStorage.getItem(STORAGE) || "null");
-      } catch (err) {
-        stored = null;
-      }
+    try {
+      OLD_STORAGE.forEach((k) => localStorage.removeItem(k));
+    } catch (err) {
+      /* private mode */
     }
     const src = fromUrl
       ? {
@@ -590,31 +577,7 @@ export function boot(root) {
           home: q.get("home"),
           ownCarry: q.get("carry"),
         }
-      : stored
-        ? {
-            age: stored.age,
-            retireAge: stored.retireAge,
-            endAge: stored.endAge,
-            balance: stored.balance,
-            salary: stored.salary,
-            savePct: stored.savePct != null ? stored.savePct * 100 : undefined,
-            raisePct: stored.raise != null ? stored.raise * 100 : undefined,
-            mega: stored.mega == null ? undefined : stored.mega ? "1" : "0",
-            spendAdjust: stored.spendAdjust,
-            ssAnnual: stored.ssAnnual,
-            ssAge: stored.ssAge,
-            inflationPct: keptIf(stored.inflation, (stored.defaultsAt || MARKET_DEFAULTS_V2).inflationPct),
-            avgPct: keptIf(stored.avg, (stored.defaultsAt || MARKET_DEFAULTS_V2).avgPct),
-            belowPct: stored.below * 100,
-            badPct: stored.bad * 100,
-            account: stored.account,
-            filing: stored.filing,
-            housingMonth: stored.housingMonth,
-            otherSaveMonth: stored.otherSaveMonth,
-            home: stored.home,
-            ownCarry: stored.ownCarry,
-          }
-        : {};
+      : {};
     const input = normalize({ ...DEFAULTS, ...dropEmpty(src) });
     applyNormalized(input, null);
     setMoney("balance-amt", input.balance);
