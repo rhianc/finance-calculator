@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck, startAges, afterTaxPay, saveCost } from "./retirement-model.js?v=19";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck, rampPlan } from "./retirement-model.js?v=21";
 
 // Nothing is remembered between visits: every visit starts from the defaults (or a shared link's values).
 // Earlier versions saved the plan in the browser; that copy is cleared on load.
@@ -18,6 +18,7 @@ export function boot(root) {
   let lastPaths = null;
   let lastStart = null;
   let hoverAge = null;
+  let conf = 0;
   const sweep = makeSweeper((res) => {
     lastStart = res;
     drawStartNow();
@@ -562,17 +563,15 @@ export function boot(root) {
       $("start-note").textContent = "The chart failed. " + lastStart.error;
       return;
     }
-    drawStart(startChart, lastStart, hoverAge, $);
+    drawStart(startChart, lastStart, hoverAge, conf, $);
   }
 
   const ageFromPointer = (event) => {
     if (!lastStart || !lastStart.ages || !lastStart.ages.length) return null;
     const rect = startChart.getBoundingClientRect();
-    const g = startGeometry(rect.width, lastStart.input, lastStart.ages);
+    const g = startGeometry(rect.width, lastStart.ages);
     const age = Math.round(g.ageOf(event.clientX - rect.left));
-    const first = lastStart.ages[0].age;
-    const last = lastStart.ages[lastStart.ages.length - 1].age;
-    return Math.min(last, Math.max(first, age));
+    return Math.min(g.last, Math.max(g.first, age));
   };
   const onHover = (event) => {
     const age = ageFromPointer(event);
@@ -585,6 +584,21 @@ export function boot(root) {
     hoverAge = null;
     drawStartNow();
   };
+  const onConf = (event) => {
+    const btn = event.target.closest("[data-conf]");
+    if (btn && root.contains(btn)) {
+      conf = Number(btn.getAttribute("data-conf")) || 0;
+      root.querySelectorAll("[data-conf]").forEach((b) => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+      drawStartNow();
+      return;
+    }
+    const mega = event.target.closest("[data-turn-mega]");
+    if (mega && root.contains(mega)) {
+      setChoice("mega", "1");
+      schedule();
+    }
+  };
+  root.addEventListener("click", onConf);
   startChart.addEventListener("pointermove", onHover);
   startChart.addEventListener("pointerdown", onHover);
   startChart.addEventListener("pointerleave", onLeave);
@@ -600,6 +614,7 @@ export function boot(root) {
     copy.removeEventListener("click", onCopy);
     observer.disconnect();
     fold.removeEventListener("toggle", onToggle);
+    root.removeEventListener("click", onConf);
     startChart.removeEventListener("pointermove", onHover);
     startChart.removeEventListener("pointerdown", onHover);
     startChart.removeEventListener("pointerleave", onLeave);
@@ -646,7 +661,7 @@ export function boot(root) {
   }
 }
 
-// The start-age sweep runs in a worker. A newer input waits for the running one, and stale answers are dropped.
+// The save-now, need-later search runs in a worker. A newer input waits for the running one, and stale answers are dropped.
 function makeSweeper(onDone) {
   let worker = null;
   let busy = false;
@@ -654,14 +669,14 @@ function makeSweeper(onDone) {
   const local = (input) => {
     setTimeout(() => {
       try {
-        onDone({ input, ages: startAges(input) });
+        onDone({ input, ...rampPlan(input) });
       } catch (err) {
         onDone({ input, error: String(err && err.message ? err.message : err) });
       }
     }, 0);
   };
   try {
-    worker = new Worker(new URL("./start-worker.js?v=1", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./start-worker.js?v=3", import.meta.url), { type: "module" });
   } catch (err) {
     worker = null;
   }
@@ -702,17 +717,17 @@ function makeSweeper(onDone) {
   };
 }
 
-const START_LINES = [
-  { t: 0.9, color: "--good", name: "9 in 10 markets", short: "9 in 10" },
-  { t: 0.75, color: "--house", name: "3 in 4", short: "3 in 4" },
-  { t: 0.5, color: "--rent", name: "Half, for fun", short: "half" },
+const CONF = [
+  { name: "9 of 10 markets", short: "9 in 10" },
+  { name: "3 of 4 markets", short: "3 in 4" },
+  { name: "half of markets, for fun", short: "half" },
 ];
 
-function startGeometry(w, input, ages) {
-  const padL = w < 420 ? 40 : 50;
-  const padR = w < 420 ? 34 : 42;
-  const first = ages[0].age;
-  const last = ages[ages.length - 1].age;
+function startGeometry(w, ages) {
+  const padL = w < 420 ? 34 : 40;
+  const padR = w < 420 ? 44 : 64;
+  const first = ages[0];
+  const last = ages[ages.length - 1];
   const span = Math.max(1, last - first);
   const inner = Math.max(1, w - padL - padR);
   return {
@@ -730,21 +745,31 @@ function pctText(v) {
   return (p >= 10 || Math.abs(p - Math.round(p)) < 0.05 ? String(Math.round(p)) : p.toFixed(1)) + "%";
 }
 
-function drawStart(canvas, res, hoverAge, $) {
+function payPct(v) {
+  const p = Math.round(v * 1000) / 10;
+  return (Number.isInteger(p) ? String(p) : p.toFixed(1)) + "%";
+}
+
+function escapeHtml(t) {
+  return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+}
+
+/**
+ * The fan: each line saves one share of pay until the age on the axis, then the share it plots from there to
+ * retirement. Every line starts at the steady share; front-loading bends it down, saving less bends it up.
+ */
+function drawStart(canvas, res, hoverAge, conf, $) {
   const input = res.input;
   const ages = res.ages || [];
+  const lines = res.lines || [];
   const note = $("start-note");
-  const read = $("start-read");
+  const empty = $("start-empty");
   const legend = $("start-legend");
-  const yearsOut = input.retireAge - input.age;
-  $("start-name").textContent = "What " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) +
-    " a month) takes, by the age you start saving";
-  note.textContent = "Today's dollars, retiring at " + input.retireAge + " and lasting to " + input.endAge +
-    ". Nothing is added before the age on the axis; today's " + money(input.balance) + " balance still grows.";
-  if (!ages.length) {
-    read.textContent = "";
-    return false;
-  }
+  const c = CONF[conf] || CONF[0];
+  note.textContent = "To spend " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) + " a month) from " +
+    input.retireAge + " to " + input.endAge + ", today's dollars. Each line saves one share of pay until the age on the axis, then the share it shows from there to " +
+    input.retireAge + ".";
+  if (!ages.length || !lines.length) return false;
 
   const parent = canvas.parentElement;
   const w = parent.clientWidth;
@@ -764,37 +789,55 @@ function drawStart(canvas, res, hoverAge, $) {
   const muted = style.getPropertyValue("--muted").trim() || "#6b625b";
   const grid = style.getPropertyValue("--line").trim() || "#e4dcd0";
   const card = style.getPropertyValue("--card").trim() || "#fffdf8";
-  const colors = START_LINES.map((l) => style.getPropertyValue(l.color).trim());
+  const green = style.getPropertyValue("--good").trim() || "#1f6b45";
 
-  const g = startGeometry(w, input, ages);
-  const padT = 14;
+  const series = lines.map((l) => l.byThreshold[conf] || l.byThreshold[0]);
+  const steady = series[0][0].later;
+  const g = startGeometry(w, ages);
+  const at = hoverAge == null ? Math.min(g.last, g.first + 10) : hoverAge;
+  const k = at - g.first;
+  const others = lines.filter((l) => !l.you);
+  const shade = (l) => {
+    if (l.you) return { color: ink, alpha: 1, width: 3 };
+    const i = others.indexOf(l);
+    const t = others.length > 1 ? i / (others.length - 1) : 0;
+    return { color: green, alpha: 1 - 0.62 * t, width: 2.1 };
+  };
+
+  // Nothing fits: say so instead of an empty grid.
+  if (!steady) {
+    const most = lines.find((l) => l.most) || lines[0];
+    empty.hidden = false;
+    empty.innerHTML = "<div><b>No savings plan inside the " + (input.mega ? "401(k) and mega backdoor" : "401(k)") +
+      " limit lasts in " + c.name + "</b> at " + money(input.annualSpend) + " a year. Saving the most it takes, " +
+      money(most.earlySaved ? most.earlySaved.saved : 0) + " a year now, lasts in " + Math.round(most.odds * 100) + " of 100.</div>" +
+      (input.mega ? "<div>Spend less or retire later: the line below says how much.</div>"
+        : '<button type="button" data-turn-mega="1">Try the mega backdoor</button>');
+    legend.innerHTML = "";
+    paintPlanTable(res, conf, at, $, null);
+    canvas.setAttribute("aria-label", empty.textContent);
+    return true;
+  }
+  empty.hidden = true;
+
+  const padT = 16;
   const padB = 22;
-  const capAt = (age) => contributionSplit({ ...input, savePct: 1 }, age - input.age, age + 1).total;
-  const caps = ages.map((a) => ({ age: a.age, v: capAt(a.age) }));
-  const nowSaved = contributionSplit(input, 0, input.age + 1).total;
-  const nowPay = afterTaxPay(input, 0, input.age + 1);
-  const nowShare = nowPay > 0 ? saveCost(input, 0, input.age + 1) / nowPay : 0;
-
-  let leftMax = nowSaved;
-  let rightMax = nowShare;
-  caps.forEach((c) => (leftMax = Math.max(leftMax, c.v)));
-  ages.forEach((a) => a.lines.forEach((l) => {
-    if (l.saved != null) leftMax = Math.max(leftMax, l.saved);
-    if (l.share != null) rightMax = Math.max(rightMax, l.share);
+  let top = 0;
+  series.forEach((sr) => sr.forEach((r) => {
+    if (r.later) top = Math.max(top, r.later.payShare);
   }));
-  const rows = 4;
-  const lStep = niceCeil(Math.max(1000, leftMax) / rows);
-  const rStep = niceCeil(Math.max(0.01, rightMax) / rows);
-  const lTop = lStep * rows;
-  const rTop = rStep * rows;
+  lines.forEach((l) => (top = Math.max(top, l.early)));
+  (res.ceiling || []).forEach((v) => (top = Math.max(top, Math.min(v, top * 1.35 + 0.02))));
+  const step = niceCeil(Math.max(0.02, top) / 5);
+  const rows = Math.max(2, Math.ceil(top / step - 1e-9));
+  const yTop = step * rows;
   const plotH = h - padT - padB;
-  const yL = (v) => padT + (1 - v / lTop) * plotH;
-  const yR = (v) => padT + (1 - v / rTop) * plotH;
+  const yOf = (v) => padT + (1 - Math.min(v, yTop) / yTop) * plotH;
 
   ctx.font = "11px system-ui, sans-serif";
   ctx.lineWidth = 1;
   for (let i = 0; i <= rows; i++) {
-    const y = yL(i * lStep);
+    const y = yOf(i * step);
     ctx.strokeStyle = grid;
     ctx.beginPath();
     ctx.moveTo(g.padL, y);
@@ -803,48 +846,48 @@ function drawStart(canvas, res, hoverAge, $) {
     ctx.fillStyle = muted;
     ctx.textBaseline = "middle";
     ctx.textAlign = "right";
-    ctx.fillText(i === 0 ? "$0" : moneyShort(i * lStep), g.padL - 6, y);
-    ctx.textAlign = "left";
-    ctx.fillText(i === 0 ? "0%" : pctText(i * rStep), w - g.padR + 6, y);
+    ctx.fillText(pctText(i * step), g.padL - 6, y);
   }
-
-  // Ages along the bottom: every 5 years, plus the first and last.
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillStyle = muted;
-  const placed = [];
+  const placedX = [];
   const paintAge = (age) => {
     const x = g.xOf(age);
-    if (placed.some((px) => Math.abs(px - x) < 18)) return;
-    placed.push(x);
+    if (placedX.some((px) => Math.abs(px - x) < 18)) return;
+    placedX.push(x);
     ctx.fillText(String(age), x, h - padB + 6);
   };
   paintAge(g.first);
   paintAge(g.last);
   for (let a = Math.ceil(g.first / 5) * 5; a <= g.last; a += 5) paintAge(a);
 
-  // The most the 401(k) takes that year: past it, saving more cannot help.
-  ctx.save();
-  ctx.setLineDash([1.5, 3.5]);
-  ctx.lineCap = "round";
-  ctx.strokeStyle = muted;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  caps.forEach((c, i) => {
-    const x = g.xOf(c.age);
-    const y = yL(c.v);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  ctx.restore();
+  // The most the limits take, as a share of that year's pay.
+  if (res.ceiling) {
+    ctx.save();
+    ctx.setLineDash([1.5, 3.5]);
+    ctx.lineCap = "round";
+    ctx.strokeStyle = muted;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let started = false;
+    res.ceiling.forEach((v, i) => {
+      const x = g.xOf(ages[i]);
+      const y = yOf(v);
+      if (!started) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+      started = true;
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
 
-  const hover = hoverAge == null ? null : ages.find((a) => a.age === hoverAge);
-  if (hover) {
-    const x = g.xOf(hover.age);
+  // The age the table reads out.
+  {
+    const x = g.xOf(at);
     ctx.save();
     ctx.strokeStyle = muted;
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.45;
+    ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(x, padT);
     ctx.lineTo(x, h - padB);
@@ -852,133 +895,170 @@ function drawStart(canvas, res, hoverAge, $) {
     ctx.restore();
   }
 
-  // Half first so the plan sits on top. Solid is dollars (left), dashed is share of take-home (right).
-  for (let k = START_LINES.length - 1; k >= 0; k--) {
-    const color = colors[k];
-    const pts = ages.filter((a) => a.lines[k].saved != null);
-    if (!pts.length) continue;
-    const faint = START_LINES[k].t === 0.5;
+  // Lightest first so the darker, front-loaded lines and you sit on top.
+  const order = lines.map((l, i) => i).sort((a, b) => {
+    if (lines[a].you) return 1;
+    if (lines[b].you) return -1;
+    return shade(lines[a]).alpha - shade(lines[b]).alpha;
+  });
+  const labels = [];
+  order.forEach((i) => {
+    const l = lines[i];
+    const pts = series[i].filter((r) => r.later);
+    if (!pts.length) return;
+    const sh = shade(l);
     ctx.save();
-    ctx.globalAlpha = faint ? 0.75 : 1;
+    ctx.globalAlpha = sh.alpha;
+    ctx.strokeStyle = sh.color;
+    ctx.fillStyle = sh.color;
+    ctx.lineWidth = sh.width;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.strokeStyle = color;
-    ctx.lineWidth = faint ? 1.75 : 2.5;
     ctx.beginPath();
-    pts.forEach((a, i) => {
-      const x = g.xOf(a.age);
-      const y = yL(a.lines[k].saved);
-      if (i === 0) ctx.moveTo(x, y);
+    pts.forEach((r, j) => {
+      const x = g.xOf(r.age);
+      const y = yOf(r.later.payShare);
+      if (j === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
-    ctx.setLineDash([5, 4]);
-    ctx.lineWidth = faint ? 1.25 : 1.6;
-    ctx.beginPath();
-    pts.forEach((a, i) => {
-      const x = g.xOf(a.age);
-      const y = yR(a.lines[k].share);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Where the line stops, starting later can't be saved inside the 401(k).
     const end = pts[pts.length - 1];
+    const stop = pts.find((r) => r.later.payShare === 0);
     if (end.age < g.last) {
-      ctx.fillStyle = color;
+      // Later than this, nothing fits under the limit.
+      const x = g.xOf(end.age);
+      const y = yOf(end.later.payShare);
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.arc(g.xOf(end.age), yL(end.lines[k].saved), faint ? 2.5 : 3.5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(x - 3.5, y - 3.5);
+      ctx.lineTo(x + 3.5, y + 3.5);
+      ctx.moveTo(x + 3.5, y - 3.5);
+      ctx.lineTo(x - 3.5, y + 3.5);
+      ctx.stroke();
     }
-    if (hover && hover.lines[k].saved != null) {
+    const row = series[i][k];
+    if (row && row.later) {
+      ctx.globalAlpha = 1;
       ctx.fillStyle = card;
-      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(g.xOf(hover.age), yL(hover.lines[k].saved), 4, 0, Math.PI * 2);
+      ctx.arc(g.xOf(at), yOf(row.later.payShare), l.you ? 4.5 : 3.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
     ctx.restore();
-  }
+    const name = (l.you ? "You, " : "") + payPct(l.early) + " first";
+    if (stop) labels.push({ x: g.xOf(stop.age), y: yOf(0) - 6, text: name, color: sh.color, alpha: sh.alpha, align: "center", base: "bottom" });
+    else if (end.age < g.last) labels.push({ x: g.xOf(end.age) + 7, y: yOf(end.later.payShare), text: name, color: sh.color, alpha: sh.alpha, align: "left", base: "middle" });
+    else labels.push({ x: g.xOf(end.age) + 6, y: yOf(end.later.payShare), text: name, color: sh.color, alpha: sh.alpha, align: "left", base: "middle" });
+  });
 
-  // What you save now, at your age.
+  // The steady share every line starts from.
   {
-    const x = g.xOf(input.age);
-    const y = yL(nowSaved);
+    const x = g.xOf(g.first);
+    const y = yOf(steady.payShare);
     ctx.fillStyle = ink;
     ctx.beginPath();
     ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.font = "600 11px system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = y < padT + 14 ? "top" : "bottom";
-    const ly = y + (y < padT + 14 ? 3 : -3);
-    ctx.save();
-    ctx.strokeStyle = card;
-    ctx.lineWidth = 3.5;
-    ctx.lineJoin = "round";
-    ctx.strokeText("You now", x + 6, ly);
-    ctx.restore();
-    ctx.fillText("You now", x + 6, ly);
+    labels.unshift({ x: x + 7, y: y - 9, text: "Steady: " + payPct(steady.payShare), color: ink, alpha: 1, align: "left", base: "bottom", strong: true });
   }
 
+  // Direct labels, skipped where they would overlap.
+  const boxes = [];
+  labels.forEach((lb) => {
+    ctx.font = (lb.strong ? "650 " : "600 ") + "11px system-ui, sans-serif";
+    const tw = ctx.measureText(lb.text).width;
+    let x0 = lb.align === "center" ? lb.x - tw / 2 : lb.x;
+    x0 = Math.min(x0, w - tw - 2);
+    let y0 = lb.base === "bottom" ? lb.y - 12 : lb.base === "middle" ? lb.y - 6 : lb.y;
+    for (const dy of [0, -12, 12, -24, 24]) {
+      const box = { x: x0 - 2, y: y0 + dy - 1, w: tw + 4, h: 14 };
+      if (box.y < 0 || box.y + box.h > h - padB + 2) continue;
+      if (boxes.some((b) => box.x < b.x + b.w && b.x < box.x + box.w && box.y < b.y + b.h && b.y < box.y + box.h)) continue;
+      boxes.push(box);
+      ctx.save();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.strokeStyle = card;
+      ctx.lineWidth = 3.5;
+      ctx.lineJoin = "round";
+      ctx.strokeText(lb.text, x0, y0 + dy);
+      ctx.globalAlpha = Math.max(0.7, lb.alpha);
+      ctx.fillStyle = lb.color;
+      ctx.fillText(lb.text, x0, y0 + dy);
+      ctx.restore();
+      break;
+    }
+  });
+
   legend.innerHTML = "";
-  const add = (label, swatchColor, kind) => {
+  const add = (label, color, alpha, kind) => {
     const item = document.createElement("span");
     const sw = document.createElement("i");
     if (kind) sw.className = kind;
-    if (kind === "dash") sw.style.color = swatchColor;
-    else if (swatchColor) sw.style.background = swatchColor;
+    else {
+      sw.style.background = color;
+      sw.style.opacity = String(alpha);
+    }
     item.append(sw, document.createTextNode(label));
     legend.appendChild(item);
   };
-  START_LINES.forEach((l, k) => {
-    const reach = ages.filter((a) => a.lines[k].saved != null);
-    add(l.name + (reach.length ? "" : ": no age works"), colors[k]);
+  lines.forEach((l) => {
+    const sh = shade(l);
+    add((l.you ? "You: " : "") + payPct(l.early) + " until then" + (l.most ? ", the most it takes" : ""), sh.color, sh.alpha);
   });
-  add("Dollars a year, left", ink);
-  add("Share of take-home, right", ink, "dash");
-  add(input.mega ? "Most the 401(k) and mega backdoor take" : "Most the 401(k) takes", null, "dot");
+  add(input.mega ? "Most the 401(k) and mega backdoor take" : "Most the 401(k) takes", null, 1, "dot");
 
-  // Read out one age: the hovered one, or today.
-  const at = hover || ages[0];
-  const pct = Math.round(input.savePct * 100);
-  const lead = at.age === input.age ? "Start now, at " + at.age : "Start at " + at.age;
-  const parts = START_LINES.map((l, k) => {
-    const line = at.lines[k];
-    const head = k === 0 ? l.short + " markets need " : l.short + ", ";
-    if (line.saved == null) return head + "more than the 401(k) takes";
-    return head + money(line.saved) + " a year (" + pctText(line.share) + " of take-home)";
-  });
-  let text = "<b>" + lead + "</b>, the same share of pay every year to " + input.retireAge + ": " + parts.join("; ") +
-    ". Your " + pct + "% from " + at.age + " lasts in " + Math.round(at.odds * 100) + " of 100.";
-  if (!hover) {
-    const plan = ages.filter((a) => a.lines[0].saved != null);
-    if (plan.length >= 2) {
-      const a0 = plan[0];
-      const a1 = plan[plan.length - 1];
-      const per = (a1.lines[0].saved - a0.lines[0].saved) / (a1.age - a0.age);
-      text += " Each year you wait adds about " + money(Math.round(per / 100) * 100) + " a year to the 9-in-10 number";
-      text += a1.age < g.last ? ", and after " + a1.age + " no amount fits." : ".";
-    } else if (plan.length === 1) {
-      text += " Only starting now reaches 9 in 10.";
-    } else {
-      text += " No start age reaches 9 in 10 inside the 401(k) limit" + (input.mega ? "." : "; the mega backdoor raises it.");
-    }
-    text += yearsOut > 1 ? " Hover or tap the chart for another age." : "";
-  }
-  // Phones get one short line so the stuck chart stays small.
-  const shortParts = START_LINES.map((l, k) => {
-    const line = at.lines[k];
-    return l.short + " " + (line.saved == null ? "can't" : moneyShort(line.saved) + " (" + pctText(line.share) + ")");
-  });
-  const shortText = "<b>Start at " + at.age + "</b>: " + shortParts.join(", ") + ". Your " + pct + "%: " +
-    Math.round(at.odds * 100) + " of 100.";
-  read.innerHTML = '<span class="long">' + text + '</span><span class="short">' + shortText + "</span>";
-  canvas.setAttribute("aria-label", read.querySelector(".long").textContent);
+  paintPlanTable(res, conf, at, $, steady);
+  canvas.setAttribute("aria-label", $("plan-lead").textContent);
   return true;
+}
+
+function paintPlanTable(res, conf, at, $, steady) {
+  const input = res.input;
+  const lines = res.lines || [];
+  const k = at - res.ages[0];
+  const c = CONF[conf] || CONF[0];
+  const lead = $("plan-lead");
+  const table = $("plan-table");
+  const style = getComputedStyle(document.documentElement);
+  const ink = style.getPropertyValue("--ink").trim();
+  const green = style.getPropertyValue("--good").trim();
+  const others = lines.filter((l) => !l.you);
+  const alphaOf = (l) => (l.you ? 1 : 1 - 0.62 * (others.length > 1 ? others.indexOf(l) / (others.length - 1) : 0));
+
+  const rowOf = (l) => (l.byThreshold[conf] || l.byThreshold[0])[k];
+  const you = lines.find((l) => l.you);
+  const best = lines.find((l) => rowOf(l) && rowOf(l).later);
+  let text = "Save the first share until <b>" + at + "</b>, then the second from " + at + " to " + input.retireAge +
+    ". Every row lasts in " + escapeHtml(c.name) + ".";
+  if (steady) text = "The same " + payPct(steady.payShare) + " of pay every year from now works. " + text;
+  if (you && best && best !== you) {
+    const yr = rowOf(you).later;
+    const br = rowOf(best).later;
+    text += " Saving " + payPct(best.early) + " instead of " + payPct(you.early) + " until " + at + " takes what you need after from " +
+      (yr ? "<b>" + payPct(yr.payShare) + "</b>" : "<b>more than the limit</b>") + (br.payShare === 0 ? " to <b>nothing</b>." : " down to <b>" + payPct(br.payShare) + "</b>.");
+  }
+  text += " Tap or hover the chart to pick another age.";
+  lead.innerHTML = text;
+
+  const head = "<thead><tr><th>Until " + at + "</th><th>From " + at + " to " + input.retireAge + "</th><th>A year at " + at +
+    "</th><th>Of take-home</th><th class=\"hide-sm\">First share all the way lasts in</th></tr></thead>";
+  const body = lines.map((l) => {
+    const r = rowOf(l);
+    const later = r && r.later;
+    const sw = '<span class="sw" style="background:' + (l.you ? ink : green) + ";opacity:" + alphaOf(l) + '"></span>';
+    const first = sw + (l.you ? "You, " : "") + payPct(l.early) + " of pay" +
+      '<span class="sub">' + (l.earlySaved ? money(l.earlySaved.saved) + " a year now" : "") + (l.most ? ", the most it takes" : "") + "</span>";
+    let cells;
+    if (!later) cells = '<td class="none">' + (steady ? "Too late" : "Doesn't fit") + '</td><td class="none">—</td><td class="none">—</td>';
+    else if (later.payShare === 0) cells = '<td class="later zero">0%<span class="sub">stop saving</span></td><td>$0</td><td>0%</td>';
+    else cells = '<td class="later">' + payPct(later.payShare) + '</td><td>' + money(later.saved) + "</td><td>" + pctText(later.share) + "</td>";
+    return '<tr class="' + (l.you ? "you" : "") + '"><td>' + first + "</td>" + cells +
+      '<td class="hide-sm">' + Math.round(l.odds * 100) + " of 100</td></tr>";
+  }).join("");
+  table.innerHTML = head + "<tbody>" + body + "</tbody>";
 }
 
 function dropEmpty(src) {

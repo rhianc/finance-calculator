@@ -95,34 +95,88 @@
     .stage .chart-box.tall { height: 180px; }
   }
   #startChart { touch-action: pan-y; cursor: crosshair; }
-  .legend i.dash {
-    height: 0;
-    border-radius: 0;
-    border-top: 2px dashed currentColor;
-    background: none !important;
+  .stage .chart-box.tall { position: relative; }
+  .plot-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.35rem 0.8rem;
   }
+  .plot-head .pills button { min-height: 2rem; padding: 0.25rem 0.7rem; font-size: 0.76rem; }
   .legend i.dot {
     height: 0;
     border-radius: 0;
     border-top: 2px dotted var(--muted);
     background: none !important;
   }
-  .start-read {
-    margin: 0.4rem 0 0;
+  .start-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 0.6rem;
+    padding: 1rem 1.2rem;
+    text-align: center;
     color: var(--muted);
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    background: color-mix(in srgb, var(--card) 88%, transparent);
   }
-  .start-read b { color: var(--ink); font-weight: 650; }
-  .start-read .short { display: none; }
+  .start-empty[hidden] { display: none; }
+  .start-empty b { color: var(--ink); }
+  .start-empty button {
+    justify-self: center;
+    border: 1px solid var(--line);
+    background: var(--field);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .plan-card h2 { margin-bottom: 0.2rem; }
+  .plan-lead { margin: 0 0 0.7rem; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+  .plan-lead b { color: var(--ink); font-weight: 650; }
+  .plan-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .plan-table th {
+    text-align: right;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0 0 0.35rem 0.6rem;
+    vertical-align: bottom;
+  }
+  .plan-table th:first-child, .plan-table td:first-child { text-align: left; padding-left: 0; }
+  .plan-table td {
+    text-align: right;
+    padding: 0.42rem 0 0.42rem 0.6rem;
+    border-top: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .plan-table td:first-child { white-space: normal; }
+  .plan-table td .sub { display: block; color: var(--muted); font-size: 0.72rem; font-weight: 500; }
+  .plan-table tr.you td { font-weight: 700; }
+  .plan-table .sw {
+    display: inline-block;
+    width: 0.75rem;
+    height: 3px;
+    border-radius: 99px;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+  }
+  .plan-table .later { font-weight: 700; font-size: 0.95rem; }
+  .plan-table .none { color: var(--rent); font-weight: 600; }
+  .plan-table .zero { color: var(--good); font-weight: 650; }
   @media (max-width: 640px) {
     #start-note { display: none; }
     #start-legend { gap: 0.2rem 0.6rem; margin-top: 0.3rem; }
     #start-legend span { font-size: 0.68rem; }
-    .start-read { font-size: 0.74rem; line-height: 1.35; margin-top: 0.3rem; }
-    .start-read .long { display: none; }
-    .start-read .short { display: inline; }
     .stage .quick { font-size: 0.76rem; line-height: 1.35; }
+    .plan-table { font-size: 0.8rem; }
+    .plan-table .hide-sm { display: none; }
   }
   .balance-card { padding-top: 0.35rem; padding-bottom: 0.35rem; }
   .balance-card details.fold { margin: 0; background: transparent; }
@@ -165,15 +219,28 @@
 
 <main class="wrap stack">
   <div class="stick-scope">
-  <section class="stage card" aria-label="Saving it takes, by the age you start">
-    <p class="plot-name" id="start-name">What it takes, by the age you start saving</p>
+  <section class="stage card" aria-label="Share of pay you need to save, by age">
+    <div class="plot-head">
+      <p class="plot-name" id="start-name">What you'll need to save, by age</p>
+      <div class="pills" role="radiogroup" aria-label="How sure">
+        <button type="button" data-conf="0" aria-pressed="true">9 in 10</button>
+        <button type="button" data-conf="1" aria-pressed="false">3 in 4</button>
+        <button type="button" data-conf="2" aria-pressed="false">Half</button>
+      </div>
+    </div>
     <p class="plot-note" id="start-note">Counting…</p>
     <div class="chart-box tall">
-      <canvas id="startChart" aria-label="Yearly saving needed, by the age you start"></canvas>
+      <canvas id="startChart" aria-label="Share of pay needed from each age, by what you save first"></canvas>
+      <div class="start-empty" id="start-empty" hidden></div>
     </div>
     <div class="legend" id="start-legend"></div>
-    <p class="start-read" id="start-read"></p>
     <p class="quick" id="quick"></p>
+  </section>
+
+  <section class="card plan-card" aria-labelledby="plan-heading">
+    <h2 id="plan-heading">Save more now, need less later</h2>
+    <p class="plan-lead" id="plan-lead"></p>
+    <table class="plan-table" id="plan-table"></table>
   </section>
 
   <section class="card balance-card" aria-label="Account balance over time">
@@ -446,10 +513,12 @@
 
       <h3>The lines</h3>
       <p>The lines are not rates, and none is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. Your spending is checked against all 280: the verdict counts how many never run out, and the fix is the retirement age or save rate that gets that count to 252, 9 in 10. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. If a line reaches the floor, that fraction of markets had already run out.</p>
-      <h3>The age you start</h3>
-      <p>The top chart holds spending fixed at \(K\) and asks what it takes to start saving at each age \(a\), from today to the year before you retire. Nothing goes in before \(a\); today's balance still grows. From \(a\) on, the same share \(p\) of pay goes in every year, through the same caps, catch-up, Roth, and mega backdoor rules as above. For each of the 280 histories the page finds the smallest \(p\), to a quarter of a percent, that never runs out. The 9-in-10 line at \(a\) is the \(p\) that 252 histories need no more than, and the same for 3 in 4 and half. A solid line is that year's deposit in dollars, \(C_a\). A dashed line is what it costs out of take-home, as a share of pay after income and payroll tax with nothing saved:</p>
-      <div class="math">\[ \frac{\text{take-home}_a(0) - \text{take-home}_a(p)}{\text{take-home}_a(0)} \]</div>
-      <p>A pre-tax deposit costs less than its size, because it lowers income tax. A line stops where no share fits under the dotted limit. A later start can only need more: the same \(p\) has fewer years to go in and fewer years to compound. The odds in the readout count how many histories your current save rate covers when it starts at \(a\).</p>
+      <h3>Save more now, need less later</h3>
+      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes. Each line is a plan in two parts: save a first share \(s\) of pay every year until age \(a\), then a second share \(q\) every year from \(a\) until you retire. The line plots, for each \(a\), the smallest \(q\) that lasts in 9 of 10 markets (or 3 of 4, or half, from the buttons). Shares go in through the same caps, catch-up, Roth, and mega backdoor rules as above, and the dotted line is the most they take that year. A line stops at an × where no \(q\) fits under it, and reaches 0% where \(s\) alone was enough and you could stop saving.</p>
+      <p>Every line starts at the same point, the steady share: at today's age nothing has been saved at \(s\) yet. A first share above the steady one bends the line down. Below it, the line bends up. Both plans are chosen today and judged across whole histories, not changed after a good or bad decade.</p>
+      <p>The working years add up exactly. A deposit \(C_y\) made in year \(y\) reaches retirement multiplied by that history's</p>
+      <div class="math">\[ g_y = \left(1 + \tfrac{1}{2} r_y\right) \prod_{z>y} (1 + r_z) \]</div>
+      <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are \(\sum_y C_y\, g_y\) plus today's balance grown. Whether a history lasts depends only on those two pockets. For each history the page finds the smallest balance that lasts at each pre-tax share on a 0.1 grid, interpolates between, and searches \(q\) in steps of a quarter percent. Spot checks against the full year-by-year simulation agree to within one step. The table's take-home column is what the deposit costs out of pay after income and payroll tax with nothing saved; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
 
       <p>The median is noted in the cards for fun, not drawn, and not to plan on. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
@@ -463,7 +532,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=26"></script>
+<script type="module" src="js/retirement.js?v=28"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

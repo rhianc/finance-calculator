@@ -1,4 +1,4 @@
-import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, planCheck, startAges, DEFAULTS } from "../js/retirement-model.js";
+import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, planCheck, rampPlan, DEFAULTS } from "../js/retirement-model.js";
 
 let failed = 0;
 function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond) failed += 1; }
@@ -62,18 +62,35 @@ if (failed) { print(failed + " failed"); } else print("all passed");
 {
   const raw = normalize({ mega: true });
   const input = { ...raw, annualSpend: planSpend(raw) };
-  const ages = startAges(input);
-  if (ages.length !== input.retireAge - input.age) throw new Error("one point per start age, today to the year before retiring");
-  const plan = ages.map((a) => a.lines[0].saved);
-  for (let i = 1; i < plan.length; i++) {
-    if (plan[i - 1] == null && plan[i] != null) throw new Error("once a start age can't reach 9 in 10, later ones can't either");
-    if (plan[i] != null && ages[i].lines[0].payShare < ages[i - 1].lines[0].payShare) throw new Error("waiting never needs a smaller share");
+  const plan = rampPlan(input);
+  const W = input.retireAge - input.age;
+  if (plan.ages.length !== W) throw new Error("one switch age per working year");
+  const nine = plan.lines.map((l) => l.byThreshold[0]);
+  const steady = nine[0][0].later.payShare;
+  if (!nine.every((s) => s[0].later.payShare === steady)) throw new Error("every line starts at the steady share");
+  // The steady share is exact: it lasts in 9 of 10, and a quarter point less does not.
+  const exact = (p, extra = {}) => planCheck({ ...input, savePct: p, ...extra }, 0).success;
+  if (exact(steady) < 0.9 || exact(steady - 0.0025) >= 0.9) throw new Error("steady share is the smallest that lasts in 9 of 10");
+  // Saving more first never needs more later.
+  for (let k = 0; k < W; k++) {
+    for (let i = 1; i < plan.lines.length; i++) {
+      const more = nine[i - 1][k].later;
+      const less = nine[i][k].later;
+      if (plan.lines[i - 1].early < plan.lines[i].early) throw new Error("family runs from most saved first to least");
+      if (less && (!more || more.payShare > less.payShare)) throw new Error("saving more first needs no more later");
+    }
   }
-  for (const a of ages) {
-    const [p90, p75, p50] = a.lines.map((l) => (l.payShare == null ? Infinity : l.payShare));
-    if (!(p90 >= p75 && p75 >= p50)) throw new Error("9 in 10 needs at least what 3 in 4 needs, which needs at least half");
+  // Spot checks against the full simulation, switching shares at the age.
+  const front = plan.lines[1];
+  for (const k of [5, 15, 25]) {
+    const r = front.byThreshold[0][k].later;
+    if (!r || r.payShare === 0) continue;
+    const at = { switchAge: input.age + k, laterPct: r.payShare };
+    const ok = planCheck({ ...input, savePct: front.early, ...at }, 0).success;
+    const short = planCheck({ ...input, savePct: front.early, switchAge: input.age + k, laterPct: r.payShare - 0.005 }, 0).success;
+    if (ok < 0.9 || short >= 0.9) throw new Error("front-loaded plan at " + (input.age + k) + " matches the full simulation");
   }
-  if (Math.abs(ages[0].odds - planCheck(input).success) > 0.011) throw new Error("starting now at today's rate matches the verdict");
-  for (let i = 1; i < ages.length; i++) if (ages[i].odds > ages[i - 1].odds) throw new Error("waiting never helps the odds");
-  print("ok  later starts need more and last less often; start now matches the verdict");
+  const you = plan.lines.find((l) => l.you);
+  if (Math.abs(you.odds - planCheck(input, 0).success) > 0.011) throw new Error("your share all the way matches the verdict");
+  print("ok  save more first, need less later; matches the full simulation");
 }
