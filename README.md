@@ -2,7 +2,7 @@
 
 A fixed-rate home loan payment and a month-by-month rent-versus-buy comparison, with the formulas on the page.
 
-The Retire tab carries a balance from a chosen age to a chosen end. Each year is a real S&P 500 year, redrawn in stretches, and the lines are the balances 9 in 10 and 3 in 4 of those markets beat. The median is left out: spending it supports runs out in half of markets. The spending knob is what you keep after federal and California tax. The headline number is the spend that lasted in 9 out of 10 of those markets. The math is in `js/retirement-model.js`.
+The Retire tab carries a balance from a chosen age to a chosen end. Each year is a real S&P 500 year, redrawn in stretches, and the lines are the balances 9 in 10 and 3 in 4 of those markets beat. The median is left out: spending it supports runs out in half of markets. The top chart holds that spending fixed and shows, for each age you could start saving, the yearly deposit and the share of take-home that 9 in 10, 3 in 4, and half of those markets need, inside the 401(k) limits. The balance chart sits in a drop-down below it. The spending knob is what you keep after federal and California tax. The headline number is the spend that lasted in 9 out of 10 of those markets. The math is in `js/retirement-model.js`.
 
 Live site: [https://rhianc.github.io/finance-calculator/](https://rhianc.github.io/finance-calculator/)
 

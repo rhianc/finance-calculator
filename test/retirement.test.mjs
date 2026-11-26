@@ -1,4 +1,4 @@
-import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, DEFAULTS } from "../js/retirement-model.js";
+import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, planCheck, startAges, DEFAULTS } from "../js/retirement-model.js";
 
 let failed = 0;
 function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond) failed += 1; }
@@ -57,4 +57,23 @@ if (failed) { print(failed + " failed"); } else print("all passed");
   if (planSpend(base) !== life) throw new Error("planSpend should default to what you live on now");
   if (planSpend(normalize({ spendAdjust: -10000 })) !== life - 10000) throw new Error("planSpend adjustment");
   print("ok  spending is what you live on now plus your change");
+}
+
+{
+  const raw = normalize({ mega: true });
+  const input = { ...raw, annualSpend: planSpend(raw) };
+  const ages = startAges(input);
+  if (ages.length !== input.retireAge - input.age) throw new Error("one point per start age, today to the year before retiring");
+  const plan = ages.map((a) => a.lines[0].saved);
+  for (let i = 1; i < plan.length; i++) {
+    if (plan[i - 1] == null && plan[i] != null) throw new Error("once a start age can't reach 9 in 10, later ones can't either");
+    if (plan[i] != null && ages[i].lines[0].payShare < ages[i - 1].lines[0].payShare) throw new Error("waiting never needs a smaller share");
+  }
+  for (const a of ages) {
+    const [p90, p75, p50] = a.lines.map((l) => (l.payShare == null ? Infinity : l.payShare));
+    if (!(p90 >= p75 && p75 >= p50)) throw new Error("9 in 10 needs at least what 3 in 4 needs, which needs at least half");
+  }
+  if (Math.abs(ages[0].odds - planCheck(input).success) > 0.011) throw new Error("starting now at today's rate matches the verdict");
+  for (let i = 1; i < ages.length; i++) if (ages[i].odds > ages[i - 1].odds) throw new Error("waiting never helps the odds");
+  print("ok  later starts need more and last less often; start now matches the verdict");
 }
