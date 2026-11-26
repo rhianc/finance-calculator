@@ -103,6 +103,8 @@
     justify-content: space-between;
     gap: 0.35rem 0.8rem;
   }
+  .conf-pick { display: flex; align-items: center; gap: 0.45rem; }
+  .conf-pick > span { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
   .plot-head .pills button { min-height: 2rem; padding: 0.25rem 0.7rem; font-size: 0.76rem; }
   .legend i.dot {
     height: 0;
@@ -222,11 +224,12 @@
   <section class="stage card" aria-label="Share of pay you need to save, by age">
     <div class="plot-head">
       <p class="plot-name" id="start-name">What you'll need to save, by age</p>
-      <div class="pills" role="radiogroup" aria-label="How sure">
+      <div class="conf-pick"><span>Lasts in</span>
+      <div class="pills" role="radiogroup" aria-label="Lasts in how many markets">
         <button type="button" data-conf="0" aria-pressed="true">9 in 10</button>
         <button type="button" data-conf="1" aria-pressed="false">3 in 4</button>
         <button type="button" data-conf="2" aria-pressed="false">Half</button>
-      </div>
+      </div></div>
     </div>
     <p class="plot-note" id="start-note">Counting…</p>
     <div class="chart-box tall">
@@ -514,8 +517,8 @@
       <h3>The lines</h3>
       <p>The lines are not rates, and none is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. Your spending is checked against all 280: the verdict counts how many never run out, and the fix is the retirement age or save rate that gets that count to 252, 9 in 10. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. If a line reaches the floor, that fraction of markets had already run out.</p>
       <h3>Save more now, need less later</h3>
-      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes. Each line is a plan in two parts: save a first share \(s\) of pay every year until age \(a\), then a second share \(q\) every year from \(a\) until you retire. The line plots, for each \(a\), the smallest \(q\) that lasts in 9 of 10 markets (or 3 of 4, or half, from the buttons). Shares go in through the same caps, catch-up, Roth, and mega backdoor rules as above, and the dotted line is the most they take that year. A line stops at an × where no \(q\) fits under it, and reaches 0% where \(s\) alone was enough and you could stop saving.</p>
-      <p>Every line starts at the same point, the steady share: at today's age nothing has been saved at \(s\) yet. A first share above the steady one bends the line down. Below it, the line bends up. Both plans are chosen today and judged across whole histories, not changed after a good or bad decade.</p>
+      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes. Each line is a plan in two parts: save a first share \(s\) of pay every year from today until the switch age \(a\), then a second share \(q\) every year from \(a\) until you retire. Drag or tap the chart to move \(a\). The line runs flat at \(s\), then steps to the smallest \(q\) that lasts in 9 of 10 markets (or 3 of 4, or half, from the buttons). Shares go in through the same caps, catch-up, Roth, and mega backdoor rules as above, and the dotted line is the most they take that year. "Too late" means no \(q\) under that limit is enough; "needs 0%" means \(s\) alone was enough and you could stop saving.</p>
+      <p>The dashed line is the steady share: the same \(q\) every year, no switch. A first share above it steps down at the switch, and the longer you hold it the lower the step. A first share below it steps up. Both parts are chosen today and judged across whole histories, not changed after a good or bad decade.</p>
       <p>The working years add up exactly. A deposit \(C_y\) made in year \(y\) reaches retirement multiplied by that history's</p>
       <div class="math">\[ g_y = \left(1 + \tfrac{1}{2} r_y\right) \prod_{z>y} (1 + r_z) \]</div>
       <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are \(\sum_y C_y\, g_y\) plus today's balance grown. Whether a history lasts depends only on those two pockets. For each history the page finds the smallest balance that lasts at each pre-tax share on a 0.1 grid, interpolates between, and searches \(q\) in steps of a quarter percent. Spot checks against the full year-by-year simulation agree to within one step. The table's take-home column is what the deposit costs out of pay after income and payroll tax with nothing saved; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
@@ -532,7 +535,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=28"></script>
+<script type="module" src="js/retirement.js?v=29"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

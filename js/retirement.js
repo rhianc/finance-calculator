@@ -569,21 +569,18 @@ export function boot(root) {
   const ageFromPointer = (event) => {
     if (!lastStart || !lastStart.ages || !lastStart.ages.length) return null;
     const rect = startChart.getBoundingClientRect();
-    const g = startGeometry(rect.width, lastStart.ages);
-    const age = Math.round(g.ageOf(event.clientX - rect.left));
-    return Math.min(g.last, Math.max(g.first, age));
+    const g = startGeometry(rect.width, lastStart.input);
+    return switchAgeOf(lastStart.input, Math.round(g.ageOf(event.clientX - rect.left)));
   };
   const onHover = (event) => {
+    // A mouse picks the age by hovering; a finger by touching or dragging.
+    if (event.type === "pointermove" && event.pointerType !== "mouse" && event.buttons === 0) return;
     const age = ageFromPointer(event);
     if (age === hoverAge) return;
     hoverAge = age;
     drawStartNow();
   };
-  const onLeave = (event) => {
-    if (event.pointerType !== "mouse") return;
-    hoverAge = null;
-    drawStartNow();
-  };
+  const onLeave = () => {};
   const onConf = (event) => {
     const btn = event.target.closest("[data-conf]");
     if (btn && root.contains(btn)) {
@@ -723,11 +720,11 @@ const CONF = [
   { name: "half of markets, for fun", short: "half" },
 ];
 
-function startGeometry(w, ages) {
+function startGeometry(w, input) {
   const padL = w < 420 ? 34 : 40;
-  const padR = w < 420 ? 44 : 64;
-  const first = ages[0];
-  const last = ages[ages.length - 1];
+  const padR = w < 420 ? 44 : 84;
+  const first = input.age;
+  const last = input.retireAge;
   const span = Math.max(1, last - first);
   const inner = Math.max(1, w - padL - padR);
   return {
@@ -738,6 +735,11 @@ function startGeometry(w, ages) {
     xOf: (age) => padL + ((age - first) / span) * inner,
     ageOf: (x) => first + ((x - padL) / inner) * span,
   };
+}
+
+function switchAgeOf(input, age) {
+  const lo = Math.min(input.age + 1, input.retireAge - 1);
+  return Math.min(input.retireAge - 1, Math.max(lo, age));
 }
 
 function pctText(v) {
@@ -755,10 +757,10 @@ function escapeHtml(t) {
 }
 
 /**
- * The fan: each line saves one share of pay until the age on the axis, then the share it plots from there to
- * retirement. Every line starts at the steady share; front-loading bends it down, saving less bends it up.
+ * Each plan is the share of pay you save at each age: its first share from today to the switch age, then the
+ * smallest share from there to retirement that lasts. Moving the switch age moves every step together.
  */
-function drawStart(canvas, res, hoverAge, conf, $) {
+function drawStart(canvas, res, pickAge, conf, $) {
   const input = res.input;
   const ages = res.ages || [];
   const lines = res.lines || [];
@@ -766,10 +768,12 @@ function drawStart(canvas, res, hoverAge, conf, $) {
   const empty = $("start-empty");
   const legend = $("start-legend");
   const c = CONF[conf] || CONF[0];
-  note.textContent = "To spend " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) + " a month) from " +
-    input.retireAge + " to " + input.endAge + ", today's dollars. Each line saves one share of pay until the age on the axis, then the share it shows from there to " +
-    input.retireAge + ".";
   if (!ages.length || !lines.length) return false;
+  const at = switchAgeOf(input, pickAge == null ? input.age + 10 : pickAge);
+  const k = at - input.age;
+  note.textContent = "To spend " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) + " a month) from " +
+    input.retireAge + " to " + input.endAge + ", today's dollars. Each plan saves its first share until " + at +
+    ", then the rate it needs from there to last in " + c.name + ". Drag or tap the chart to move the switch.";
 
   const parent = canvas.parentElement;
   const w = parent.clientWidth;
@@ -790,18 +794,17 @@ function drawStart(canvas, res, hoverAge, conf, $) {
   const grid = style.getPropertyValue("--line").trim() || "#e4dcd0";
   const card = style.getPropertyValue("--card").trim() || "#fffdf8";
   const green = style.getPropertyValue("--good").trim() || "#1f6b45";
+  const warn = style.getPropertyValue("--rent").trim() || "#a65b2b";
 
   const series = lines.map((l) => l.byThreshold[conf] || l.byThreshold[0]);
   const steady = series[0][0].later;
-  const g = startGeometry(w, ages);
-  const at = hoverAge == null ? Math.min(g.last, g.first + 10) : hoverAge;
-  const k = at - g.first;
+  const g = startGeometry(w, input);
   const others = lines.filter((l) => !l.you);
   const shade = (l) => {
     if (l.you) return { color: ink, alpha: 1, width: 3 };
     const i = others.indexOf(l);
     const t = others.length > 1 ? i / (others.length - 1) : 0;
-    return { color: green, alpha: 1 - 0.62 * t, width: 2.1 };
+    return { color: green, alpha: 1 - 0.62 * t, width: 2.2 };
   };
 
   // Nothing fits: say so instead of an empty grid.
@@ -820,19 +823,23 @@ function drawStart(canvas, res, hoverAge, conf, $) {
   }
   empty.hidden = true;
 
-  const padT = 16;
+  const padT = 18;
   const padB = 22;
-  let top = 0;
-  series.forEach((sr) => sr.forEach((r) => {
-    if (r.later) top = Math.max(top, r.later.payShare);
-  }));
-  lines.forEach((l) => (top = Math.max(top, l.early)));
-  (res.ceiling || []).forEach((v) => (top = Math.max(top, Math.min(v, top * 1.35 + 0.02))));
+  let top = steady.payShare;
+  lines.forEach((l, i) => {
+    top = Math.max(top, l.early);
+    const r = series[i][k];
+    if (r && r.later) top = Math.max(top, r.later.payShare);
+  });
+  const ceil = res.ceiling || [];
+  ceil.forEach((v) => (top = Math.max(top, Math.min(v, top * 1.25))));
   const step = niceCeil(Math.max(0.02, top) / 5);
   const rows = Math.max(2, Math.ceil(top / step - 1e-9));
   const yTop = step * rows;
   const plotH = h - padT - padB;
   const yOf = (v) => padT + (1 - Math.min(v, yTop) / yTop) * plotH;
+  const xr = g.xOf(input.retireAge);
+  const xs = g.xOf(at);
 
   ctx.font = "11px system-ui, sans-serif";
   ctx.lineWidth = 1;
@@ -841,7 +848,7 @@ function drawStart(canvas, res, hoverAge, conf, $) {
     ctx.strokeStyle = grid;
     ctx.beginPath();
     ctx.moveTo(g.padL, y);
-    ctx.lineTo(w - g.padR, y);
+    ctx.lineTo(xr, y);
     ctx.stroke();
     ctx.fillStyle = muted;
     ctx.textBaseline = "middle";
@@ -851,146 +858,156 @@ function drawStart(canvas, res, hoverAge, conf, $) {
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   const placedX = [];
-  const paintAge = (age) => {
+  const paintAge = (age, strong) => {
     const x = g.xOf(age);
-    if (placedX.some((px) => Math.abs(px - x) < 18)) return;
+    if (!strong && placedX.some((px) => Math.abs(px - x) < 18)) return;
     placedX.push(x);
+    ctx.font = (strong ? "700 " : "") + "11px system-ui, sans-serif";
+    ctx.fillStyle = strong ? ink : muted;
     ctx.fillText(String(age), x, h - padB + 6);
   };
+  paintAge(at, true);
   paintAge(g.first);
   paintAge(g.last);
   for (let a = Math.ceil(g.first / 5) * 5; a <= g.last; a += 5) paintAge(a);
+  ctx.font = "11px system-ui, sans-serif";
 
   // The most the limits take, as a share of that year's pay.
-  if (res.ceiling) {
+  if (ceil.length) {
     ctx.save();
     ctx.setLineDash([1.5, 3.5]);
     ctx.lineCap = "round";
     ctx.strokeStyle = muted;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    let started = false;
-    res.ceiling.forEach((v, i) => {
-      const x = g.xOf(ages[i]);
+    ceil.forEach((v, i) => {
+      const x0 = g.xOf(ages[i]);
+      const x1 = g.xOf(ages[i] + 1);
       const y = yOf(v);
-      if (!started) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-      started = true;
+      if (i === 0) ctx.moveTo(x0, y);
+      else ctx.lineTo(x0, y);
+      ctx.lineTo(x1, y);
     });
     ctx.stroke();
     ctx.restore();
   }
 
-  // The age the table reads out.
-  {
-    const x = g.xOf(at);
-    ctx.save();
-    ctx.strokeStyle = muted;
-    ctx.globalAlpha = 0.45;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(x, padT);
-    ctx.lineTo(x, h - padB);
-    ctx.stroke();
-    ctx.restore();
-  }
+  // The switch: a band over the years still to come.
+  ctx.save();
+  ctx.fillStyle = muted;
+  ctx.globalAlpha = 0.06;
+  ctx.fillRect(xs, padT, xr - xs, plotH);
+  ctx.globalAlpha = 0.7;
+  ctx.strokeStyle = muted;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(xs, padT - 4);
+  ctx.lineTo(xs, h - padB);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.font = "600 10.5px system-ui, sans-serif";
+  ctx.fillStyle = muted;
+  ctx.textBaseline = "bottom";
+  ctx.textAlign = xs > w * 0.75 ? "right" : "left";
+  ctx.fillText(xs > w * 0.75 ? "switch at " + at + " ◂▸" : "◂▸ switch at " + at, xs + (xs > w * 0.75 ? -4 : 4), padT - 4);
+  ctx.restore();
 
-  // Lightest first so the darker, front-loaded lines and you sit on top.
+  // The steady share: the same every year, no switch.
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.globalAlpha = 0.55;
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(g.padL, yOf(steady.payShare));
+  ctx.lineTo(xr, yOf(steady.payShare));
+  ctx.stroke();
+  ctx.restore();
+
+  // Lightest first so the darker, front-loaded plans and you sit on top.
   const order = lines.map((l, i) => i).sort((a, b) => {
     if (lines[a].you) return 1;
     if (lines[b].you) return -1;
     return shade(lines[a]).alpha - shade(lines[b]).alpha;
   });
-  const labels = [];
+  const leftLabels = [];
+  const rightLabels = [];
   order.forEach((i) => {
     const l = lines[i];
-    const pts = series[i].filter((r) => r.later);
-    if (!pts.length) return;
     const sh = shade(l);
+    const later = series[i][k] && series[i][k].later;
+    const y0 = yOf(l.early);
     ctx.save();
     ctx.globalAlpha = sh.alpha;
     ctx.strokeStyle = sh.color;
-    ctx.fillStyle = sh.color;
     ctx.lineWidth = sh.width;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.beginPath();
-    pts.forEach((r, j) => {
-      const x = g.xOf(r.age);
-      const y = yOf(r.later.payShare);
-      if (j === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    const end = pts[pts.length - 1];
-    const stop = pts.find((r) => r.later.payShare === 0);
-    if (end.age < g.last) {
-      // Later than this, nothing fits under the limit.
-      const x = g.xOf(end.age);
-      const y = yOf(end.later.payShare);
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(x - 3.5, y - 3.5);
-      ctx.lineTo(x + 3.5, y + 3.5);
-      ctx.moveTo(x + 3.5, y - 3.5);
-      ctx.lineTo(x - 3.5, y + 3.5);
-      ctx.stroke();
+    ctx.moveTo(g.padL, y0);
+    ctx.lineTo(xs, y0);
+    if (later) {
+      const y1 = yOf(later.payShare);
+      ctx.lineTo(xs, y1);
+      ctx.lineTo(xr, y1);
     }
-    const row = series[i][k];
-    if (row && row.later) {
+    ctx.stroke();
+    if (!later) {
+      // Too late: nothing under the limit makes up for it.
+      ctx.strokeStyle = warn;
       ctx.globalAlpha = 1;
-      ctx.fillStyle = card;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(g.xOf(at), yOf(row.later.payShare), l.you ? 4.5 : 3.5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(xs - 4, y0 - 4);
+      ctx.lineTo(xs + 4, y0 + 4);
+      ctx.moveTo(xs + 4, y0 - 4);
+      ctx.lineTo(xs - 4, y0 + 4);
       ctx.stroke();
     }
     ctx.restore();
-    const name = (l.you ? "You, " : "") + payPct(l.early) + " first";
-    if (stop) labels.push({ x: g.xOf(stop.age), y: yOf(0) - 6, text: name, color: sh.color, alpha: sh.alpha, align: "center", base: "bottom" });
-    else if (end.age < g.last) labels.push({ x: g.xOf(end.age) + 7, y: yOf(end.later.payShare), text: name, color: sh.color, alpha: sh.alpha, align: "left", base: "middle" });
-    else labels.push({ x: g.xOf(end.age) + 6, y: yOf(end.later.payShare), text: name, color: sh.color, alpha: sh.alpha, align: "left", base: "middle" });
+    leftLabels.push({ y: y0, text: (l.you ? "You " : "") + payPct(l.early), color: sh.color, alpha: sh.alpha, strong: l.you });
+    rightLabels.push({
+      y: later ? yOf(later.payShare) : y0,
+      text: later ? ((w < 420 ? "" : "needs ") + payPct(later.payShare)) : "too late",
+      color: later ? sh.color : warn,
+      alpha: later ? sh.alpha : 1,
+      strong: l.you,
+      x: later ? xr + 5 : xs + 8,
+    });
   });
 
-  // The steady share every line starts from.
-  {
-    const x = g.xOf(g.first);
-    const y = yOf(steady.payShare);
-    ctx.fillStyle = ink;
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-    labels.unshift({ x: x + 7, y: y - 9, text: "Steady: " + payPct(steady.payShare), color: ink, alpha: 1, align: "left", base: "bottom", strong: true });
-  }
-
-  // Direct labels, skipped where they would overlap.
-  const boxes = [];
-  labels.forEach((lb) => {
-    ctx.font = (lb.strong ? "650 " : "600 ") + "11px system-ui, sans-serif";
-    const tw = ctx.measureText(lb.text).width;
-    let x0 = lb.align === "center" ? lb.x - tw / 2 : lb.x;
-    x0 = Math.min(x0, w - tw - 2);
-    let y0 = lb.base === "bottom" ? lb.y - 12 : lb.base === "middle" ? lb.y - 6 : lb.y;
-    for (const dy of [0, -12, 12, -24, 24]) {
-      const box = { x: x0 - 2, y: y0 + dy - 1, w: tw + 4, h: 14 };
-      if (box.y < 0 || box.y + box.h > h - padB + 2) continue;
-      if (boxes.some((b) => box.x < b.x + b.w && b.x < box.x + box.w && box.y < b.y + b.h && b.y < box.y + box.h)) continue;
-      boxes.push(box);
+  // Labels: first shares just inside the left edge, later shares past the right end. Nudged apart vertically.
+  const lay = (items, xFor, align) => {
+    items.sort((a, b) => a.y - b.y);
+    const gap = 12;
+    let prev = -Infinity;
+    items.forEach((it) => {
+      it.ly = Math.max(it.y, prev + gap);
+      prev = it.ly;
+    });
+    const over = prev - (h - padB + 4);
+    if (over > 0) items.forEach((it) => (it.ly -= over));
+    items.forEach((it) => {
       ctx.save();
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
+      ctx.font = (it.strong ? "700 " : "600 ") + "10.5px system-ui, sans-serif";
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
       ctx.strokeStyle = card;
       ctx.lineWidth = 3.5;
       ctx.lineJoin = "round";
-      ctx.strokeText(lb.text, x0, y0 + dy);
-      ctx.globalAlpha = Math.max(0.7, lb.alpha);
-      ctx.fillStyle = lb.color;
-      ctx.fillText(lb.text, x0, y0 + dy);
+      const x = xFor(it);
+      ctx.strokeText(it.text, x, it.ly);
+      ctx.globalAlpha = Math.max(0.75, it.alpha);
+      ctx.fillStyle = it.color;
+      ctx.fillText(it.text, x, it.ly);
       ctx.restore();
-      break;
-    }
-  });
+    });
+  };
+  const leftAbove = leftLabels.map((it) => ({ ...it, y: it.y - 7 }));
+  lay(leftAbove, () => g.padL + 4, "left");
+  lay(rightLabels.filter((it) => it.x > xr), (it) => it.x, "left");
+  lay(rightLabels.filter((it) => it.x <= xr), (it) => it.x, "left");
 
   legend.innerHTML = "";
   const add = (label, color, alpha, kind) => {
@@ -1004,10 +1021,9 @@ function drawStart(canvas, res, hoverAge, conf, $) {
     item.append(sw, document.createTextNode(label));
     legend.appendChild(item);
   };
-  lines.forEach((l) => {
-    const sh = shade(l);
-    add((l.you ? "You: " : "") + payPct(l.early) + " until then" + (l.most ? ", the most it takes" : ""), sh.color, sh.alpha);
-  });
+  add("You", ink, 1);
+  add("Saving more first", green, 1);
+  add("Steady " + payPct(steady.payShare) + ", no switch", ink, 0.55);
   add(input.mega ? "Most the 401(k) and mega backdoor take" : "Most the 401(k) takes", null, 1, "dot");
 
   paintPlanTable(res, conf, at, $, steady);
@@ -1031,7 +1047,7 @@ function paintPlanTable(res, conf, at, $, steady) {
   const rowOf = (l) => (l.byThreshold[conf] || l.byThreshold[0])[k];
   const you = lines.find((l) => l.you);
   const best = lines.find((l) => rowOf(l) && rowOf(l).later);
-  let text = "Save the first share until <b>" + at + "</b>, then the second from " + at + " to " + input.retireAge +
+  let text = "Switch at <b>" + at + "</b>: save the first share until then, the second from " + at + " to " + input.retireAge +
     ". Every row lasts in " + escapeHtml(c.name) + ".";
   if (steady) text = "The same " + payPct(steady.payShare) + " of pay every year from now works. " + text;
   if (you && best && best !== you) {
@@ -1040,7 +1056,7 @@ function paintPlanTable(res, conf, at, $, steady) {
     text += " Saving " + payPct(best.early) + " instead of " + payPct(you.early) + " until " + at + " takes what you need after from " +
       (yr ? "<b>" + payPct(yr.payShare) + "</b>" : "<b>more than the limit</b>") + (br.payShare === 0 ? " to <b>nothing</b>." : " down to <b>" + payPct(br.payShare) + "</b>.");
   }
-  text += " Tap or hover the chart to pick another age.";
+  text += " Drag or tap the chart to switch at another age.";
   lead.innerHTML = text;
 
   const head = "<thead><tr><th>Until " + at + "</th><th>From " + at + " to " + input.retireAge + "</th><th>A year at " + at +
