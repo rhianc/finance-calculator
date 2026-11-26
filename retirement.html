@@ -103,8 +103,6 @@
     justify-content: space-between;
     gap: 0.35rem 0.8rem;
   }
-  .conf-pick { display: flex; align-items: center; gap: 0.45rem; }
-  .conf-pick > span { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
   .plot-head .pills button { min-height: 2rem; padding: 0.25rem 0.7rem; font-size: 0.76rem; }
   .legend i.dot {
     height: 0;
@@ -113,31 +111,33 @@
     background: none !important;
   }
   .start-empty {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-content: center;
-    gap: 0.6rem;
-    padding: 1rem 1.2rem;
-    text-align: center;
+    margin: 0.35rem 0 0;
+    padding: 0.5rem 0.7rem;
+    border-radius: 10px;
+    background: var(--soft);
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     line-height: 1.45;
-    background: color-mix(in srgb, var(--card) 88%, transparent);
   }
   .start-empty[hidden] { display: none; }
   .start-empty b { color: var(--ink); }
   .start-empty button {
-    justify-self: center;
+    margin-left: 0.3rem;
     border: 1px solid var(--line);
     background: var(--field);
     color: var(--ink);
     font: inherit;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 650;
-    padding: 0.45rem 0.95rem;
+    padding: 0.2rem 0.7rem;
     border-radius: 999px;
     cursor: pointer;
+  }
+  .legend i.dash {
+    height: 0;
+    border-radius: 0;
+    border-top: 2px dashed currentColor;
+    background: none !important;
   }
   .plan-card h2 { margin-bottom: 0.2rem; }
   .plan-lead { margin: 0 0 0.7rem; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
@@ -223,18 +223,12 @@
   <div class="stick-scope">
   <section class="stage card" aria-label="Share of pay you need to save, by age">
     <div class="plot-head">
-      <p class="plot-name" id="start-name">What you'll need to save, by age</p>
-      <div class="conf-pick"><span>Lasts in</span>
-      <div class="pills" role="radiogroup" aria-label="Lasts in how many markets">
-        <button type="button" data-conf="0" aria-pressed="true">9 in 10</button>
-        <button type="button" data-conf="1" aria-pressed="false">3 in 4</button>
-        <button type="button" data-conf="2" aria-pressed="false">Half</button>
-      </div></div>
+      <p class="plot-name" id="start-name">The share of pay you need each year</p>
     </div>
     <p class="plot-note" id="start-note">Counting…</p>
+    <p class="start-empty" id="start-empty" hidden></p>
     <div class="chart-box tall">
-      <canvas id="startChart" aria-label="Share of pay needed from each age, by what you save first"></canvas>
-      <div class="start-empty" id="start-empty" hidden></div>
+      <canvas id="startChart" aria-label="Share of pay needed each year"></canvas>
     </div>
     <div class="legend" id="start-legend"></div>
     <p class="quick" id="quick"></p>
@@ -517,11 +511,11 @@
       <h3>The lines</h3>
       <p>The lines are not rates, and none is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. Your spending is checked against all 280: the verdict counts how many never run out, and the fix is the retirement age or save rate that gets that count to 252, 9 in 10. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. If a line reaches the floor, that fraction of markets had already run out.</p>
       <h3>Save more now, need less later</h3>
-      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes. Each line is a plan in two parts: save a first share \(s\) of pay every year from today until the switch age \(a\), then a second share \(q\) every year from \(a\) until you retire. Drag or tap the chart to move \(a\). The line runs flat at \(s\), then steps to the smallest \(q\) that lasts in 9 of 10 markets (or 3 of 4, or half, from the buttons). Shares go in through the same caps, catch-up, Roth, and mega backdoor rules as above, and the dotted line is the most they take that year. "Too late" means no \(q\) under that limit is enough; "needs 0%" means \(s\) alone was enough and you could stop saving.</p>
-      <p>The dashed line is the steady share: the same \(q\) every year, no switch. A first share above it steps down at the switch, and the longer you hold it the lower the step. A first share below it steps up. Both parts are chosen today and judged across whole histories, not changed after a good or bad decade.</p>
-      <p>The working years add up exactly. A deposit \(C_y\) made in year \(y\) reaches retirement multiplied by that history's</p>
-      <div class="math">\[ g_y = \left(1 + \tfrac{1}{2} r_y\right) \prod_{z>y} (1 + r_z) \]</div>
-      <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are \(\sum_y C_y\, g_y\) plus today's balance grown. Whether a history lasts depends only on those two pockets. For each history the page finds the smallest balance that lasts at each pre-tax share on a 0.1 grid, interpolates between, and searches \(q\) in steps of a quarter percent. Spot checks against the full year-by-year simulation agree to within one step. The table's take-home column is what the deposit costs out of pay after income and payroll tax with nothing saved; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
+      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes, year by year. At each working age the page asks: from the balance you have, what share \(q\) of pay, saved every year from now until you retire, lasts in 9 of 10 futures (or 3 of 4, or half)? You save \(q\) for one year. Then a typical year happens: the balance grows at the compound real return a middle path grows at, the same one the box above calls the compound return. Next year the question is asked again from the new balance.</p>
+      <p>Planning for a bad market while a typical one arrives leaves you a little ahead each year, and that lead compounds. Early on it is small, and a shorter runway makes the bad case a little harder each year, so the 9-in-10 rate holds roughly level. Later the balance carries the plan and the rate falls, to zero when the balance alone lasts. The half plan stays about flat, because a typical market is what it already expected. Your current rate, saved every year, is the dashed line for comparison.</p>
+      <p>Every age faces the same futures: each history's first years for the working years left, then its retirement years. This chart reads a cutoff every year, so it draws 2,000 histories instead of 280, and can differ from the verdict above by a point or so. A deposit made \(j\) years from now reaches retirement multiplied by</p>
+      <div class="math">\[ g_j = \left(1 + \tfrac{1}{2} r_j\right) \prod_{i>j} (1 + r_i) \]</div>
+      <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are sums. Whether a history lasts depends only on those two pockets, so the page finds each history's smallest lasting balance once per pre-tax share on a 0.1 grid and interpolates between. Rates are searched in quarter-percent steps; checks against the full year-by-year simulation agree. The line is a 5-year rolling average and each year's own value is a dot. The table's take-home column is what the deposit costs out of pay after income and payroll tax; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
 
       <p>The median is noted in the cards for fun, not drawn, and not to plan on. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
@@ -535,7 +529,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=29"></script>
+<script type="module" src="js/retirement.js?v=30"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;

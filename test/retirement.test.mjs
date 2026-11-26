@@ -1,4 +1,4 @@
-import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, planCheck, rampPlan, DEFAULTS } from "../js/retirement-model.js";
+import { normalize, project, contributionSplit, taxableSocialSecurity, taxBill, compoundReal, marginalRate, takeHome, retireNeed, lifeNeed, planSpend, planCheck, adaptivePlan, oddsFrom, DEFAULTS } from "../js/retirement-model.js";
 
 let failed = 0;
 function check(name, cond) { print((cond ? "ok  " : "FAIL ") + name); if (!cond) failed += 1; }
@@ -62,35 +62,27 @@ if (failed) { print(failed + " failed"); } else print("all passed");
 {
   const raw = normalize({ mega: true });
   const input = { ...raw, annualSpend: planSpend(raw) };
-  const plan = rampPlan(input);
+  const plan = adaptivePlan(input);
   const W = input.retireAge - input.age;
-  if (plan.ages.length !== W) throw new Error("one switch age per working year");
-  const nine = plan.lines.map((l) => l.byThreshold[0]);
-  const steady = nine[0][0].later.payShare;
-  if (!nine.every((s) => s[0].later.payShare === steady)) throw new Error("every line starts at the steady share");
-  // The steady share is exact: it lasts in 9 of 10, and a quarter point less does not.
-  const exact = (p, extra = {}) => planCheck({ ...input, savePct: p, ...extra }, 0).success;
-  if (exact(steady) < 0.9 || exact(steady - 0.0025) >= 0.9) throw new Error("steady share is the smallest that lasts in 9 of 10");
-  // Saving more first never needs more later.
+  if (plan.ages.length !== W) throw new Error("one rate per working year");
+  const [nine, three, half] = plan.plans.map((p) => p.rows);
+  if (!(nine[0].payShare >= three[0].payShare && three[0].payShare >= half[0].payShare)) throw new Error("more certainty takes a higher rate");
+  // Replay the 9-in-10 resets and check each year's rate against the year-by-year simulation.
+  let pre = input.balance;
+  let roth = 0;
   for (let k = 0; k < W; k++) {
-    for (let i = 1; i < plan.lines.length; i++) {
-      const more = nine[i - 1][k].later;
-      const less = nine[i][k].later;
-      if (plan.lines[i - 1].early < plan.lines[i].early) throw new Error("family runs from most saved first to least");
-      if (less && (!more || more.payShare > less.payShare)) throw new Error("saving more first needs no more later");
+    const r = nine[k];
+    if (k % 8 === 0 && !r.over && r.payShare > 0) {
+      if (oddsFrom(input, k, pre, roth, r.payShare) < 0.9) throw new Error("rate at " + r.age + " lasts in 9 of 10");
+      if (oddsFrom(input, k, pre, roth, r.payShare - 0.005) >= 0.9) throw new Error("half a point less at " + r.age + " does not");
     }
+    const split = contributionSplit({ ...input, savePct: r.payShare }, k, input.age + k + 1);
+    pre = pre * (1 + plan.typical) + split.pre * (1 + plan.typical / 2);
+    roth = roth * (1 + plan.typical) + split.roth * (1 + plan.typical / 2);
   }
-  // Spot checks against the full simulation, switching shares at the age.
-  const front = plan.lines[1];
-  for (const k of [5, 15, 25]) {
-    const r = front.byThreshold[0][k].later;
-    if (!r || r.payShare === 0) continue;
-    const at = { switchAge: input.age + k, laterPct: r.payShare };
-    const ok = planCheck({ ...input, savePct: front.early, ...at }, 0).success;
-    const short = planCheck({ ...input, savePct: front.early, switchAge: input.age + k, laterPct: r.payShare - 0.005 }, 0).success;
-    if (ok < 0.9 || short >= 0.9) throw new Error("front-loaded plan at " + (input.age + k) + " matches the full simulation");
-  }
-  const you = plan.lines.find((l) => l.you);
-  if (Math.abs(you.odds - planCheck(input, 0).success) > 0.011) throw new Error("your share all the way matches the verdict");
-  print("ok  save more first, need less later; matches the full simulation");
+  // Planning for 9 in 10 while typical years arrive leaves you ahead: by the end it needs less than the half plan.
+  const last = W - 3;
+  if (!(nine[last].payShare < half[last].payShare)) throw new Error("the careful plan needs less than the half plan near the end");
+  if (Math.abs(plan.you[0].odds - planCheck(input, 0).success) > 0.04) throw new Error("your rate's odds today are close to the verdict");
+  print("ok  yearly reset: careful plan starts higher, ends lower; matches the year-by-year simulation");
 }

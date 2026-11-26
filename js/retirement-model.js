@@ -445,10 +445,7 @@ function buildSkeleton(input) {
       ssMonths,
       ageAtEnd: input.age + end / 12,
       deflate: Math.pow(1 + input.inflation, -end / 12),
-      // `switchAge` changes the share to `laterPct` from that age on.
-      saved: input.switchAge != null && input.age + yearsWorked >= input.switchAge
-          ? contributionSplit({ ...input, savePct: input.laterPct }, yearsWorked, input.age + end / 12)
-          : contributionSplit(input, yearsWorked, input.age + end / 12),
+      saved: contributionSplit(input, yearsWorked, input.age + end / 12),
     });
   }
   return { months, retireM, claimM, slots };
@@ -811,27 +808,57 @@ export function saveCost(input, yearsWorked, ageAtYearEnd) {
 
 const SHARE_STEPS = 400; // save share searched in steps of 0.25% of pay
 
+
+// The yearly-reset chart reads a cutoff every year, so it draws more futures than the 280 the rest of the page uses:
+// the same 5-year blocks of real S&P 500 years, the first 280 identical to the page's.
+const FUTURES = 2000;
+const MORE_BLOCKS = [];
+function futureRates(input, years, count) {
+  while (BLOCKS.length + MORE_BLOCKS.length < count) {
+    const rng = mulberry32(0xf0e5 + MORE_BLOCKS.length);
+    const idx = new Array(MAX_YEARS);
+    let filled = 0;
+    while (filled < MAX_YEARS) {
+      const start = Math.floor(rng() * RAW_REAL.length);
+      for (let k = 0; k < BLOCK && filled < MAX_YEARS; k++) idx[filled++] = (start + k) % RAW_REAL.length;
+    }
+    MORE_BLOCKS.push(idx);
+  }
+  const shift = realAnnual(input.avg, input.inflation) - HIST_REAL;
+  const out = new Array(count);
+  for (let p = 0; p < count; p++) {
+    const idx = p < BLOCKS.length ? BLOCKS[p] : MORE_BLOCKS[p - BLOCKS.length];
+    const real = new Float64Array(years);
+    for (let y = 0; y < years; y++) real[y] = Math.min(1.2, Math.max(-0.7, RAW_REAL[idx[y]] + shift));
+    out[p] = real;
+  }
+  return out;
+}
+
 /**
- * Save one share of pay until an age, then whatever share it takes from that age until you retire.
+ * The rate you need each year, reset from where you stand.
  *
- * For each early share in the family and each switch age, every one of the 280 histories gets the smallest later
- * share that never runs out; the 9-in-10 line is the one 252 of them need no more than (and 3 in 4, half).
+ * At each working age the page asks: from this balance, what single share of pay, saved every year from now until
+ * you retire, lasts in 9 of 10 futures (or 3 of 4, or half)? You save that share for one year. Then a typical year
+ * happens, the compound real return a middle path grows at, and the question is asked again from the new balance.
+ * Planning for a bad market while a typical one arrives leaves you ahead each year, so the share you need falls.
  *
- * The working years are exact and fast: a deposit in year y reaches retirement multiplied by that history's
- * g_y = (1 + r_y / 2) * prod_{z > y}(1 + r_z), the same mid-year rule as the simulation, so the pre-tax and Roth
- * pockets at retirement are sums. What lasts depends only on those two pockets, so for each history the page finds
- * the smallest total balance that lasts at a pre-tax share f (f on a 0.1 grid, interpolated between) and compares.
+ * Every age faces the same 280 futures: each history's first years for the working years left, then its retirement
+ * years. A deposit made j years from now reaches retirement multiplied by (1 + r_j / 2) * prod_{i > j}(1 + r_i), the
+ * same mid-year rule as the simulation, so the pre-tax and Roth pockets at retirement are sums. What lasts depends only on those pockets, so
+ * each history's smallest lasting balance is found once per pre-tax share f (0.1 grid, interpolated between).
  * Ages are whole years, so every working year is a full one.
  */
-export function rampPlan(input, opts = {}) {
+export function adaptivePlan(input, opts = {}) {
   const thresholds = opts.thresholds || [0.9, 0.75, 0.5];
   const W = Math.max(1, input.retireAge - input.age);
   const years = Math.max(1, Math.ceil(input.endAge - input.age));
-  const rates = yearRates(input, years);
+  const NF = opts.futures || FUTURES;
+  const rates = futureRates(input, years, NF);
   coverCache = new Map();
   const flow = planWithSpend(buildSkeleton({ ...input, savePct: 0 }), input);
+  const typical = compoundReal(input);
 
-  // Deposits by share step and year, filled as needed.
   const depPre = new Float64Array((SHARE_STEPS + 1) * W).fill(NaN);
   const depRoth = new Float64Array((SHARE_STEPS + 1) * W);
   const dep = (step, y) => {
@@ -844,21 +871,17 @@ export function rampPlan(input, opts = {}) {
     return i;
   };
 
-  const grow = [];
-  const whole = new Float64Array(N_PATHS);
-  for (let p = 0; p < N_PATHS; p++) {
+  // Every age faces the same futures: history p's first n years for the n working years left, then its retirement
+  // years. prod[p][j] is the growth of the first j years, so a deposit made j years from now grows by
+  // (1 + r_j / 2) * prod[n] / prod[j + 1] by retirement.
+  const prod = [];
+  for (let p = 0; p < NF; p++) {
     const r = rates[p];
-    const g = new Float64Array(W);
-    let acc = 1;
-    for (let y = W - 1; y >= 0; y--) {
-      g[y] = acc * (1 + r[y] * 0.5);
-      acc *= 1 + r[y];
-    }
-    grow.push(g);
-    whole[p] = acc;
+    const acc = new Float64Array(W + 1);
+    acc[0] = 1;
+    for (let j = 0; j < W; j++) acc[j + 1] = acc[j] * (1 + r[j]);
+    prod.push(acc);
   }
-  const pre0 = input.account === "roth" ? 0 : input.balance;
-  const roth0 = input.account === "roth" ? input.balance : 0;
 
   const lastsFrom = (p, pre, roth) => {
     const real = rates[p];
@@ -876,12 +899,11 @@ export function rampPlan(input, opts = {}) {
     return true;
   };
 
-  // Smallest balance at retirement that lasts, by history and pre-tax share.
   const F = 10;
-  const nstar = new Float64Array(N_PATHS * (F + 1)).fill(NaN);
+  const nstar = new Float64Array(NF * (F + 1)).fill(NaN);
   const needAt = (p, i) => {
-    const k = p * (F + 1) + i;
-    if (Number.isNaN(nstar[k])) {
+    const key = p * (F + 1) + i;
+    if (Number.isNaN(nstar[key])) {
       const f = i / F;
       const ok = (t) => lastsFrom(p, f * t, (1 - f) * t);
       let v = 0;
@@ -896,9 +918,9 @@ export function rampPlan(input, opts = {}) {
         }
         v = hi;
       }
-      nstar[k] = v;
+      nstar[key] = v;
     }
-    return nstar[k];
+    return nstar[key];
   };
   const lasts = (p, pre, roth) => {
     const total = pre + roth;
@@ -908,101 +930,83 @@ export function rampPlan(input, opts = {}) {
     const t = x - i;
     return total >= needAt(p, i) * (1 - t) + needAt(p, i + 1) * t;
   };
-
-  // Pockets at retirement for one history: early step until year k, later step from k.
-  const pockets = (p, early, k, later) => {
-    const g = grow[p];
-    let pre = pre0 * whole[p];
-    let roth = roth0 * whole[p];
-    for (let y = 0; y < W; y++) {
-      const i = dep(y < k ? early : later, y);
-      pre += depPre[i] * g[y];
-      roth += depRoth[i] * g[y];
+  // From pockets (pre, roth) at the start of year k, saving `step` every year to retirement, in history p.
+  const works = (p, k, pre, roth, step) => {
+    const r = rates[p];
+    const P = prod[p];
+    const n = W - k;
+    let a = pre * P[n];
+    let b = roth * P[n];
+    for (let j = 0; j < n; j++) {
+      const i = dep(step, k + j);
+      const g = (1 + r[j] * 0.5) * (P[n] / P[j + 1]);
+      a += depPre[i] * g;
+      b += depRoth[i] * g;
     }
-    return [pre, roth];
+    return lasts(p, a, b);
   };
-  const works = (p, early, k, later) => {
-    const [pre, roth] = pockets(p, early, k, later);
-    return lasts(p, pre, roth);
-  };
-
-  // The share of pay at which today's deposit stops growing: the most the limits take.
-  let maxStep = SHARE_STEPS;
-  for (let st = 1; st <= SHARE_STEPS; st++) {
-    const split = contributionSplit({ ...input, savePct: st / SHARE_STEPS }, 0, input.age + 1);
-    if (split.payUsed + 1 < split.want) {
-      maxStep = st - 1;
-      break;
+  const needs = (k, pre, roth) => {
+    const need = new Int32Array(NF);
+    for (let p = 0; p < NF; p++) {
+      if (works(p, k, pre, roth, 0)) continue;
+      if (!works(p, k, pre, roth, SHARE_STEPS)) {
+        need[p] = SHARE_STEPS + 1;
+        continue;
+      }
+      let lo = 0;
+      let hi = SHARE_STEPS;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (works(p, k, pre, roth, mid)) hi = mid;
+        else lo = mid;
+      }
+      need[p] = hi;
     }
-  }
-
-  const youStep = Math.min(SHARE_STEPS, Math.round(input.savePct * SHARE_STEPS));
-  const picks = new Set([youStep, maxStep]);
-  for (let pct = 10; pct < 100; pct += 10) {
-    const st = pct * (SHARE_STEPS / 100);
-    if (st < maxStep - 8 && Math.abs(st - youStep) > 10) picks.add(st);
-  }
-  let family = Array.from(picks).sort((a, b) => b - a);
-  if (family.length > 6) {
-    const keep = family.filter((st) => st === youStep || st === maxStep);
-    const rest = family.filter((st) => st !== youStep && st !== maxStep);
-    while (keep.length < 6 && rest.length) keep.push(rest.splice(Math.floor(rest.length / 2), 1)[0]);
-    family = keep.sort((a, b) => b - a);
-  }
-
-  const quant = (need, t) => {
-    const sorted = Array.from(need).sort((a, b) => a - b);
-    return sorted[Math.max(0, Math.ceil(N_PATHS * t - 1e-9) - 1)];
+    return Array.from(need).sort((x, y) => x - y);
+  };
+  const quant = (sorted, t) => sorted[Math.max(0, Math.ceil(NF * t - 1e-9) - 1)];
+  const typicalYear = (pre, roth, step, k) => {
+    const i = dep(step, k);
+    return [pre * (1 + typical) + depPre[i] * (1 + typical * 0.5), roth * (1 + typical) + depRoth[i] * (1 + typical * 0.5)];
   };
   const describe = (step, k) => {
-    if (step > SHARE_STEPS) return null;
     const inp = { ...input, savePct: step / SHARE_STEPS };
     const pay = afterTaxPay(input, k, input.age + k + 1);
     const cost = saveCost(inp, k, input.age + k + 1);
-    return {
-      payShare: step / SHARE_STEPS,
-      saved: contributionSplit(inp, k, input.age + k + 1).total,
-      share: pay > 0 ? cost / pay : null,
-    };
+    return { payShare: step / SHARE_STEPS, saved: contributionSplit(inp, k, input.age + k + 1).total, share: pay > 0 ? cost / pay : null };
   };
+  const pre0 = input.account === "roth" ? 0 : input.balance;
+  const roth0 = input.account === "roth" ? input.balance : 0;
 
-  const lines = family.map((early) => {
-    const need = new Int32Array(N_PATHS);
-    const byT = thresholds.map(() => []);
+  // One reset path per threshold. When nothing under the limit is enough, that year saves the most it takes.
+  const plans = thresholds.map((t) => {
+    let pre = pre0;
+    let roth = roth0;
+    const rows = [];
     for (let k = 0; k < W; k++) {
-      for (let p = 0; p < N_PATHS; p++) {
-        if (works(p, early, k, 0)) {
-          need[p] = 0;
-          continue;
-        }
-        if (!works(p, early, k, SHARE_STEPS)) {
-          need[p] = SHARE_STEPS + 1;
-          continue;
-        }
-        let lo = 0;
-        let hi = SHARE_STEPS;
-        while (hi - lo > 1) {
-          const mid = (lo + hi) >> 1;
-          if (works(p, early, k, mid)) hi = mid;
-          else lo = mid;
-        }
-        need[p] = hi;
-      }
-      thresholds.forEach((t, j) => byT[j].push({ age: input.age + k, ...{ later: describe(quant(need, t), k) } }));
+      const step = quant(needs(k, pre, roth), t);
+      const over = step > SHARE_STEPS;
+      const use = over ? SHARE_STEPS : step;
+      rows.push({ age: input.age + k, balance: pre + roth, over, ...describe(use, k) });
+      [pre, roth] = typicalYear(pre, roth, use, k);
     }
-    let ok = 0;
-    for (let p = 0; p < N_PATHS; p++) if (works(p, early, W, 0)) ok += 1;
-    return {
-      early: early / SHARE_STEPS,
-      you: early === youStep,
-      most: early === maxStep,
-      earlySaved: describe(early, 0),
-      odds: ok / N_PATHS,
-      byThreshold: byT,
-    };
+    return { threshold: t, rows };
   });
-  coverCache = null;
-  // The same ceiling at every working age: raises shrink it, catch-up at 50 and 60-63 lifts it.
+
+  // Your save rate, every year, and how often it lasts from where a typical market leaves you.
+  const youStep = Math.min(SHARE_STEPS, Math.round(input.savePct * SHARE_STEPS));
+  const you = [];
+  {
+    let pre = pre0;
+    let roth = roth0;
+    for (let k = 0; k < W; k++) {
+      let ok = 0;
+      for (let p = 0; p < NF; p++) if (works(p, k, pre, roth, youStep)) ok += 1;
+      you.push({ age: input.age + k, balance: pre + roth, odds: ok / NF, ...describe(youStep, k) });
+      [pre, roth] = typicalYear(pre, roth, youStep, k);
+    }
+  }
+
   const ceiling = [];
   for (let k = 0; k < W; k++) {
     const capped = (st) => {
@@ -1022,11 +1026,41 @@ export function rampPlan(input, opts = {}) {
     }
     ceiling.push(lo / SHARE_STEPS);
   }
-  return {
-    thresholds,
-    maxShare: maxStep / SHARE_STEPS,
-    ceiling,
-    lines,
-    ages: lines[0].byThreshold[0].map((r) => r.age),
-  };
+  coverCache = null;
+  return { thresholds, typical, plans, you, ceiling, ages: plans[0].rows.map((r) => r.age) };
+}
+
+/**
+ * Exact check for adaptivePlan: from pockets at the start of working year k, saving `pct` every year to retirement,
+ * the share of the 280 futures (as adaptivePlan draws them) that never run out, simulated year by year.
+ */
+export function oddsFrom(input, k, pre, roth, pct, futures = FUTURES) {
+  const NF = futures;
+  const W = Math.max(1, input.retireAge - input.age);
+  const years = Math.max(1, Math.ceil(input.endAge - input.age));
+  const rates = futureRates(input, years, NF);
+  coverCache = new Map();
+  const flow = planWithSpend(buildSkeleton({ ...input, savePct: pct }), { ...input, savePct: pct });
+  let ok = 0;
+  for (let p = 0; p < NF; p++) {
+    const r = rates[p];
+    let a = pre;
+    let b = roth;
+    for (let y = k; y < W; y++) [a, b] = growPockets(a, b, r[y - k], flow.years[y].saved.pre, flow.years[y].saved.roth);
+    let alive = true;
+    for (let y = W; y < r.length && alive; y++) {
+      const slot = flow.years[y];
+      if (!slot) break;
+      const total = a + b;
+      const share = total > 1 ? a / total : 0;
+      const bill = cachedCover(slot.spend, slot.ss, input.filing, share, slot.ageAtEnd, slot.deflate);
+      const paid = payYear(a, b, bill.withdrawal, bill.surplus, r[y]);
+      if (paid.broke) alive = false;
+      a = paid.pre;
+      b = paid.roth;
+    }
+    if (alive) ok += 1;
+  }
+  coverCache = null;
+  return ok / NF;
 }
