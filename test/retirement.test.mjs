@@ -64,25 +64,34 @@ if (failed) { print(failed + " failed"); } else print("all passed");
   const input = { ...raw, annualSpend: planSpend(raw) };
   const plan = adaptivePlan(input);
   const W = input.retireAge - input.age;
-  if (plan.ages.length !== W) throw new Error("one rate per working year");
-  const [nine, three, half] = plan.plans.map((p) => p.rows);
-  if (!(nine[0].payShare >= three[0].payShare && three[0].payShare >= half[0].payShare)) throw new Error("more certainty takes a higher rate");
-  // Replay the 9-in-10 resets and check each year's rate against the year-by-year simulation.
-  let pre = input.balance;
-  let roth = 0;
-  for (let k = 0; k < W; k++) {
-    const r = nine[k];
-    if (k % 8 === 0 && !r.over && r.payShare > 0) {
-      if (oddsFrom(input, k, pre, roth, r.payShare) < 0.9) throw new Error("rate at " + r.age + " lasts in 9 of 10");
-      if (oddsFrom(input, k, pre, roth, r.payShare - 0.005) >= 0.9) throw new Error("half a point less at " + r.age + " does not");
+  if (plan.ages.length !== W) throw new Error("one amount per working year");
+  const [nine, three, half] = plan.plans.map((p) => p.typical);
+  if (!(nine[0].payShare >= three[0].payShare && three[0].payShare >= half[0].payShare)) throw new Error("more certainty takes more now");
+  // Replay each walk and check its amounts against the year-by-year simulation.
+  const replay = (rows, market, t) => {
+    let pre = input.balance;
+    let roth = 0;
+    for (let k = 0; k < W; k++) {
+      const r = rows[k];
+      if (k % 9 === 0 && !r.over && r.payShare > 0) {
+        if (oddsFrom(input, k, pre, roth, r.payShare) < t) throw new Error("amount at " + r.age + " lasts in " + t);
+        if (oddsFrom(input, k, pre, roth, r.payShare - 0.005) >= t) throw new Error("half a point less at " + r.age + " does not");
+      }
+      const split = contributionSplit({ ...input, savePct: r.payShare }, k, input.age + k + 1);
+      const m = market[k];
+      pre = pre * (1 + m) + split.pre * (1 + m / 2);
+      roth = roth * (1 + m) + split.roth * (1 + m / 2);
     }
-    const split = contributionSplit({ ...input, savePct: r.payShare }, k, input.age + k + 1);
-    pre = pre * (1 + plan.typical) + split.pre * (1 + plan.typical / 2);
-    roth = roth * (1 + plan.typical) + split.roth * (1 + plan.typical / 2);
-  }
-  // Planning for 9 in 10 while typical years arrive leaves you ahead: by the end it needs less than the half plan.
+  };
+  replay(nine, plan.markets.typical, 0.9);
+  replay(plan.plans[0].rough, plan.markets.rough, 0.9);
+  replay(three, plan.markets.typical, 0.75);
+  // Typical markets leave the careful plan ahead: by the end it needs less than the half plan, and below-average
+  // markets need more than typical ones through the middle years.
   const last = W - 3;
-  if (!(nine[last].payShare < half[last].payShare)) throw new Error("the careful plan needs less than the half plan near the end");
-  if (Math.abs(plan.you[0].odds - planCheck(input, 0).success) > 0.04) throw new Error("your rate's odds today are close to the verdict");
-  print("ok  yearly reset: careful plan starts higher, ends lower; matches the year-by-year simulation");
+  if (!(nine[last].payShare < half[last].payShare)) throw new Error("careful plan needs less than the half plan near the end");
+  const mid = (rows) => rows.slice(10, 25).reduce((a, r) => a + r.payShare, 0);
+  if (!(mid(plan.plans[0].rough) > mid(nine))) throw new Error("below-average markets need more than typical ones");
+  if (Math.abs(plan.youOdds - planCheck(input, 0).success) > 0.04) throw new Error("your rate's odds today are close to the verdict");
+  print("ok  amount to save: careful plan starts higher, ends lower; rough markets need more; matches the simulation");
 }

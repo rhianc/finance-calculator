@@ -1,5 +1,5 @@
 // Runs the yearly-reset plan off the main thread so the knobs stay responsive.
-import { adaptivePlan } from "./retirement-model.js?v=22";
+import { adaptivePlan } from "./retirement-model.js?v=23";
 
 self.onmessage = (event) => {
   const input = event.data;

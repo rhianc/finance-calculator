@@ -1,4 +1,4 @@
-import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck, adaptivePlan } from "./retirement-model.js?v=22";
+import { DEFAULTS, normalize, project, spendTax, contributionSplit, takeHome, retireNeed, lifeNeed, planSpend, planCheck, adaptivePlan } from "./retirement-model.js?v=23";
 
 // Nothing is remembered between visits: every visit starts from the defaults (or a shared link's values).
 // Earlier versions saved the plan in the browser; that copy is cleared on load.
@@ -18,6 +18,8 @@ export function boot(root) {
   let lastPaths = null;
   let lastStart = null;
   let hoverAge = null;
+  let conf = 0;
+  let unit = "$";
   const sweep = makeSweeper((res) => {
     lastStart = res;
     drawStartNow();
@@ -562,27 +564,40 @@ export function boot(root) {
       $("start-note").textContent = "The chart failed. " + lastStart.error;
       return;
     }
-    drawStart(startChart, lastStart, hoverAge, $);
+    drawStart(startChart, lastStart, hoverAge, conf, unit, $);
   }
 
   const ageFromPointer = (event) => {
     if (!lastStart || !lastStart.ages || !lastStart.ages.length) return null;
     const rect = startChart.getBoundingClientRect();
     const g = startGeometry(rect.width, lastStart.input);
-    return switchAgeOf(lastStart.input, Math.round(g.ageOf(event.clientX - rect.left)));
+    return Math.min(g.last, Math.max(g.first, g.ageOf(event.clientX - rect.left)));
   };
   const onHover = (event) => {
-    // A mouse picks the age the table reads by hovering; a finger by tapping. Nothing on the chart moves.
+    // A mouse reads an age by hovering; a finger by tapping. Nothing on the chart moves.
     if (event.type === "pointermove" && event.pointerType !== "mouse") return;
     const age = ageFromPointer(event);
     if (age === hoverAge) return;
     hoverAge = age;
     drawStartNow();
   };
-  const onLeave = () => {};
+  const onLeave = (event) => {
+    if (event.pointerType !== "mouse") return;
+    hoverAge = null;
+    drawStartNow();
+  };
   const onConf = (event) => {
-    const mega = event.target.closest("[data-turn-mega]");
-    if (mega && root.contains(mega)) {
+    const pick = event.target.closest("[data-conf], [data-unit], [data-turn-mega]");
+    if (!pick || !root.contains(pick)) return;
+    if (pick.hasAttribute("data-conf")) {
+      conf = Number(pick.getAttribute("data-conf")) || 0;
+      root.querySelectorAll("[data-conf]").forEach((b) => b.setAttribute("aria-pressed", b === pick ? "true" : "false"));
+      drawStartNow();
+    } else if (pick.hasAttribute("data-unit")) {
+      unit = pick.getAttribute("data-unit") === "%" ? "%" : "$";
+      root.querySelectorAll("[data-unit]").forEach((b) => b.setAttribute("aria-pressed", b === pick ? "true" : "false"));
+      drawStartNow();
+    } else {
       setChoice("mega", "1");
       schedule();
     }
@@ -665,7 +680,7 @@ function makeSweeper(onDone) {
     }, 0);
   };
   try {
-    worker = new Worker(new URL("./start-worker.js?v=4", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./start-worker.js?v=5", import.meta.url), { type: "module" });
   } catch (err) {
     worker = null;
   }
@@ -706,31 +721,29 @@ function makeSweeper(onDone) {
   };
 }
 
-const PLANS = [
-  { color: "--good", name: "9 in 10 markets", short: "9 in 10", width: 3 },
-  { color: "--house", name: "3 in 4", short: "3 in 4", width: 2.4 },
-  { color: "--rent", name: "Half, for fun", short: "Half", width: 1.8, alpha: 0.8 },
+const PLAN_FOR = [
+  { name: "9 of 10 markets", short: "9 of 10" },
+  { name: "3 of 4 markets", short: "3 of 4" },
+  { name: "half of markets", short: "half" },
 ];
 
+// One slot per working age; bars sit in the middle of their slot.
 function startGeometry(w, input) {
-  const padL = w < 420 ? 34 : 40;
-  const padR = w < 420 ? 40 : 58;
+  const padL = w < 420 ? 40 : 50;
+  const padR = w < 420 ? 8 : 14;
   const first = input.age;
-  const last = Math.max(input.age + 1, input.retireAge - 1);
-  const span = Math.max(1, last - first);
-  const inner = Math.max(1, w - padL - padR);
+  const last = Math.max(input.age, input.retireAge - 1);
+  const slots = last - first + 1;
+  const slot = Math.max(1, w - padL - padR) / slots;
   return {
     padL,
     padR,
     first,
     last,
-    xOf: (age) => padL + ((age - first) / span) * inner,
-    ageOf: (x) => first + ((x - padL) / inner) * span,
+    slot,
+    xOf: (age) => padL + (age - first + 0.5) * slot,
+    ageOf: (x) => first + Math.floor((x - padL) / slot),
   };
-}
-
-function switchAgeOf(input, age) {
-  return Math.min(Math.max(input.age, input.retireAge - 1), Math.max(input.age, age));
 }
 
 function pctText(v) {
@@ -743,39 +756,91 @@ function payPct(v) {
   return (Number.isInteger(p) ? String(p) : p.toFixed(1)) + "%";
 }
 
-// First age a plan needs nothing more, or null.
+// First age from which a plan needs nothing more, or null.
 function stopAge(rows) {
-  const i = rows.findIndex((r, j) => !r.over && r.payShare === 0 && rows.slice(j).every((x) => !x.over && x.payShare === 0));
+  const i = rows.findIndex((r, j) => rows.slice(j).every((x) => !x.over && x.payShare === 0));
   return i < 0 ? null : rows[i].age;
 }
 
 /**
- * The rate you need each year. Each year it resets: from the balance you have, the share of pay that lasts in
- * 9 of 10 futures (or 3 of 4, or half). Then a typical year happens and it is asked again.
+ * Each year's amount is read from 2,000 futures, so it wobbles a point or two from year to year. The chart and
+ * schedule use a 5-year average, narrowing at the ends so this year's amount is exactly this year's. Once a plan
+ * can stop, it stays at zero.
  */
-function drawStart(canvas, res, pickAge, $) {
-  const input = res.input;
-  const plans = res.plans || [];
-  const you = res.you || [];
-  if (!plans.length || !you.length) return false;
-  const note = $("start-note");
-  const banner = $("start-empty");
-  const legend = $("start-legend");
-  const at = switchAgeOf(input, pickAge == null ? input.age + 10 : pickAge);
-  const k = at - input.age;
-  note.textContent = "To spend " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) + " a month) from " +
-    input.retireAge + " to " + input.endAge + ", today's dollars. Each year the rate resets to what lasts from the balance you have; between resets the market has a typical year, " +
-    pctText(res.typical) + " after inflation.";
+function smoothRows(rows) {
+  const n = rows.length;
+  const stop = stopAge(rows);
+  return rows.map((r, i) => {
+    if (r.over || (stop != null && r.age >= stop)) return r;
+    const w = Math.min(2, i, n - 1 - i);
+    let saved = 0;
+    let share = 0;
+    let pay = 0;
+    let cnt = 0;
+    for (let d = -w; d <= w; d++) {
+      const x = rows[i + d];
+      if (x.over) continue;
+      saved += x.saved;
+      share += x.share || 0;
+      pay += x.payShare;
+      cnt += 1;
+    }
+    return { ...r, saved: saved / cnt, share: share / cnt, payShare: pay / cnt };
+  });
+}
 
-  // Lines that can't be reached under the limit say so above the chart.
-  const blocked = plans.map((pl, i) => (pl.rows[0].over ? PLANS[i].short : null)).filter(Boolean);
-  if (blocked.length) {
-    banner.hidden = false;
-    banner.innerHTML = "<b>" + blocked.join(" and ") + " can't be reached</b> inside the " +
-      (input.mega ? "401(k) and mega backdoor" : "401(k)") + " limit at " + money(input.annualSpend) + " a year." +
-      (input.mega ? " Spend less or retire later." : ' <button type="button" data-turn-mega="1">Try the mega backdoor</button>');
+/**
+ * How much to save: this year's amount for the chosen plan, then each later year's amount if markets are typical
+ * (bars) or below average (dashed), next to what you save now.
+ */
+function drawStart(canvas, res, hover, conf, unit, $) {
+  const input = res.input;
+  const plan = res.plans[conf] || res.plans[0];
+  const spec = PLAN_FOR[conf] || PLAN_FOR[0];
+  if (!plan || !res.you || !res.you.length) return false;
+  const typ = smoothRows(plan.typical);
+  const rough = smoothRows(plan.rough);
+  const you = res.you;
+  const now = plan.typical[0];
+  const val = (r) => (unit === "%" ? r.share || 0 : r.saved);
+  const fmt = (v) => (unit === "%" ? pctText(v) : moneyShort(v));
+  const limit = input.mega ? "401(k) and mega backdoor" : "401(k)";
+  const stop = stopAge(plan.typical);
+  const stopRough = stopAge(plan.rough);
+
+  $("start-note").textContent = "Today's dollars, to spend " + money(input.annualSpend) + " a year (" + money(input.annualSpend / 12) +
+    " a month) from " + input.retireAge + " to " + input.endAge + ". Recheck every year: each year's amount is what lasts in " +
+    spec.name + " from the balance you have then.";
+
+  // The answer: this year's amount.
+  const big = $("save-big");
+  const sub = $("save-sub");
+  const pathLine = $("save-path");
+  const banner = $("start-empty");
+  if (now.over) {
+    big.textContent = "More than the " + limit + " takes";
+    sub.innerHTML = "No amount inside the limit lasts in " + spec.name + " at " + money(input.annualSpend) +
+      " a year. You save " + money(you[0].saved) + " now (" + payPct(you[0].payShare) + " of pay).";
+    pathLine.textContent = "";
+    banner.hidden = !!input.mega;
+    banner.innerHTML = input.mega ? "" : 'The mega backdoor raises the limit to $72,000. <button type="button" data-turn-mega="1">Try it</button>';
   } else {
     banner.hidden = true;
+    big.innerHTML = money(now.saved) + '<span class="save-unit"> this year</span>';
+    sub.textContent = payPct(now.payShare) + " of pay, " + pctText(now.share) + " of take-home. You save " + money(you[0].saved) +
+      " now (" + Math.round(input.savePct * 100) + "% of pay).";
+    const at = (rows, age) => rows.find((r) => r.age === age);
+    const marks = [input.age + 10, input.age + 20].filter((a) => a < input.retireAge && (stop == null || a < stop));
+    let text = "Typical markets: " + marks.map((a) => "about " + money(Math.round(at(typ, a).saved / 500) * 500) + " at " + a).join(", ");
+    text += stop != null ? (marks.length ? ", then " : "") + "nothing from " + stop + "." : (marks.length ? ", " : "") + "saving until " + input.retireAge + ".";
+    const roughFit = rough.filter((r) => !r.over);
+    const roughOver = plan.rough.find((r) => r.over);
+    if (roughFit.length) {
+      const peak = roughFit.reduce((m, r) => (r.saved > m.saved ? r : m), roughFit[0]);
+      text += " Below average: up to " + money(Math.round(peak.saved / 500) * 500) + " a year around " + peak.age +
+        (roughOver ? ", and past the limit from " + roughOver.age : stopRough != null ? ", nothing from " + stopRough : "") + ".";
+    }
+    pathLine.textContent = text;
   }
 
   const parent = canvas.parentElement;
@@ -796,16 +861,15 @@ function drawStart(canvas, res, pickAge, $) {
   const muted = style.getPropertyValue("--muted").trim() || "#6b625b";
   const grid = style.getPropertyValue("--line").trim() || "#e4dcd0";
   const card = style.getPropertyValue("--card").trim() || "#fffdf8";
-  const colors = PLANS.map((p) => style.getPropertyValue(p.color).trim());
+  const green = style.getPropertyValue("--good").trim() || "#1f6b45";
+  const warm = style.getPropertyValue("--rent").trim() || "#a65b2b";
   const g = startGeometry(w, input);
-  const padT = 14;
+  const padT = 20;
   const padB = 22;
 
-  let top = you[0].payShare;
-  plans.forEach((pl) => pl.rows.forEach((r) => {
-    if (!r.over) top = Math.max(top, r.payShare);
-  }));
-  const step = niceCeil(Math.max(0.02, top) / 5);
+  let top = 0;
+  [typ, rough, you].forEach((rows) => rows.forEach((r) => (top = Math.max(top, val(r)))));
+  const step = niceCeil(Math.max(unit === "%" ? 0.02 : 1000, top) / 4);
   const rows = Math.max(2, Math.ceil(top / step - 1e-9));
   const yTop = step * rows;
   const plotH = h - padT - padB;
@@ -823,7 +887,7 @@ function drawStart(canvas, res, pickAge, $) {
     ctx.fillStyle = muted;
     ctx.textBaseline = "middle";
     ctx.textAlign = "right";
-    ctx.fillText(pctText(i * step), g.padL - 6, y);
+    ctx.fillText(i === 0 ? (unit === "%" ? "0%" : "$0") : fmt(i * step), g.padL - 6, y);
   }
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
@@ -838,111 +902,72 @@ function drawStart(canvas, res, pickAge, $) {
   paintAge(g.last);
   for (let a = Math.ceil(g.first / 5) * 5; a <= g.last; a += 5) paintAge(a);
 
-  // The age the table reads.
-  ctx.save();
-  ctx.strokeStyle = muted;
-  ctx.globalAlpha = 0.5;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  ctx.moveTo(g.xOf(at), padT);
-  ctx.lineTo(g.xOf(at), h - padB);
-  ctx.stroke();
-  ctx.restore();
+  // Bars: what to save each year if markets are typical. This year's bar is the darkest.
+  const bw = Math.max(2, Math.min(18, g.slot * 0.72));
+  typ.forEach((r, i) => {
+    const v = val(r);
+    if (v <= 0) return;
+    const x = g.xOf(r.age) - bw / 2;
+    const y = yOf(v);
+    ctx.fillStyle = r.over ? warm : green;
+    ctx.globalAlpha = r.over ? 0.45 : i === 0 ? 1 : hover === r.age ? 0.95 : 0.62;
+    ctx.fillRect(x, y, bw, yOf(0) - y);
+  });
+  ctx.globalAlpha = 1;
+  if (hover != null) {
+    const r = typ.find((x) => x.age === hover);
+    if (r && val(r) > 0) {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(g.xOf(r.age) - bw / 2, yOf(val(r)), bw, yOf(0) - yOf(val(r)));
+    }
+  }
 
-  const path = (pts, yFor) => {
+  const line = (rowsToDraw, color, width, dash) => {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    ctx.lineJoin = "round";
     ctx.beginPath();
     let pen = false;
-    pts.forEach((r) => {
+    rowsToDraw.forEach((r) => {
       if (r.over) {
         pen = false;
         return;
       }
       const x = g.xOf(r.age);
-      const y = yFor(r);
+      const y = yOf(val(r));
       if (!pen) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
       pen = true;
     });
     ctx.stroke();
+    ctx.restore();
   };
+  line(you, ink, 1.4, []);
+  line(rough, warm, 2.2, [6, 4]);
 
-  // You: the same share every year, for comparison.
-  ctx.save();
-  ctx.strokeStyle = ink;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([6, 4]);
-  path(you, (r) => yOf(r.payShare));
-  ctx.restore();
-
+  // Direct labels, skipped where they would collide.
   const labels = [];
-  for (let i = plans.length - 1; i >= 0; i--) {
-    const pl = plans[i];
-    const spec = PLANS[i];
-    ctx.save();
-    ctx.globalAlpha = spec.alpha || 1;
-    ctx.strokeStyle = colors[i];
-    ctx.fillStyle = colors[i];
-    ctx.lineWidth = spec.width;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    // The line is a 5-year rolling average; each year's own value is a faint dot.
-    const smooth = pl.rows.map((r, j) => {
-      if (r.over) return r;
-      let sum = 0;
-      let n = 0;
-      for (let d = -2; d <= 2; d++) {
-        const x = pl.rows[j + d];
-        if (x && !x.over) {
-          sum += x.payShare;
-          n += 1;
-        }
-      }
-      return { ...r, payShare: r.payShare === 0 ? 0 : sum / n };
-    });
-    path(smooth, (r) => yOf(r.payShare));
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    pl.rows.forEach((r) => {
-      if (r.over) return;
-      ctx.beginPath();
-      ctx.arc(g.xOf(r.age), yOf(r.payShare), 1.7, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.restore();
-    const stop = stopAge(pl.rows);
-    if (stop != null && stop <= g.last) {
-      ctx.beginPath();
-      ctx.arc(g.xOf(stop), yOf(0), 4, 0, Math.PI * 2);
-      ctx.fill();
-      labels.push({ x: g.xOf(stop), y: yOf(0) - 8, text: "stop at " + stop, color: colors[i], align: "center" });
-    }
-    const r = pl.rows[k];
-    if (r && !r.over) {
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = colors[i];
-      ctx.fillStyle = card;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(g.xOf(at), yOf(r.payShare), 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.restore();
-    const first = pl.rows.find((x) => !x.over);
-    if (first) labels.push({ x: g.xOf(first.age) + 4, y: yOf(first.payShare) - 9, text: spec.short + ": " + payPct(first.payShare), color: colors[i], align: "left", strong: i === 0 });
+  if (!now.over) labels.push({ x: g.xOf(input.age) - bw / 2, y: yOf(val(typ[0])) - 4, text: "now " + fmt(val(plan.typical[0])), color: green, strong: true });
+  if (stop != null) labels.push({ x: g.xOf(stop) - 4, y: yOf(0) - 4, text: "stop at " + stop, color: green, strong: true });
+  const roughOk = rough.filter((r) => !r.over);
+  if (roughOk.length) {
+    const peak = roughOk.reduce((m, r) => (val(r) > val(m) ? r : m), roughOk[0]);
+    labels.push({ x: g.xOf(peak.age) - 30, y: yOf(val(peak)) - 6, text: "below average", color: warm });
   }
-  labels.push({ x: w - g.padR + 4, y: yOf(you[you.length - 1].payShare), text: "You " + payPct(you[0].payShare), color: ink, align: "left", strong: true });
-
+  const youEnd = you[you.length - 1];
+  labels.push({ x: g.xOf(youEnd.age) - 50, y: yOf(val(youEnd)) - 5, text: "you now", color: ink });
   const boxes = [];
   labels.forEach((lb) => {
     ctx.font = (lb.strong ? "700 " : "600 ") + "11px system-ui, sans-serif";
     const tw = ctx.measureText(lb.text).width;
-    let x0 = lb.align === "center" ? lb.x - tw / 2 : lb.x;
-    x0 = Math.max(2, Math.min(x0, w - tw - 2));
-    for (const dy of [0, -13, 13, -26, 26]) {
-      const y0 = lb.y + dy - 6;
-      const box = { x: x0 - 2, y: y0 - 1, w: tw + 4, h: 14 };
-      if (box.y < 0 || box.y + box.h > h - padB + 2) continue;
+    const x0 = Math.max(g.padL + 2, Math.min(lb.x, w - g.padR - tw - 2));
+    for (const dy of [0, -13, 13, -26]) {
+      const y0 = lb.y + dy - 12;
+      const box = { x: x0 - 2, y: y0, w: tw + 4, h: 14 };
+      if (box.y < 0 || box.y + box.h > h - padB) continue;
       if (boxes.some((b) => box.x < b.x + b.w && b.x < box.x + box.w && box.y < b.y + b.h && b.y < box.y + box.h)) continue;
       boxes.push(box);
       ctx.save();
@@ -951,80 +976,68 @@ function drawStart(canvas, res, pickAge, $) {
       ctx.strokeStyle = card;
       ctx.lineWidth = 3.5;
       ctx.lineJoin = "round";
-      ctx.strokeText(lb.text, x0, y0);
+      ctx.strokeText(lb.text, x0, y0 + 1);
       ctx.fillStyle = lb.color;
-      ctx.fillText(lb.text, x0, y0);
+      ctx.fillText(lb.text, x0, y0 + 1);
       ctx.restore();
       break;
     }
   });
 
+  const legend = $("start-legend");
   legend.innerHTML = "";
-  const add = (label, color, kind, alpha) => {
+  const add = (label, color, kind) => {
     const item = document.createElement("span");
     const sw = document.createElement("i");
-    if (kind) {
-      sw.className = kind;
-      sw.style.color = color;
-    } else {
-      sw.style.background = color;
-      if (alpha) sw.style.opacity = String(alpha);
-    }
+    if (kind) sw.className = kind;
+    if (kind === "dash") sw.style.color = color;
+    else sw.style.background = color;
     item.append(sw, document.createTextNode(label));
     legend.appendChild(item);
   };
-  PLANS.forEach((spec, i) => add("Lasts in " + spec.name.replace("Half, for fun", "half, for fun"), colors[i], null, spec.alpha));
-  add("You, " + payPct(you[0].payShare) + " every year", ink, "dash");
+  if (typ.some((r) => !r.over)) add("Typical markets", green, "bar");
+  if (typ.some((r) => r.over)) add("The most the " + limit + " takes, not enough", warm, "bar");
+  if (roughOk.length) add("Below average (3 in 4 did better)", warm, "dash");
+  add("You now, " + Math.round(input.savePct * 100) + "% of pay", ink);
 
-  paintPlanTable(res, at, $);
-  canvas.setAttribute("aria-label", $("plan-lead").textContent);
+  paintPlanTable(res, conf, hover, $, typ, rough);
+  canvas.setAttribute("aria-label", big.textContent + ". " + pathLine.textContent);
   return true;
 }
 
-function paintPlanTable(res, at, $) {
+function paintPlanTable(res, conf, hover, $, typ, rough) {
   const input = res.input;
-  const k = at - input.age;
+  const spec = PLAN_FOR[conf] || PLAN_FOR[0];
+  const plan = res.plans[conf] || res.plans[0];
   const lead = $("plan-lead");
   const table = $("plan-table");
-  const style = getComputedStyle(document.documentElement);
-  const colors = PLANS.map((p) => style.getPropertyValue(p.color).trim());
-  const ink = style.getPropertyValue("--ink").trim();
+  lead.textContent = "Save this year's amount, then recheck once a year; each amount lasts in " + spec.name +
+    " from the balance you would have then. In typical markets it climbs a little into your 40s, when your balance is big and still has decades of market ahead, then falls fast as retirement nears. If markets run below average, keep saving more for longer. Hover or tap a bar for any age.";
 
-  const nine = res.plans[0].rows;
-  const half = res.plans[2] ? res.plans[2].rows : null;
-  let text = "Each year, from the balance you have, the rate that lasts in that many futures; then a typical year. ";
-  if (!nine[0].over) {
-    const stop9 = stopAge(nine);
-    const r9 = nine[k];
-    text += "Planning for 9 in 10 starts at <b>" + payPct(nine[0].payShare) + "</b> of pay at " + input.age;
-    text += r9 && !r9.over ? ", is <b>" + payPct(r9.payShare) + "</b> at " + at : "";
-    if (stop9 != null) {
-      text += ", and lets you <b>stop at " + stop9 + "</b>";
-      if (half && stopAge(half) == null) text += ", while the half plan saves " + payPct(half[0].payShare) + " all the way to " + input.retireAge;
-    }
-    text += ". Typical markets put the careful plan ahead a little each year; the payoff compounds, so the rate falls hardest in the last decades.";
-  } else {
-    text += "9 in 10 can't be reached inside the limit at this spending.";
-  }
-  text += " Hover or tap the chart for another age.";
-  lead.innerHTML = text;
+  const ages = [input.age];
+  for (let a = Math.ceil((input.age + 1) / 5) * 5; a < input.retireAge; a += 5) ages.push(a);
+  if (ages[ages.length - 1] !== input.retireAge - 1 && input.retireAge - 1 > input.age) ages.push(input.retireAge - 1);
+  if (hover != null && !ages.includes(hover)) ages.push(hover);
+  ages.sort((a, b) => a - b);
+  const stop = stopAge(plan.typical);
 
-  const head = '<thead><tr><th>Lasts in</th><th class="hide-sm">Rate at ' + input.age + "</th><th>Rate at " + at + "</th><th>A year at " + at +
-    '</th><th class="hide-sm">Of take-home</th><th class="hide-sm">Balance at ' + at + "</th><th>Stop at</th></tr></thead>";
-  const row = (name, color, dash, rows, odds) => {
-    const r = rows[k];
-    const sw = dash
-      ? '<span class="sw" style="background:none;border-top:2px dashed ' + color + ';height:0"></span>'
-      : '<span class="sw" style="background:' + color + '"></span>';
-    const cell = (x) => (x.over ? '<span class="none">over the limit</span>' : payPct(x.payShare));
-    const stop = stopAge(rows);
-    return "<tr" + (dash ? ' class="you"' : "") + "><td>" + sw + name + (odds != null ? '<span class="sub">lasts in ' + Math.round(odds * 100) + " of 100 from " + at + "</span>" : "") +
-      '</td><td class="hide-sm">' + cell(rows[0]) + '</td><td class="later">' + (r ? cell(r) : "—") + "</td><td>" + (r && !r.over ? money(r.saved) : "—") +
-      '</td><td class="hide-sm">' + (r && !r.over && r.share != null ? pctText(r.share) : "—") + '</td><td class="hide-sm">' + (r ? moneyShort(r.balance) : "—") +
-      "</td><td>" + (stop != null ? '<span class="zero">' + stop + "</span>" : dash ? "—" : "keeps saving") + "</td></tr>";
+  const cell = (r) => {
+    if (!r) return "—";
+    if (r.over) return '<span class="none">over the limit</span>';
+    if (r.payShare === 0) return '<span class="zero">$0, stop</span>';
+    return money(Math.round(r.saved / 100) * 100);
   };
-  const body = res.plans.map((pl, i) => row(PLANS[i].name, colors[i], false, pl.rows)).join("") +
-    row("You, every year", ink, true, res.you, res.you[k] ? res.you[k].odds : null);
+  const head = "<thead><tr><th>Age</th><th>Save, typical markets</th><th class=\"hide-sm\">Of take-home</th>" +
+    '<th class="hide-sm">Balance then</th><th>Save, below average</th></tr></thead>';
+  const body = ages.map((a) => {
+    const i = a - input.age;
+    const t = (a === input.age ? plan.typical : typ)[i];
+    const r = (a === input.age ? plan.rough : rough)[i];
+    const cls = [a === input.age ? "you" : "", a === hover ? "hover" : ""].join(" ").trim();
+    return '<tr class="' + cls + '"><td>' + (a === input.age ? a + ", now" : a) + (stop === a ? '<span class="sub">can stop</span>' : "") +
+      '</td><td class="later">' + cell(t) + '</td><td class="hide-sm">' + (t && !t.over && t.share != null ? pctText(t.share) : "—") +
+      '</td><td class="hide-sm">' + (t ? moneyShort(t.balance) : "—") + "</td><td>" + cell(r) + "</td></tr>";
+  }).join("");
   table.innerHTML = head + "<tbody>" + body + "</tbody>";
 }
 

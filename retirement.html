@@ -139,6 +139,30 @@
     border-top: 2px dashed currentColor;
     background: none !important;
   }
+  .save-big {
+    margin: 0.35rem 0 0;
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--good);
+  }
+  .save-unit { font-family: var(--sans); font-size: 0.95rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+  .save-sub { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
+  .save-path { margin: 0.4rem 0 0; color: var(--ink); font-size: 0.85rem; line-height: 1.45; }
+  .unit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.4rem 0.8rem;
+    margin-top: 0.55rem;
+  }
+  .unit-row .plot-note { flex: 1 1 18rem; margin: 0; }
+  .pills.small button { min-height: 1.9rem; padding: 0.2rem 0.65rem; font-size: 0.74rem; }
+  .legend i.bar { height: 0.7rem; width: 0.55rem; border-radius: 2px; }
+  .plan-table tr.hover td { background: var(--soft); }
   .plan-card h2 { margin-bottom: 0.2rem; }
   .plan-lead { margin: 0 0 0.7rem; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
   .plan-lead b { color: var(--ink); font-weight: 650; }
@@ -173,6 +197,8 @@
   .plan-table .none { color: var(--rent); font-weight: 600; }
   .plan-table .zero { color: var(--good); font-weight: 650; }
   @media (max-width: 640px) {
+    .stage { position: relative; box-shadow: none; }
+    .save-big { font-size: 1.7rem; }
     #start-note { display: none; }
     #start-legend { gap: 0.2rem 0.6rem; margin-top: 0.3rem; }
     #start-legend span { font-size: 0.68rem; }
@@ -221,21 +247,35 @@
 
 <main class="wrap stack">
   <div class="stick-scope">
-  <section class="stage card" aria-label="Share of pay you need to save, by age">
+  <section class="stage card" aria-label="How much to save">
     <div class="plot-head">
-      <p class="plot-name" id="start-name">The share of pay you need each year</p>
+      <p class="plot-name" id="start-name">How much to save</p>
+      <div class="pills" role="radiogroup" aria-label="Plan for how many markets">
+        <button type="button" data-conf="0" aria-pressed="true">9 of 10 markets</button>
+        <button type="button" data-conf="1" aria-pressed="false">3 of 4</button>
+        <button type="button" data-conf="2" aria-pressed="false">Half</button>
+      </div>
     </div>
-    <p class="plot-note" id="start-note">Counting…</p>
+    <p class="save-big" id="save-big">Counting…</p>
+    <p class="save-sub" id="save-sub"></p>
     <p class="start-empty" id="start-empty" hidden></p>
+    <p class="save-path" id="save-path"></p>
+    <div class="unit-row">
+      <p class="plot-note" id="start-note"></p>
+      <div class="pills small" role="radiogroup" aria-label="Show amounts as">
+        <button type="button" data-unit="$" aria-pressed="true">$ a year</button>
+        <button type="button" data-unit="%" aria-pressed="false">% of take-home</button>
+      </div>
+    </div>
     <div class="chart-box tall">
-      <canvas id="startChart" aria-label="Share of pay needed each year"></canvas>
+      <canvas id="startChart" aria-label="Amount to save each year"></canvas>
     </div>
     <div class="legend" id="start-legend"></div>
     <p class="quick" id="quick"></p>
   </section>
 
   <section class="card plan-card" aria-labelledby="plan-heading">
-    <h2 id="plan-heading">Save more now, need less later</h2>
+    <h2 id="plan-heading">Your saving schedule</h2>
     <p class="plan-lead" id="plan-lead"></p>
     <table class="plan-table" id="plan-table"></table>
   </section>
@@ -510,12 +550,13 @@
 
       <h3>The lines</h3>
       <p>The lines are not rates, and none is one person's life. At each age they are a cutoff across the 280 balances: the level 9 in 10 histories beat, and the level 3 in 4 beat. Your spending is checked against all 280: the verdict counts how many never run out, and the fix is the retirement age or save rate that gets that count to 252, 9 in 10. The burn rate is the largest \(K\), to the nearest $100, that never hits zero in at least that fraction of markets. If a line reaches the floor, that fraction of markets had already run out.</p>
-      <h3>Save more now, need less later</h3>
-      <p>The top chart holds spending fixed at \(K\) and asks what share of pay it takes, year by year. At each working age the page asks: from the balance you have, what share \(q\) of pay, saved every year from now until you retire, lasts in 9 of 10 futures (or 3 of 4, or half)? You save \(q\) for one year. Then a typical year happens: the balance grows at the compound real return a middle path grows at, the same one the box above calls the compound return. Next year the question is asked again from the new balance.</p>
-      <p>Planning for a bad market while a typical one arrives leaves you a little ahead each year, and that lead compounds. Early on it is small, and a shorter runway makes the bad case a little harder each year, so the 9-in-10 rate holds roughly level. Later the balance carries the plan and the rate falls, to zero when the balance alone lasts. The half plan stays about flat, because a typical market is what it already expected. Your current rate, saved every year, is the dashed line for comparison.</p>
-      <p>Every age faces the same futures: each history's first years for the working years left, then its retirement years. This chart reads a cutoff every year, so it draws 2,000 histories instead of 280, and can differ from the verdict above by a point or so. A deposit made \(j\) years from now reaches retirement multiplied by</p>
+      <h3>How much to save</h3>
+      <p>The top card holds spending fixed at \(K\) and answers two things: how much to put in the 401(k) this year, and what that leaves for later years. At each working age the page asks: from the balance you have, what share \(q\) of pay, saved every year from now until you retire, lasts in 9 of 10 futures (or 3 of 4, or half, from the buttons)? This year's amount is that \(q\) of this year's pay, through the same caps, catch-up, Roth, and mega backdoor rules as above.</p>
+      <p>Then a year passes and the question is asked again from the new balance. The bars walk typical markets: at every age the balance has grown like the middle of all histories, half did better and half worse, about 3.7% a year after inflation. The dashed line walks below-average markets, where 3 in 4 histories did better, about 1.8% a year. The thin line is what you save now, for comparison.</p>
+      <p>Planning for a bad market while a typical one arrives leaves you ahead, so near retirement the amount falls fast and reaches zero: your balance alone lasts. In your 30s and 40s it can climb a little first. That is when your balance is large and still has decades of market ahead of it, so the most money is exposed to a bad stretch. Below-average markets keep the amount higher for longer.</p>
+      <p>Every age faces the same futures: each history's first years for the working years left, then its retirement years. This card reads a cutoff every year, so it draws 2,000 histories instead of 280, and its amount can differ from the verdict above by a point of pay or so. A deposit made \(j\) years from now reaches retirement multiplied by</p>
       <div class="math">\[ g_j = \left(1 + \tfrac{1}{2} r_j\right) \prod_{i>j} (1 + r_i) \]</div>
-      <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are sums. Whether a history lasts depends only on those two pockets, so the page finds each history's smallest lasting balance once per pre-tax share on a 0.1 grid and interpolates between. Rates are searched in quarter-percent steps; checks against the full year-by-year simulation agree. The line is a 5-year rolling average and each year's own value is a dot. The table's take-home column is what the deposit costs out of pay after income and payroll tax; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
+      <p>the same mid-year rule as the balance chart, so the pre-tax and Roth pockets at retirement are sums. Whether a history lasts depends only on those two pockets, so the page finds each history's smallest lasting balance once per pre-tax share on a 0.1 grid and interpolates between. Shares are searched in quarter-percent steps, and replays against the full year-by-year simulation agree. Each year's amount still wobbles a little with the sample, so the bars and schedule use a 5-year average that narrows at the ends; this year's amount is exactly this year's. The take-home share is what the deposit costs out of pay after income and payroll tax; a pre-tax deposit costs less than its size, because it lowers income tax.</p>
 
       <p>The median is noted in the cards for fun, not drawn, and not to plan on. Spending it supports runs out in half of markets, and it isn't the average either: wealth multiplies, so a few lucky markets pull the average above where most end. Plan from the bad outcomes you would actually live through. The 9-in-10 number is the one Fidelity's planner uses.</p>
       <p>The draws follow the historical success-rate method in Bengen (1994) and the Trinity study, and the block bootstrap used in later work: real multi-year stretches, not a bell curve. Those papers also mark the limit of this page. It uses only US stocks from 1928. Once other countries are included, the spending that survives is lower. The 5-year block length is a choice, not a law.</p>
@@ -529,7 +570,7 @@
 </footer>
 
 <script src="js/knobs.js?v=2"></script>
-<script type="module" src="js/retirement.js?v=30"></script>
+<script type="module" src="js/retirement.js?v=31"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   if (!window.renderMathInElement) return;
